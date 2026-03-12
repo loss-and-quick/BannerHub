@@ -39,6 +39,11 @@ jobs:
           echo "Decompiling: $APK"
           java -jar $HOME/bin/apktool.jar d "$APK" -o apktool_out -f
 
+      - name: Remove uncompilable apktool artifacts
+        run: |
+          # raws.xml contains Firebase boolean entries that aapt2 rejects (expects file refs)
+          rm -f apktool_out/res/values/raws.xml
+
       - name: Apply patches
         run: |
           if [ -d "patches" ] && [ "$(ls -A patches)" ]; then
