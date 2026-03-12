@@ -10,6 +10,10 @@
 .method public static extract(Landroid/content/ContentResolver;Landroid/net/Uri;Ljava/io/File;)V
     .locals 8
 
+    # Clear destDir before injection, then recreate
+    invoke-static {p2}, Lcom/xj/landscape/launcher/ui/menu/WcpExtractor;->clearDir(Ljava/io/File;)V
+    invoke-virtual {p2}, Ljava/io/File;->mkdirs()Z
+
     # v0 = byte[4] header
     const/4 v0, 0x4
     new-array v0, v0, [B
@@ -81,8 +85,9 @@
     const/16 v2, 0x58
     if-ne v6, v2, :unknown_format
 
-    new-instance v7, Lorg/tukaani/xz/XZInputStream;
-    invoke-direct {v7, v1}, Lorg/tukaani/xz/XZInputStream;-><init>(Ljava/io/InputStream;)V
+    # Use XZCompressorInputStream from commons-compress (avoids direct tukaani constructor call)
+    new-instance v7, Lorg/apache/commons/compress/compressors/xz/XZCompressorInputStream;
+    invoke-direct {v7, v1}, Lorg/apache/commons/compress/compressors/xz/XZCompressorInputStream;-><init>(Ljava/io/InputStream;)V
     invoke-static {v7, p2}, Lcom/xj/landscape/launcher/ui/menu/WcpExtractor;->extractTar(Ljava/io/InputStream;Ljava/io/File;)V
     invoke-virtual {v7}, Ljava/io/InputStream;->close()V
     invoke-virtual {v1}, Ljava/io/InputStream;->close()V
@@ -94,6 +99,41 @@
     const-string v3, "Unknown file format (not ZIP/zstd/XZ)"
     invoke-direct {v2, v3}, Ljava/lang/Exception;-><init>(Ljava/lang/String;)V
     throw v2
+
+.end method
+
+# Recursively delete all contents of dir (but keep dir itself)
+.method private static clearDir(Ljava/io/File;)V
+    .locals 5
+
+    invoke-virtual {p0}, Ljava/io/File;->listFiles()[Ljava/io/File;
+    move-result-object v0
+    if-eqz v0, :done
+
+    array-length v1, v0
+    const/4 v2, 0x0
+
+    :loop
+    if-ge v2, v1, :done
+    aget-object v3, v0, v2
+    invoke-virtual {v3}, Ljava/io/File;->isDirectory()Z
+    move-result v4
+    if-eqz v4, :del_file
+
+    # Recurse into subdir, then delete the empty dir
+    invoke-static {v3}, Lcom/xj/landscape/launcher/ui/menu/WcpExtractor;->clearDir(Ljava/io/File;)V
+    invoke-virtual {v3}, Ljava/io/File;->delete()Z
+    goto :next
+
+    :del_file
+    invoke-virtual {v3}, Ljava/io/File;->delete()Z
+
+    :next
+    add-int/lit8 v2, v2, 0x1
+    goto :loop
+
+    :done
+    return-void
 
 .end method
 
