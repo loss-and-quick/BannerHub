@@ -4,6 +4,15 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## v2.2.3 — stable release (2026-03-14)
+**Commit:** `580fb60` | **Tag:** `v2.2.3`
+
+### What changed
+- Promoted v2.2.3-pre to stable.
+- Release description covers new fixes since v2.2.2 + full feature set + installation table.
+
+---
+
 ## v2.2.3-pre — fix: RTS gesture settings dialog crash + cog icon (2026-03-14)
 **Commit:** `580fb60` | **Tag:** `v2.2.3-pre`
 
