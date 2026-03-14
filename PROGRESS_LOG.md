@@ -4,6 +4,22 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## v2.2.4-pre — feat: skip Steam login screen when offline at cold start (2026-03-14)
+**Commit:** `b16848f` | **Tag:** `v2.2.4-pre`
+
+### What changed
+- Patched `SteamGameByPcEmuLaunchStrategy$execute$3.smali` to skip the Steam login
+  screen when there is no network connection at cold start.
+- When autoLogin fails AND network is unavailable (`NetworkUtils.r()` == false),
+  the login screen is bypassed and the game launch pipeline proceeds with cached config.
+- When autoLogin fails AND network IS available, login screen shown as normal.
+- Developed on `beta` branch as `v2.2.4-beta1`, confirmed working, merged to main.
+
+### Files touched
+- `patches/smali_classes10/com/xj/landscape/launcher/launcher/strategy/SteamGameByPcEmuLaunchStrategy$execute$3.smali` (new)
+
+---
+
 ## v2.2.3 — stable release (2026-03-14)
 **Commit:** `580fb60` | **Tag:** `v2.2.3`
 
