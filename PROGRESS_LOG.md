@@ -4,6 +4,26 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [stable] — v2.3.0 — Stable release (2026-03-15)
+**Commit:** `cdb1f06`  |  **Tag:** v2.3.0  |  **CI run:** `23118528237` (~22min ✓)
+
+### What changed (new since v2.2.4)
+- True component injection into GameHub menus (Add New Component flow)
+- FEXCore resilience on missing/corrupt profile.json
+- ZIP injection: folder name + libraryName fixes
+- Remove option in Component Manager
+- RTS gesture dialog shrunk ~20%, close button fixed (nav bar overlap)
+- EmuReady API toggle defaults to off
+- 7th APK variant: Bannerhub-5.3.5-Revanced-Original.apk (com.xiaoji.egggame)
+- README rewritten with full feature set and 7-variant install table
+
+### Files touched
+- All patches from v2.2.5-pre through v2.2.11-pre
+- `.github/workflows/build.yml` (7th variant)
+- `README.md`
+
+---
+
 ## [pre] — v2.2.11-pre — Default EmuReady API toggle to off (2026-03-15)
 **Commit:** `bc457d8`  |  **Tag:** v2.2.11-pre  |  **CI run:** `67140309487` (3m42s ✓)
 

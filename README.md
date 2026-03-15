@@ -1,6 +1,6 @@
 # BannerHub
 
-Rebuild pipeline for **GameHub 5.3.5 ReVanced** using apktool. Applies smali and resource patches to add a Component Manager, BCI launcher button, RTS touch controls, and UI tweaks directly inside GameHub.
+Rebuild pipeline for **GameHub 5.3.5 ReVanced** using apktool. Applies smali and resource patches to add a Component Manager, BCI launcher button, RTS touch controls, offline Steam launch skip, and UI tweaks directly inside GameHub.
 
 ## Features
 
@@ -8,13 +8,13 @@ Rebuild pipeline for **GameHub 5.3.5 ReVanced** using apktool. Applies smali and
 Accessible via GameHub's left side menu → **Components**.
 
 - Lists all installed components from `files/usr/home/components/`
-- **Inject WCP/ZIP** — pick any `.wcp` or `.zip` file via the Android file picker. Supports:
-  - **ZIP** (Turnip / adrenotools GPU drivers) — flat extraction to component root
-  - **zstd tar** — DXVK, VKD3D, Box64: preserves `system32/`+`syswow64/` structure; FEXCore: flat to component root
-  - **XZ tar** — same logic as zstd path
-- **Backup component** — copies component folder to `Downloads/BannerHub/{name}/`
-- Component folder is fully cleared before every injection (no stale files)
-- Extraction runs on a background thread; errors are surfaced as toasts
+- **Add New Component** — inject a WCP or ZIP file as a brand new component slot; it appears in GameHub's DXVK / VKD3D / Box64 / FEXCore / GPU Driver selection menus immediately and persists across restarts
+- **Inject file** — replace an existing component's contents with a new WCP or ZIP
+- **Backup** — copies a component folder to `Downloads/BannerHub/{name}/`
+- **Remove** — unregisters the component from GameHub's in-memory map and deletes the folder
+- Supports ZIP (Turnip / adrenotools), zstd tar (DXVK, VKD3D, Box64), and XZ tar (FEXCore nightlies)
+- FEXCore: flat extraction to component root; all other types preserve `system32/`+`syswow64/` structure
+- Component folder cleared before every inject (no stale files); extraction runs on a background thread
 
 ### BCI Launcher Button
 Tap the banner icon in GameHub's top-right toolbar to open **BannersComponentInjector** (`com.banner.inject`). Shows a toast if it is not installed.
@@ -28,9 +28,9 @@ Accessible via **Settings → Controls tab** in the in-game sidebar overlay. Tog
 - **Drag for box selection** — holds LMB during drag to draw a selection box
 - **Long press for right-click** — 300ms hold triggers right-click
 - **Double-tap for double-click** — two taps within 250ms / 50px
-- **Two-finger pan** — drags the camera (configurable action)*
-- **Pinch-to-zoom** — mouse wheel scroll (configurable action)*
-- **Gesture settings dialog** — customizable action picker for two-finger pan and pinch
+- **Two-finger pan** — camera pan (configurable)*
+- **Pinch-to-zoom** — mouse wheel scroll (configurable)*
+- **Gesture settings dialog** — customizable action picker for two-finger pan and pinch (gear icon in Controls tab)
 
 *\*These two gestures can be customized in the RTS Gesture Settings menu.*
 
@@ -39,6 +39,7 @@ When autoLogin fails and no network connection is available at cold start, the S
 
 ### UI Tweaks
 - "My" tab renamed to "My Games"
+- EmuReady API toggle defaults to **off** on fresh installs (Advanced settings)
 
 ## How it works
 
@@ -60,12 +61,13 @@ Download the APK matching your target package from the [latest stable release](h
 | `Bannerhub-5.3.5-Revanced-alt-AnTuTu.apk` | `com.antutu.benchmark.full` | GameHub Revanced AnTuTu |
 | `Bannerhub-5.3.5-Revanced-Ludashi.apk` | `com.ludashi.aibench` | GameHub Revanced Ludashi |
 | `Bannerhub-5.3.5-Revanced-Genshin.apk` | `com.mihoyo.genshinimpact` | GameHub Revanced Genshin |
+| `Bannerhub-5.3.5-Revanced-Original.apk` | `com.xiaoji.egggame` | GameHub Revanced |
 
-All APKs are signed with AOSP testkey (v1/v2/v3). Coexists with the original GameHub app.
+All APKs are signed with AOSP testkey (v1/v2/v3). Each uses a unique package name and provider authority — multiple variants can be installed simultaneously without conflicts.
 
 ## Triggering a build
 
-- Push a `v*` tag: `git tag v2.2.2 && git push origin refs/tags/v2.2.2`
+- Push a `v*` tag: `git tag v2.3.0 && git push origin refs/tags/v2.3.0`
 - Or: **Actions → Build APK → Run workflow**
 
 ## Signing
