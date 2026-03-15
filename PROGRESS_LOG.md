@@ -4,6 +4,19 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [pre] — v2.2.10-pre — Fix Close button unreachable behind nav bar (2026-03-15)
+**Commit:** `626c9d0`  |  **Tag:** v2.2.10-pre  |  **CI run:** `23115230824` (3m45s ✓)
+
+### What changed
+- Added `android:paddingBottom="56dp"` to the root `FrameLayout` in `rts_gesture_config_dialog.xml`
+- Root cause: GameHub runs in immersive mode (window extends behind nav bar); `layout_gravity="center"` was centering the dialog in the full window area, placing the Close button behind the navigation bar where touches are intercepted by the system
+- Fix ensures the dialog centers within the usable screen area, keeping the Close button tappable
+
+### Files touched
+- `patches/res/layout/rts_gesture_config_dialog.xml`
+
+---
+
 ## [pre] — v2.2.9-pre — Shrink RTS gesture settings dialog ~20% (2026-03-15)
 **Commit:** `bb3d420`  |  **Tag:** v2.2.9-pre  |  **CI run:** `23114552262` (3m41s ✓)
 
