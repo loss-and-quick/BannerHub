@@ -9,11 +9,9 @@ on:
       - '!v*-beta*'
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
 
+  prepare:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -43,9 +41,7 @@ jobs:
 
       - name: Remove uncompilable apktool artifacts
         run: |
-          # raws.xml contains Firebase boolean entries that aapt2 rejects (expects file refs)
           rm -f apktool_out_base/res/values/raws.xml
-          # Remove the matching public.xml declarations or aapt2 errors on missing symbols
           sed -i '/firebase_common_keep\|firebase_crashlytics_keep/d' apktool_out_base/res/values/public.xml
 
       - name: Apply patches
@@ -58,66 +54,107 @@ jobs:
             echo "No patches to apply."
           fi
 
-      - name: Rebuild and Sign Multiple APKs
+      - name: Upload patched source
+        uses: actions/upload-artifact@v4
+        with:
+          name: apktool_out_base
+          path: apktool_out_base/
+          retention-days: 1
+
+  build:
+    needs: prepare
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    strategy:
+      matrix:
+        include:
+          - apk: Bannerhub-5.3.5-Revanced-Normal.apk
+            package: gamehub.lite
+            label: "GameHub Revanced"
+          - apk: Bannerhub-5.3.5-Revanced-PuBG.apk
+            package: com.tencent.ig
+            label: "GameHub Revanced PuBG"
+          - apk: Bannerhub-5.3.5-Revanced-AnTuTu.apk
+            package: com.antutu.ABenchMark
+            label: "GameHub Revanced AnTuTu"
+          - apk: Bannerhub-5.3.5-Revanced-alt-AnTuTu.apk
+            package: com.antutu.benchmark.full
+            label: "GameHub Revanced AnTuTu"
+          - apk: Bannerhub-5.3.5-Revanced-Ludashi.apk
+            package: com.ludashi.aibench
+            label: "GameHub Revanced Ludashi"
+          - apk: Bannerhub-5.3.5-Revanced-Genshin.apk
+            package: com.mihoyo.genshinimpact
+            label: "GameHub Revanced Genshin"
+          - apk: Bannerhub-5.3.5-Revanced-Original.apk
+            package: com.xiaoji.egggame
+            label: "GameHub Revanced"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install apktool
         run: |
-          # Define targets: "output_filename:package_name:display_label"
-          TARGETS=(
-            "Bannerhub-5.3.5-Revanced-Normal.apk:gamehub.lite:GameHub Revanced"
-            "Bannerhub-5.3.5-Revanced-PuBG.apk:com.tencent.ig:GameHub Revanced PuBG"
-            "Bannerhub-5.3.5-Revanced-AnTuTu.apk:com.antutu.ABenchMark:GameHub Revanced AnTuTu"
-            "Bannerhub-5.3.5-Revanced-Ludashi.apk:com.ludashi.aibench:GameHub Revanced Ludashi"
-            "Bannerhub-5.3.5-Revanced-Genshin.apk:com.mihoyo.genshinimpact:GameHub Revanced Genshin"
-            "Bannerhub-5.3.5-Revanced-alt-AnTuTu.apk:com.antutu.benchmark.full:GameHub Revanced AnTuTu"
-            "Bannerhub-5.3.5-Revanced-Original.apk:com.xiaoji.egggame:GameHub Revanced"
-          )
+          APKTOOL_VER=2.9.3
+          mkdir -p $HOME/bin
+          wget -q "https://github.com/iBotPeaches/Apktool/releases/download/v${APKTOOL_VER}/apktool_${APKTOOL_VER}.jar" -O $HOME/bin/apktool.jar
+          wget -q "https://raw.githubusercontent.com/iBotPeaches/Apktool/master/scripts/linux/apktool" -O $HOME/bin/apktool
+          chmod +x $HOME/bin/apktool
+          echo "$HOME/bin" >> $GITHUB_PATH
 
-          for target in "${TARGETS[@]}"; do
-            out_apk="${target%%:*}"
-            remainder="${target#*:}"
-            pkg_name="${remainder%%:*}"
-            display_label="${remainder#*:}"
+      - name: Download patched source
+        uses: actions/download-artifact@v4
+        with:
+          name: apktool_out_base
+          path: apktool_out
 
-            echo "========================================"
-            echo "Building $out_apk with package $pkg_name"
-            echo "========================================"
+      - name: Patch package name and label
+        run: |
+          PKG="${{ matrix.package }}"
+          LABEL="${{ matrix.label }}"
+          if [ "$PKG" != "gamehub.lite" ]; then
+            sed -i "s/package=\"gamehub.lite\"/package=\"$PKG\"/g" apktool_out/AndroidManifest.xml
+            sed -i "s/android:authorities=\"gamehub.lite/android:authorities=\"$PKG/g" apktool_out/AndroidManifest.xml
+          fi
+          sed -i "s/android:label=\"GameHub Revanced\"/android:label=\"$LABEL\"/" apktool_out/AndroidManifest.xml
 
-            # Create a fresh copy of the patched decompiled source
-            rm -rf apktool_out
-            cp -r apktool_out_base apktool_out
+      - name: Rebuild APK
+        run: |
+          java -jar $HOME/bin/apktool.jar b apktool_out -o rebuilt-unsigned.apk
 
-            # Update package name if not default
-            if [ "$pkg_name" != "gamehub.lite" ]; then
-              echo "Patching AndroidManifest.xml for package: $pkg_name"
-              sed -i "s/package=\"gamehub.lite\"/package=\"$pkg_name\"/g" apktool_out/AndroidManifest.xml
-              # Update provider authorities to prevent install conflicts with multiple versions
-              sed -i "s/android:authorities=\"gamehub.lite/android:authorities=\"$pkg_name/g" apktool_out/AndroidManifest.xml
-            fi
+      - name: Zipalign
+        run: |
+          BUILD_TOOLS=$(ls ${ANDROID_SDK_ROOT}/build-tools | tail -1)
+          ${ANDROID_SDK_ROOT}/build-tools/${BUILD_TOOLS}/zipalign -f -v 4 rebuilt-unsigned.apk rebuilt-aligned.apk
 
-            # Set per-variant display label
-            sed -i "s/android:label=\"GameHub Revanced\"/android:label=\"$display_label\"/" apktool_out/AndroidManifest.xml
-            
-            # Rebuild
-            echo "Building APK with apktool..."
-            java -jar $HOME/bin/apktool.jar b apktool_out -o rebuilt-unsigned.apk
-            
-            # Align
-            echo "Zipaligning..."
-            ${ANDROID_SDK_ROOT}/build-tools/$(ls ${ANDROID_SDK_ROOT}/build-tools | tail -1)/zipalign -f -v 4 rebuilt-unsigned.apk rebuilt-aligned.apk
-            
-            # Sign
-            echo "Signing with AOSP testkey..."
-            ${ANDROID_SDK_ROOT}/build-tools/$(ls ${ANDROID_SDK_ROOT}/build-tools | tail -1)/apksigner sign \
-              --key testkey.pk8 \
-              --cert testkey.x509.pem \
-              --v1-signing-enabled true \
-              --v2-signing-enabled true \
-              --v3-signing-enabled true \
-              --out "$out_apk" \
-              rebuilt-aligned.apk
-              
-            echo "Completed: $out_apk ($(du -sh "$out_apk" | cut -f1))"
-          done
+      - name: Sign
+        run: |
+          BUILD_TOOLS=$(ls ${ANDROID_SDK_ROOT}/build-tools | tail -1)
+          ${ANDROID_SDK_ROOT}/build-tools/${BUILD_TOOLS}/apksigner sign \
+            --key testkey.pk8 \
+            --cert testkey.x509.pem \
+            --v1-signing-enabled true \
+            --v2-signing-enabled true \
+            --v3-signing-enabled true \
+            --out "${{ matrix.apk }}" \
+            rebuilt-aligned.apk
+          echo "Completed: ${{ matrix.apk }} ($(du -sh "${{ matrix.apk }}" | cut -f1))"
 
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.apk }}
+          path: ${{ matrix.apk }}
+          retention-days: 1
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
       - name: Get tag name
         id: tag
         run: |
@@ -127,7 +164,13 @@ jobs:
             echo "name=manual-$(date +%Y%m%d-%H%M%S)" >> $GITHUB_OUTPUT
           fi
 
-      - name: Upload release
+      - name: Download all APK artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: Bannerhub-*.apk
+          merge-multiple: true
+
+      - name: Create release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.name }}
