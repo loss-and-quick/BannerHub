@@ -1,12 +1,7 @@
-name: Build APK
+name: Build APK (CrossFire only)
 
 on:
   workflow_dispatch:
-  push:
-    tags:
-      - 'v*'
-      - '!v*-pre*'
-      - '!v*-beta*'
 
 jobs:
 
@@ -66,34 +61,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    strategy:
-      matrix:
-        include:
-          - apk: Bannerhub-5.3.5-Revanced-Normal.apk
-            package: gamehub.lite
-            label: "GameHub Revanced"
-          - apk: Bannerhub-5.3.5-Revanced-PuBG.apk
-            package: com.tencent.ig
-            label: "GameHub Revanced PuBG"
-          - apk: Bannerhub-5.3.5-Revanced-AnTuTu.apk
-            package: com.antutu.ABenchMark
-            label: "GameHub Revanced AnTuTu"
-          - apk: Bannerhub-5.3.5-Revanced-alt-AnTuTu.apk
-            package: com.antutu.benchmark.full
-            label: "GameHub Revanced AnTuTu"
-          - apk: Bannerhub-5.3.5-Revanced-PuBG-CrossFire.apk
-            package: com.tencent.tmgp.cf
-            label: "GameHub Revanced PuBG CrossFire"
-          - apk: Bannerhub-5.3.5-Revanced-Ludashi.apk
-            package: com.ludashi.aibench
-            label: "GameHub Revanced Ludashi"
-          - apk: Bannerhub-5.3.5-Revanced-Genshin.apk
-            package: com.mihoyo.genshinimpact
-            label: "GameHub Revanced Genshin"
-          - apk: Bannerhub-5.3.5-Revanced-Original.apk
-            package: com.xiaoji.egggame
-            label: "GameHub Revanced"
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -115,13 +82,8 @@ jobs:
 
       - name: Patch package name and label
         run: |
-          PKG="${{ matrix.package }}"
-          LABEL="${{ matrix.label }}"
-          if [ "$PKG" != "gamehub.lite" ]; then
-            # Replace all occurrences of gamehub.lite in the manifest (package, sharedUserId, authorities, permissions, etc.)
-            sed -i "s/gamehub\.lite/$PKG/g" apktool_out/AndroidManifest.xml
-          fi
-          sed -i "s/android:label=\"GameHub Revanced\"/android:label=\"$LABEL\"/" apktool_out/AndroidManifest.xml
+          sed -i "s/gamehub\.lite/com.tencent.tmgp.cf/g" apktool_out/AndroidManifest.xml
+          sed -i "s/android:label=\"GameHub Revanced\"/android:label=\"GameHub Revanced PuBG CrossFire\"/" apktool_out/AndroidManifest.xml
 
       - name: Rebuild APK
         run: |
@@ -141,42 +103,12 @@ jobs:
             --v1-signing-enabled true \
             --v2-signing-enabled true \
             --v3-signing-enabled true \
-            --out "${{ matrix.apk }}" \
+            --out "Bannerhub-5.3.5-Revanced-PuBG-CrossFire.apk" \
             rebuilt-aligned.apk
-          echo "Completed: ${{ matrix.apk }} ($(du -sh "${{ matrix.apk }}" | cut -f1))"
+          echo "Done: Bannerhub-5.3.5-Revanced-PuBG-CrossFire.apk ($(du -sh Bannerhub-5.3.5-Revanced-PuBG-CrossFire.apk | cut -f1))"
 
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.apk }}
-          path: ${{ matrix.apk }}
-          retention-days: 1
-
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Get tag name
-        id: tag
+      - name: Upload to v2.3.0 release
         run: |
-          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
-            echo "name=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-          else
-            echo "name=manual-$(date +%Y%m%d-%H%M%S)" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Download all APK artifacts
-        uses: actions/download-artifact@v4
-        with:
-          pattern: Bannerhub-*.apk
-          merge-multiple: true
-
-      - name: Create release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.tag.outputs.name }}
-          name: Bannerhub ${{ steps.tag.outputs.name }}
-          prerelease: ${{ contains(steps.tag.outputs.name, '-') }}
-          files: Bannerhub-*.apk
+          gh release upload v2.3.0 Bannerhub-5.3.5-Revanced-PuBG-CrossFire.apk --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
