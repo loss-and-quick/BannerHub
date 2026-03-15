@@ -4,6 +4,30 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [pre] — v2.2.5-pre — True component injection into GameHub menus (2026-03-14)
+**Commit:** `e7dd944`  |  **Tag:** v2.2.5-pre
+
+### What changed
+- **ComponentManagerActivity**: prepended "+ Add New Component" at index 0 of the
+  component list. Added `selectedType:I` field. New mode=2 type-selection screen shows
+  DXVK / VKD3D-Proton / Box64 / FEXCore / GPU Driver Turnip / ← Back. mode=3 launches
+  file picker for the new inject flow. `onActivityResult` branches mode=3 →
+  ComponentInjectorHelper (new inject), mode=1 → existing replace flow unchanged.
+- **ComponentInjectorHelper** (new file): static helper class. Detects WCP (Zstd
+  magic 0x28 / XZ magic 0xFD) or ZIP (0x50) from first byte. For WCP: reads
+  `profile.json` in a first pass to get `versionName`; creates a new folder under
+  `components/` named after versionName; extracts files (FEXCore: flat extraction;
+  all others: preserve `system32/`/`syswow64/` structure). For ZIP: flat extraction +
+  parses `meta.json` for name/description. Constructs `EnvLayerEntity` + `ComponentRepo`
+  with `state=INSTALLED` and registers via `EmuComponents.D()` so the component
+  appears in GameHub's in-app selection menus immediately — no existing component replaced.
+
+### Files touched
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/ComponentManagerActivity.smali`
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/ComponentInjectorHelper.smali` (new)
+
+---
+
 ## v2.2.4 — stable release (2026-03-15)
 **Commit:** `1968948` | **Tag:** `v2.2.4`
 
