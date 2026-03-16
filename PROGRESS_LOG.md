@@ -4,6 +4,18 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [beta] — v2.3.1-beta2 — Case-insensitive detectType (2026-03-16)
+**Commit:** `e2887e1`  |  **Tag:** v2.3.1-beta2  |  **CI run:** `23122723773` (✓ 3m54s, Normal APK, package=`banner.hub`)
+
+### What changed
+- `detectType()` already had `toLowerCase()` from commit `14a9471` — confirmed correct. Tagged beta2 as clean release separate from beta1 iterations.
+- No code changes from beta1; this tag exists to give users a stable, clearly-named release to test.
+
+### Files touched
+- `PROGRESS_LOG.md` only
+
+---
+
 ## [beta] — v2.3.1-beta1 — Multi-repo/category component downloader (2026-03-15)
 **Commit:** `14a9471`  |  **Tag:** v2.3.1-beta1 (retagged)  |  **CI run:** `23122285193` (✓ 3m42s, Normal APK, package=`banner.hub`)
 
