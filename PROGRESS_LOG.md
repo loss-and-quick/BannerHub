@@ -27,6 +27,64 @@ Implemented in-app component downloader. Full journey: initial fetch (Nightlies 
 
 ---
 
+## [fix] — v2.3.1-pre8 — Fix blank component name after ZIP inject (2026-03-16)
+**Commit:** `(pending)`  |  **Tag:** v2.3.1-pre8
+
+### Root cause
+`getDisplayName(ctx, uri)` queries ContentResolver `_display_name`. For `file://` URIs created by `Uri.fromFile()` (used by $3 DownloadRunnable after caching to cacheDir), ContentResolver returns null cursor → `v7 = ""` → `stripExt("") = ""` → blank name in toast and GameHub's component list.
+
+### Fix
+Modified `getDisplayName` to fall back to `uri.getLastPathSegment()` when ContentResolver returns empty. This returns the cached filename (e.g. `"v840 — Qualcomm_840_adpkg.zip"`) for file:// URIs. `stripExt()` then gives `"v840 — Qualcomm_840_adpkg"` as the component name. Also fixed the exception handler path (same fallback applied when ContentResolver throws).
+
+### Files touched
+- `patches/smali_classes16/.../ComponentInjectorHelper.smali` — `getDisplayName()`: fallback to `Uri.getLastPathSegment()` at `:ret` and `:dn_err`
+
+---
+
+## [pre] — v2.3.1-pre3 — Switch Kimchi to Nightlies drivers.json mirror (2026-03-16)
+**Commit:** `2b7c3a5`  |  **Tag:** v2.3.1-pre3  |  **CI run:** `23136404589`
+
+### What changed
+- `$7` now fetches `Nightlies/kimchi/drivers.json` instead of GitHub Releases API
+- JSON format: root JSONObject → `releases[]`, each with `tag` + `assets[]` with `mirror_url`
+- Repo label: "Kimchi GPU Drivers"; status: "Fetching Kimchi GPU Drivers..."
+- 154 releases / 200 assets, served from Nightlies mirror (no API rate limits)
+
+### Files touched
+- `patches/smali_classes16/.../ComponentDownloadActivity$7.smali` — KimchiDriversRunnable (parse JSONObject root, `tag`/`mirror_url` fields)
+- `patches/smali_classes16/.../ComponentDownloadActivity.smali` — repo label + URL in sw0_1
+
+---
+
+## [pre] — v2.3.1-pre2 — Fix $7 register limit (2026-03-16)
+**Commit:** `07aa664`  |  **Tag:** v2.3.1-pre2  |  **CI run:** `23135589174` (✓)
+
+### What changed
+- `.locals 15` (not 16) so p0 maps to v15 within 4-bit instruction range
+- v5 reused as asset url after responseStr consumed into JSONArray
+
+### Files touched
+- `patches/smali_classes16/.../ComponentDownloadActivity$7.smali`
+
+---
+
+## [beta] — v2.3.1-beta7 — Add K11MCH1 AdrenoToolsDrivers repo (2026-03-16)
+**Commit:** `07e0583`  |  **Tag:** v2.3.1-beta7
+
+### What changed
+- Added K11MCH1 AdrenoToolsDrivers as 2nd repo in component downloader
+- New `$7` (AllReleasesRunnable): fetches all GitHub releases (`?per_page=100`), iterates every release's assets array, labels each entry as `"tagName / assetName"`, accepts `.wcp`/`.zip`/`.xz`
+- Added `startFetchAllReleases(String)` method wiring to `$7`
+- `showRepos()` expanded 2→3 items: Arihany WCPHub / K11MCH1 AdrenoToolsDrivers / ← Back
+- `sw0_1` handler + `sw0_data` packed-switch extended to 2 entries
+- Assets appear under "GPU Driver / Turnip" category (detectType matches "adreno" in filename)
+
+### Files touched
+- `patches/smali_classes16/.../ComponentDownloadActivity.smali` — showRepos(), sw0_1 handler, sw0_data, startFetchAllReleases()
+- `patches/smali_classes16/.../ComponentDownloadActivity$7.smali` (new — AllReleasesRunnable)
+
+---
+
 ## [beta] — v2.3.1-beta6 — Add StevenMXZ repo (2026-03-16)
 **Commit:** `1f4a628`  |  **Tag:** v2.3.1-beta6  |  **CI run:** `23123530054` (✓, Normal APK, package=`banner.hub`)
 

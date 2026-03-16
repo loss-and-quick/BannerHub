@@ -63,12 +63,25 @@
     :close_cur
     invoke-interface {v6}, Landroid/database/Cursor;->close()V
     :ret
+    # fallback: if empty, use URI last path segment (works for file:// URIs)
+    invoke-virtual {v7}, Ljava/lang/String;->isEmpty()Z
+    move-result v8
+    if-eqz v8, :ret_done
+    invoke-virtual {p1}, Landroid/net/Uri;->getLastPathSegment()Ljava/lang/String;
+    move-result-object v8
+    if-eqz v8, :ret_done
+    move-object v7, v8
+    :ret_done
     return-object v7
     :try_end
     .catch Ljava/lang/Exception; {:try_start .. :try_end} :dn_err
     :dn_err
     move-exception v0
+    invoke-virtual {p1}, Landroid/net/Uri;->getLastPathSegment()Ljava/lang/String;
+    move-result-object v1
+    if-nez v1, :dn_ret
     const-string v1, ""
+    :dn_ret
     return-object v1
 .end method
 
