@@ -254,7 +254,7 @@
 .end method
 
 .method public onItemClick(Landroid/widget/AdapterView;Landroid/view/View;IJ)V
-    .locals 2
+    .locals 4
     iget v0, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;->mode:I
 
     # mode=0: repo selection
@@ -287,6 +287,23 @@
     move-result-object v1
     check-cast v1, Ljava/lang/String;
     iput-object v1, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;->mDownloadUrl:Ljava/lang/String;
+    # append file extension from URL to mDownloadFilename so stripExt() strips the real
+    # extension instead of cutting at a dot inside the version number (e.g. v2.0.0-b → v2.0)
+    invoke-static {v1}, Landroid/net/Uri;->parse(Ljava/lang/String;)Landroid/net/Uri;
+    move-result-object v2
+    invoke-virtual {v2}, Landroid/net/Uri;->getLastPathSegment()Ljava/lang/String;
+    move-result-object v2
+    const/16 v3, 0x2e
+    invoke-virtual {v2, v3}, Ljava/lang/String;->lastIndexOf(I)I
+    move-result v3
+    if-lez v3, :no_ext
+    invoke-virtual {v2, v3}, Ljava/lang/String;->substring(I)Ljava/lang/String;
+    move-result-object v2
+    iget-object v3, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;->mDownloadFilename:Ljava/lang/String;
+    invoke-virtual {v3, v2}, Ljava/lang/String;->concat(Ljava/lang/String;)Ljava/lang/String;
+    move-result-object v3
+    iput-object v3, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;->mDownloadFilename:Ljava/lang/String;
+    :no_ext
     # clear list to prevent double-tap
     iget-object v0, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;->mListView:Landroid/widget/ListView;
     const/4 v1, 0x0
