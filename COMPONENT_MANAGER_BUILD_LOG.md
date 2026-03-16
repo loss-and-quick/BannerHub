@@ -716,9 +716,11 @@ No instance fields. All methods are `public static`.
 ---
 
 #### `getDisplayName(Context;Uri;)String`
-- `.locals 4`
+- `.locals 9` (v0-v5 must be consecutive for `invoke-virtual/range`, v6=cursor, v7=result, v8=scratch)
 - `ContentResolver.query(uri, [DISPLAY_NAME], null, null, null)` via `invoke-virtual/range {v0..v5}`
 - Moves cursor to first row, reads column 0
+- At `:ret`: if result is empty, falls back to `uri.getLastPathSegment()` (covers `file://` URIs)
+- At `:dn_err` (exception path): calls `uri.getLastPathSegment()` directly; returns `""` if null
 - Returns display name string or `""` on error
 
 ---
@@ -1232,9 +1234,9 @@ New `ComponentDownloadActivity` (3-mode ListView): repo list → category → as
 - `$4` — CompleteRunnable: shows Toast + `finish()`
 - `$5` — InjectRunnable: calls `ComponentInjectorHelper.injectComponent()` on UI thread (Looper fix — Toast inside injectComponent requires main thread)
 - `$6` — PackJsonFetchRunnable: GET flat JSON array (type/verName/remoteUrl), skips Wine/Proton, uses verName as display name; used by Arihany WCPHub
-- `$7` — KimchiDriversRunnable: GET JSONObject root → releases[] → assets[], reads `tag`+`original_url`; `.locals 15` max (p0=v15, 4-bit register limit)
-- `$8` — SingleReleaseRunnable: GET GitHub Releases tags endpoint → single JSONObject → assets[]; strips `tmp[random]_` prefix from asset names
-- `$9` — GpuDriversFetchRunnable: GET flat JSON array (type/verName/remoteUrl), skips Wine/Proton, uses verName as display name; used by all GPU driver repos
+- `$7` — KimchiDriversRunnable: GET JSONObject root → releases[] → assets[], reads `tag`+`original_url`; `.locals 15` max (p0=v15, 4-bit register limit) **[DEAD CODE — superseded by $9; still present in smali but no longer called]**
+- `$8` — SingleReleaseRunnable: GET GitHub Releases tags endpoint → single JSONObject → assets[]; strips `tmp[random]_` prefix from asset names **[DEAD CODE — superseded by $9; still present in smali but no longer called]**
+- `$9` — GpuDriversFetchRunnable: GET flat JSON array (type/verName/remoteUrl), skips Wine/Proton, uses verName as display name; used by all 4 GPU driver repos; `.locals 12` (p0=v12)
 
 **Repos (5 GPU + 1 WCP):**
 - Arihany WCPHub — `pack.json` flat array via `$6`/`startFetchPackJson()`
@@ -1282,6 +1284,26 @@ In `getDisplayName()`: after the try block, at `:ret`, check if `v7.isEmpty()` a
 
 ### CI result
 ✅ Passed — included in v2.3.2-pre build (run `23145292442`)
+
+---
+
+## Entry 027 — Fix: same-version driver variants collide on install (v2.3.3-pre)
+**Date:** 2026-03-16  |  **Commit:** `a80947d`  |  **Tag:** `v2.3.3-pre` `[CI✅ 23149773741, 3m41s]`
+
+### Root cause
+`mDownloadFilename` is set to `verName` from the JSON (e.g. `Turnip_MTR_v2.0.0-b_Axxx`) with **no file extension**. After download, the cache file URI is `file://.../Turnip_MTR_v2.0.0-b_Axxx`. `injectComponent()` calls `getLastPathSegment()` → returns bare name → `stripExt()` calls `lastIndexOf('.')` → finds the last `.` inside the version number (`v2.0.`**`0`**`-b`) → returns `Turnip_MTR_v2.0`. Both the `-b` and `-p` variants strip to the same name → second install overwrites first in GameHub's component registry and on disk.
+
+### Fix
+In `onItemClick()` mode=2, after storing `mDownloadUrl` (v1), parse the URL with `Uri.parse()`, call `getLastPathSegment()` to get the URL filename (e.g. `Turnip_MTR_v2.0.0-b_Axxx.zip`), find `lastIndexOf('.')` to extract the extension (`.zip`), and `concat()` it onto `mDownloadFilename`. The cache file is now `Turnip_MTR_v2.0.0-b_Axxx.zip`; `stripExt()` correctly strips `.zip`; both variants get distinct names.
+
+`.locals 2` → `.locals 4` (v2=Uri/segment/ext string, v3=lastIndexOf result/filename).
+
+### Files touched
+- `[MOD]` `patches/smali_classes16/.../ComponentDownloadActivity.smali`
+  - `onItemClick()` — `.locals 2` → `.locals 4`; 15-line extension-extraction block inserted after `iput mDownloadUrl`
+
+### CI result
+✅ Passed — run `23149773741` (3m41s)
 
 ---
 
