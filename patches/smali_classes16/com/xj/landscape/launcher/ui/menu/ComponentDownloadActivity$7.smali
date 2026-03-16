@@ -1,7 +1,7 @@
-# AllReleasesRunnable — background: GET GitHub releases API (all releases, per_page=100),
-#                       collect all .wcp/.zip/.xz assets across every release,
-#                       name format: "tagName / assetName",
-#                       populate mAllNames/mAllUrls, post $2 (showCategories on UI thread)
+# KimchiDriversRunnable — background: GET Nightlies kimchi/drivers.json,
+#                         parse releases[] array, collect all .wcp/.zip/.xz assets,
+#                         name format: "tag / assetName", url = mirror_url,
+#                         populate mAllNames/mAllUrls, post $2 (showCategories on UI thread)
 .class final Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity$7;
 .super Ljava/lang/Object;
 .implements Ljava/lang/Runnable;
@@ -19,12 +19,12 @@
 
 .method public run()V
     .locals 15
-    # .locals 15 → v0-v14 locals, p0=v15 (within 4-bit range for all instructions)
+    # .locals 15 → v0-v14 locals, p0=v15 (within 4-bit range)
     # Setup:  v1=temp  v2=URL→HttpURLConnection→label string  v3=stream/reader  v4=reader temp  v5=StringBuilder→responseStr
-    # Parse:  v6=releases JSONArray  v7=release count  v8=release index
-    # Outer:  v9=tag_name  v10=assets JSONArray  v11=asset count  v12=asset index
+    # Parse:  v6=root JSONObject→releases JSONArray  v7=release count  v8=release index
+    # Outer:  v9=tag (String, kept alive across inner loop)  v10=assets JSONArray  v11=asset count  v12=asset index
     # Inner:  v13=asset JSONObject→label StringBuilder  v14=asset name
-    # v5 reused as asset url after responseStr consumed into JSONArray
+    # v5 reused as mirror_url after responseStr consumed into JSONObject
 
     iget-object v0, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity$7;->this$0:Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;
 
@@ -69,10 +69,13 @@
     invoke-virtual {v5}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
     move-result-object v5
 
-    # parse releases JSONArray — v5 (responseStr) consumed here, then free for reuse
-    new-instance v6, Lorg/json/JSONArray;
-    invoke-direct {v6, v5}, Lorg/json/JSONArray;-><init>(Ljava/lang/String;)V
-    # v5 now free — reused as asset url in inner loop
+    # parse root JSONObject, extract "releases" JSONArray into v6
+    new-instance v6, Lorg/json/JSONObject;
+    invoke-direct {v6, v5}, Lorg/json/JSONObject;-><init>(Ljava/lang/String;)V
+    # v5 now free — reused as mirror_url in inner loop
+    const-string v1, "releases"
+    invoke-virtual {v6, v1}, Lorg/json/JSONObject;->getJSONArray(Ljava/lang/String;)Lorg/json/JSONArray;
+    move-result-object v6
 
     invoke-virtual {v6}, Lorg/json/JSONArray;->length()I
     move-result v7
@@ -85,13 +88,13 @@
     invoke-virtual {v6, v8}, Lorg/json/JSONArray;->getJSONObject(I)Lorg/json/JSONObject;
     move-result-object v9
 
-    # extract assets array before overwriting v9 with tag_name
+    # extract assets array before overwriting v9 with tag
     const-string v1, "assets"
     invoke-virtual {v9, v1}, Lorg/json/JSONObject;->getJSONArray(Ljava/lang/String;)Lorg/json/JSONArray;
     move-result-object v10
 
-    # v9 = tag_name (kept alive across all inner loop iterations)
-    const-string v1, "tag_name"
+    # v9 = tag string (kept alive across all inner loop iterations)
+    const-string v1, "tag"
     invoke-virtual {v9, v1}, Lorg/json/JSONObject;->getString(Ljava/lang/String;)Ljava/lang/String;
     move-result-object v9
 
@@ -126,12 +129,12 @@
     if-eqz v1, :skip_asset
 
     :accept_asset
-    # v5 = browser_download_url (v5 reused — responseStr long consumed)
-    const-string v1, "browser_download_url"
+    # v5 = mirror_url
+    const-string v1, "mirror_url"
     invoke-virtual {v13, v1}, Lorg/json/JSONObject;->getString(Ljava/lang/String;)Ljava/lang/String;
     move-result-object v5
 
-    # v13 now free — reuse as label StringBuilder: "tagName / assetName"
+    # v13 now free — reuse as label StringBuilder: "tag / assetName"
     new-instance v13, Ljava/lang/StringBuilder;
     invoke-direct {v13}, Ljava/lang/StringBuilder;-><init>()V
     invoke-virtual {v13, v9}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
@@ -141,7 +144,7 @@
     invoke-virtual {v13}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
     move-result-object v2
 
-    # add label to mAllNames, url to mAllUrls — v1 reused for iget
+    # add label to mAllNames, mirror_url to mAllUrls
     iget-object v1, v0, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;->mAllNames:Ljava/util/ArrayList;
     invoke-virtual {v1, v2}, Ljava/util/ArrayList;->add(Ljava/lang/Object;)Z
     iget-object v1, v0, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;->mAllUrls:Ljava/util/ArrayList;

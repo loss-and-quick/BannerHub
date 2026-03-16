@@ -124,7 +124,7 @@
     const-string v2, "Arihany WCPHub"
     aput-object v2, v0, v1
     const/4 v1, 0x1
-    const-string v2, "K11MCH1 AdrenoToolsDrivers"
+    const-string v2, "Kimchi GPU Drivers"
     aput-object v2, v0, v1
     const/4 v1, 0x2
     const-string v2, "\u2190 Back"
@@ -302,11 +302,11 @@
     return-void
 
     :sw0_1
-    # K11MCH1 AdrenoToolsDrivers (all releases)
+    # Kimchi GPU Drivers (Nightlies mirror JSON)
     iget-object v0, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;->mStatusText:Landroid/widget/TextView;
-    const-string v1, "Fetching K11MCH1 AdrenoToolsDrivers..."
+    const-string v1, "Fetching Kimchi GPU Drivers..."
     invoke-virtual {v0, v1}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
-    const-string v0, "https://api.github.com/repos/K11MCH1/AdrenoToolsDrivers/releases?per_page=100"
+    const-string v0, "https://raw.githubusercontent.com/The412Banner/Nightlies/refs/heads/main/kimchi/drivers.json"
     invoke-virtual {p0, v0}, Lcom/xj/landscape/launcher/ui/menu/ComponentDownloadActivity;->startFetchAllReleases(Ljava/lang/String;)V
     return-void
 
