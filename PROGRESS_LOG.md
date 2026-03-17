@@ -1084,6 +1084,30 @@ GameHub's APK already contains `commons-compress`, `zstd-jni` (`libzstd-jni-1.5.
 
 ---
 
+### [fix] — CPU core dialog: half-width, 90% height, all-cores = No Limit — v2.4.2-beta7 (2026-03-17)
+**Commit:** `3fab423`  |  **Tag:** v2.4.2-beta7  |  **CI:** pending
+#### What changed
+- **`CpuMultiSelectHelper.smali`**: `Window.setLayout()` now uses `widthPixels / 2` (half-wide) and `heightPixels * 9/10` (90% tall). Was `WRAP_CONTENT` wide and 80% tall.
+- **`CpuMultiSelectHelper$2.smali`**: After bitmask fold, if all 8 cores are checked (mask=0xFF), saves 0 (No Limit) instead of 0xFF. Semantically identical behavior to the "No Limit" button.
+#### Files touched
+- `patches/smali_classes16/com/xj/winemu/settings/CpuMultiSelectHelper.smali`
+- `patches/smali_classes16/com/xj/winemu/settings/CpuMultiSelectHelper$2.smali`
+
+---
+
+### [fix] — Fix IllegalAccessError: use Kotlin defaults ctor + move-object/from16 — v2.4.2-beta6b (2026-03-17)
+**Commit:** `e8e41a8`  |  **Tag:** v2.4.2-beta6b  |  **CI:** ✅
+#### What changed
+- **`CpuMultiSelectHelper$2.smali`**: Replaced `iput id/isSelected` with full Kotlin defaults constructor (`invoke-direct/range {v7..v32}`, bitmask `0x3ffffa`). Added `move-object/from16 v3, p0` — required because `.locals 33` pushes `p0` to `v33` (out of 4-bit range for `iget-object`).
+- **`CpuMultiSelectHelper$3.smali`**: Same fix, `move-object/from16 v6, p0`, `id=0` for No Limit.
+#### Root cause
+ART 14 blocks cross-dex private field access. `DialogSettingListItemEntity` is in classes12 (bypassed dex); our code is in classes16. Direct `iput` on private backing fields threw `IllegalAccessError`. Fix: use the public Kotlin defaults constructor.
+#### Files touched
+- `patches/smali_classes16/com/xj/winemu/settings/CpuMultiSelectHelper$2.smali`
+- `patches/smali_classes16/com/xj/winemu/settings/CpuMultiSelectHelper$3.smali`
+
+---
+
 ## Planned Work
 
 - [ ] Confirm v2.0.6-pre: ZIP (flat) works, WCP zstd (DXVK/VKD3D) works, WCP XZ (FEX) works

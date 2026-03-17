@@ -1370,6 +1370,38 @@ Base APK asset was re-uploaded on 2026-03-17; needed a way to verify integrity v
 
 ---
 
+## Entry 043 — CPU core dialog: half-width, 90% height, all-cores = No Limit (2026-03-17)
+**Date:** 2026-03-17  |  **Commit:** `3fab423`  |  **Tag:** v2.4.2-beta7  |  **CI:** pending
+
+### Files created / moved / deleted
+- `patches/smali_classes16/com/xj/winemu/settings/CpuMultiSelectHelper.smali` [MOD]
+- `patches/smali_classes16/com/xj/winemu/settings/CpuMultiSelectHelper$2.smali` [MOD]
+
+### Methods added / changed
+**`CpuMultiSelectHelper.show()`** — `Window.setLayout()` now uses `widthPixels / 2` (was `WRAP_CONTENT`) and `heightPixels * 9/10` (was 80%). `iget v4, v3, ...->widthPixels:I` + `div-int/lit8 v4, v4, 0x2`; `iget v3, v3, ...->heightPixels:I` + `mul-int/lit16 v3, v3, 0x9` + `div-int/lit16 v3, v3, 0xa`.
+**`CpuMultiSelectHelper$2.onClick()`** — After folding 8-core bitmask into `v1`, added all-cores check: `const/16 v2, 0xff` / `if-ne v1, v2, :cond_notmax` / `const/4 v1, 0x0` / `:cond_notmax`. If all 8 cores are checked, the saved mask is 0 (No Limit) instead of 0xFF.
+
+### Root cause / rationale
+UX: A half-width dialog is better for the 8-item checkbox list on a wide landscape screen. 90% height allows more rows visible without being too tall. All-8-cores selected is semantically identical to "No Limit" (unrestricted affinity), so the mask is normalized to 0.
+
+---
+
+## Entry 042 — Fix IllegalAccessError: use Kotlin defaults ctor + move-object/from16 (2026-03-17)
+**Date:** 2026-03-17  |  **Commit:** `e8e41a8`  |  **Tag:** v2.4.2-beta6b  |  **CI:** ✅ build-quick.yml run 23221056206 — 3m38s
+
+### Files created / moved / deleted
+- `patches/smali_classes16/com/xj/winemu/settings/CpuMultiSelectHelper$2.smali` [MOD]
+- `patches/smali_classes16/com/xj/winemu/settings/CpuMultiSelectHelper$3.smali` [MOD]
+
+### Methods added / changed
+**`CpuMultiSelectHelper$2.onClick()`** — Replaced `iput id` + `iput-boolean isSelected` with full Kotlin defaults constructor `invoke-direct/range {v7 .. v32}`. Bitmask `0x3ffffa`: bit0=0 (provide id at v8), bit2=0 (provide isSelected at v10), all other bits=1 (use defaults). Added `move-object/from16 v3, p0` at start (`.locals 33` pushes p0 to v33, out of 4-bit range).
+**`CpuMultiSelectHelper$3.onClick()`** — Same fix. `move-object/from16 v6, p0`. `id=0` (No Limit). Same 26-register defaults ctor pattern.
+
+### Root cause / rationale
+`IllegalAccessError` on Apply/No Limit: ART 14 blocks cross-dex private field access. `DialogSettingListItemEntity` is in classes12 (bypassed dex); our code is in classes16. `iput` on private backing fields (`id`, `isSelected`) threw `Field 'id' is inaccessible`. Fix: use the public Kotlin defaults constructor which goes through normal method dispatch rather than direct field access. The defaults bitmask pattern was already established in `PcGameSettingOperations` calls in the same codebase.
+
+---
+
 ## Entry 041 — Immediate UI refresh via DialogSettingListItemEntity (2026-03-17)
 **Date:** 2026-03-17  |  **Commit:** `77c6cf2`  |  **Tag:** v2.4.2-beta5  |  **CI:** ✅ build-quick.yml run 23205026060 — 3m40s
 
