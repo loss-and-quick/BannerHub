@@ -1592,3 +1592,43 @@ apksigner sign --key testkey.pk8 --cert testkey.x509.pem \
     --v1-signing-enabled true --v2-signing-enabled true --v3-signing-enabled true \
     --out signed.apk unsigned.apk
 ```
+
+---
+
+## Entry 30 — v2.3.6-pre — Binary dex patching for new base APK (2026-03-17)
+**Commit:** `bbf4d43` | **Tag:** v2.3.6-pre | **CI:** ✅ build-quick.yml passed (2m25s)
+
+### Root cause
+Old base APK dex files were at or near the 65535 method/type index limit. Full smali round-trip
+(`apktool d` + `apktool b`) caused `out of range` / `method count overflow` errors on rebuild.
+
+### Fix
+Introduced binary dex patching (`patch_dex.py`): compiles only the patch smali files into a
+mini-dex, then uses binary pool remapping + class_data replacement to inject changed classes into
+the original dex files without touching the rest. New items inserted BEFORE the MAP_LIST so ART
+verifier finds them within declared section ranges.
+
+### Files added/changed
+- `.github/scripts/patch_dex.py` — full binary dex patcher (DexFile parser, pool remapping,
+  `remap_insns`, `append_before_map`, `fix_checksum`)
+- `.github/workflows/build.yml` — replaced full smali workflow with:
+  `apktool --no-src` → smali assemble → `patch_dex.py` → `zip -j` dex replace
+- `.github/workflows/build-quick.yml` — same approach for pre-release builds
+- `patches/smali_classes4/` (was classes3) — `GameSettingViewModel$fetchList$1`
+- `patches/smali_classes7/` (was classes5) — `HomeLeftMenuDialog`
+- `patches/smali_classes11/` — added `SteamGameByPcEmuLaunchStrategy$execute$3` (was classes10)
+- `patches/smali_classes12/` (new) — `InputControlsManager` (was in classes15)
+- `patches/smali_classes14/` — added `X11Controller` (was in classes15)
+
+### Dex mapping (new APK)
+| Class | New dex |
+|-------|---------|
+| GameSettingViewModel$fetchList$1 | classes4 |
+| GameHubPrefs | classes6 (same) |
+| HomeLeftMenuDialog | classes7 |
+| R$id | classes9 (same) |
+| BciLauncherClickListener, LandscapeLauncherMainActivity, SteamGameByPcEmuLaunchStrategy$execute$3 | classes11 |
+| InputControlsManager | classes12 |
+| SidebarControlsFragment, X11Controller | classes14 |
+| WineActivity | classes15 (same) |
+| ComponentManagerActivity, ComponentDownloadActivity, WcpExtractor, ComponentInjectorHelper, RTS classes | classes16 (same) |

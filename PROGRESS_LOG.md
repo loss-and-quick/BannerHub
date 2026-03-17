@@ -980,3 +980,36 @@ GameHub's APK already contains `commons-compress`, `zstd-jni` (`libzstd-jni-1.5.
 - [ ] Confirm v2.0.6-pre: ZIP (flat) works, WCP zstd (DXVK/VKD3D) works, WCP XZ (FEX) works
 - [ ] Once all three confirmed working, cut stable v2.1.0 release
 - [ ] Explore contributing functional patches to `playday3008/gamehub-patches` PR #13
+
+---
+
+### [pre-release] — v2.3.6-pre — Switch to binary dex patching for new base APK (2026-03-17)
+**Commit:** `bbf4d43`  |  **Tag:** v2.3.6-pre
+
+#### What changed
+- New base APK: `Gamehub-5.3.5-Revanced-Normal-new.apk` (old APK dex files were at 65535 index limit)
+- Added `.github/scripts/patch_dex.py` — binary class replacement in dex files:
+  - Inserts new code_items + class_data_items BEFORE the MAP_LIST (ART verifier compliance)
+  - Fixes: `insns_size` from offset +12 (not +8); `const/4` (0x12) = 1 u16 unit
+  - Fast-skip when patch class not found in target dex
+- Updated `build.yml` and `build-quick.yml`:
+  - `apktool --no-src` (resources only, no smali round-trip)
+  - smali compile per patch dir → mini-dex → `patch_dex.py` binary patch → `zip -j` into rebuilt APK
+- Remapped patch smali directories to correct dex numbers in new APK:
+  - `smali_classes3` → `smali_classes4` (GameSettingViewModel$fetchList$1)
+  - `smali_classes5` → `smali_classes7` (HomeLeftMenuDialog)
+  - `smali_classes10` → merged into `smali_classes11` (SteamGameByPcEmuLaunchStrategy$execute$3)
+  - `smali_classes15/X11Controller` → `smali_classes14`
+  - `smali_classes15/InputControlsManager` → new `smali_classes12`
+  - `smali_classes15/WineActivity` stays in `smali_classes15`
+  - classes 6, 9, 11, 14, 16 — same numbers
+
+#### Files touched
+- `.github/scripts/patch_dex.py` (new)
+- `.github/workflows/build.yml`
+- `.github/workflows/build-quick.yml`
+- `patches/smali_classes4/` (renamed from classes3)
+- `patches/smali_classes7/` (renamed from classes5)
+- `patches/smali_classes11/` (+ SteamGameByPcEmuLaunchStrategy$execute$3 from classes10)
+- `patches/smali_classes12/` (new — InputControlsManager)
+- `patches/smali_classes14/` (+ X11Controller from classes15)
