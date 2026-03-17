@@ -1353,6 +1353,23 @@ All Component Manager and Component Downloader work promoted to stable:
 
 ---
 
+## Entry 030 — Add workflow_dispatch to build-quick.yml (CI verification)
+**Date:** 2026-03-17  |  **Commit:** `ff9267d`  |  **Tag:** none  |  **CI:** `23188227052` (in progress)
+
+### Files created / moved / deleted
+- `.github/workflows/build-quick.yml` [MOD] — added `workflow_dispatch:` trigger
+
+### Methods added / changed
+None — CI workflow change only.
+
+### Root cause / rationale
+Base APK asset was re-uploaded on 2026-03-17; needed a way to verify integrity via a full CI build without pushing a placeholder pre-release tag. Added `workflow_dispatch` so the quick build (Normal APK only) can be triggered manually at any time.
+
+### CI result
+⏳ In progress — `build-quick.yml` (manual dispatch) — run `23188227052`
+
+---
+
 # Appendix C — Known constraints
 
 | Constraint | Detail |

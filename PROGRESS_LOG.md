@@ -4,6 +4,13 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [ci] — no tag — Add workflow_dispatch to build-quick.yml (2026-03-17)
+**Commit:** `ff9267d`
+**What changed:** Added `workflow_dispatch` trigger to `build-quick.yml` so the quick CI build (Normal APK only) can be run manually without a tag. Triggered immediately to verify base APK integrity (CI run `23188227052`, in progress).
+**Files touched:** `.github/workflows/build-quick.yml`
+
+---
+
 ## [feat] — v2.3.5 (docs) — Standalone Component Manager patch + build guide (2026-03-16)
 **Commit:** `d71bfc7`
 **What changed:** Added `component-manager-patch/` — a self-contained patch directory for applying ONLY the Component Manager feature to GameHub 5.3.5 ReVanced (no RTS controls, no BCI button, no other BannerHub changes).
