@@ -1383,7 +1383,7 @@ Base APK asset was re-uploaded on 2026-03-17; needed a way to verify integrity v
 v2.4.2-beta2 CI failed: `CpuMultiSelectHelper.smali[183,19] A list of registers can only have a maximum of 5 registers. Use the <op>/range alternate opcode instead.` The original `invoke-direct {v6, v2, v3, v4, p3, p0}` had 6 regs. Register layout rewritten to move all $2 args into contiguous v7-v11 before the range call.
 
 ### CI result
-Pending — v2.4.2-beta3 tag triggers build-quick.yml (Normal APK only)
+✅ build-quick.yml run 23203222010 — 3m33s
 
 ---
 
