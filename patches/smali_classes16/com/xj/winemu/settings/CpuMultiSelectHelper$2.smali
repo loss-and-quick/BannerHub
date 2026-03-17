@@ -11,22 +11,18 @@
     name = null
 .end annotation
 
-# Positive button ("Apply") — computes bitmask from checked[], saves, fires callback.
-# Passes anchor View to callback (required by j3 — non-null android.view.View expected).
+# Positive button ("Apply") — computes bitmask from checked[], saves via SPUtils.
+# Callback NOT invoked (avoids j3 NPE — u0 lambda expects DialogSettingListItemEntity, not View).
 .field final synthetic a:[Z
 .field final synthetic b:Lcom/blankj/utilcode/util/SPUtils;
 .field final synthetic c:Ljava/lang/String;
-.field final synthetic d:Lkotlin/jvm/functions/Function1;
-.field final synthetic e:Landroid/view/View;
 
-.method constructor <init>([ZLcom/blankj/utilcode/util/SPUtils;Ljava/lang/String;Lkotlin/jvm/functions/Function1;Landroid/view/View;)V
+.method constructor <init>([ZLcom/blankj/utilcode/util/SPUtils;Ljava/lang/String;)V
     .locals 0
     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
     iput-object p1, p0, Lcom/xj/winemu/settings/CpuMultiSelectHelper$2;->a:[Z
     iput-object p2, p0, Lcom/xj/winemu/settings/CpuMultiSelectHelper$2;->b:Lcom/blankj/utilcode/util/SPUtils;
     iput-object p3, p0, Lcom/xj/winemu/settings/CpuMultiSelectHelper$2;->c:Ljava/lang/String;
-    iput-object p4, p0, Lcom/xj/winemu/settings/CpuMultiSelectHelper$2;->d:Lkotlin/jvm/functions/Function1;
-    iput-object p5, p0, Lcom/xj/winemu/settings/CpuMultiSelectHelper$2;->e:Landroid/view/View;
     return-void
 .end method
 
@@ -105,13 +101,6 @@
     iget-object v0, p0, Lcom/xj/winemu/settings/CpuMultiSelectHelper$2;->b:Lcom/blankj/utilcode/util/SPUtils;
     iget-object v2, p0, Lcom/xj/winemu/settings/CpuMultiSelectHelper$2;->c:Ljava/lang/String;
     invoke-virtual {v0, v2, v1}, Lcom/blankj/utilcode/util/SPUtils;->m(Ljava/lang/String;I)V
-
-    # Fire UI refresh callback with anchor View (non-null — j3 expects android.view.View)
-    iget-object v0, p0, Lcom/xj/winemu/settings/CpuMultiSelectHelper$2;->d:Lkotlin/jvm/functions/Function1;
-    if-eqz v0, :cond_nocb
-    iget-object v1, p0, Lcom/xj/winemu/settings/CpuMultiSelectHelper$2;->e:Landroid/view/View;
-    invoke-interface {v0, v1}, Lkotlin/jvm/functions/Function1;->invoke(Ljava/lang/Object;)Ljava/lang/Object;
-    :cond_nocb
 
     return-void
 .end method
