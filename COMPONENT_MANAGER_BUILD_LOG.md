@@ -1370,6 +1370,29 @@ Base APK asset was re-uploaded on 2026-03-17; needed a way to verify integrity v
 
 ---
 
+## Entry 035 — Fix VRAM display string and isSelected checkmark for 6/8/12/16 GB (2026-03-17)
+**Date:** 2026-03-17  |  **Commit:** `86207ca`  |  **Tag:** v2.3.10-pre  |  **CI:** pending
+
+### Files created / moved / deleted
+- `patches/smali_classes4/com/xj/winemu/settings/PcGameSettingOperations.smali` [MOD]
+
+### Methods added / changed
+**`PcGameSettingOperations.F0()`** — added `if-eq` branches for `0x1800` (6 GB), `0x2000` (8 GB), `0x3000` (12 GB), `0x4000` (16 GB) before the fallthrough to the "Unlimited" string. Without these, any stored value > 4096 was unrecognized and F0() returned the "No Limit" string, making it appear selection reverted to Unlimited.
+
+**`PcGameSettingOperations.l0()`** — replaced hardcoded `move/from16 v33, v2` (always false) for all 4 new VRAM entries with proper isSelected logic. Calls `G0()` once before the new entries (stores result in `v3` as int), then for each entry: loads the MB constant into `v4` (int), does `if-ne v3, v4` and sets v33 to v29 (1=selected) or v2 (0=not selected). Labels: `:cond_bh6ns`/`:goto_bh6` through `:cond_bh16ns`/`:goto_bh16`.
+
+### Root cause / rationale
+After selecting 6/8/12/16 GB: the value was actually saved to MMKV correctly via `E()` → `entity.getId()` → `SPUtils.m("pc_ls_max_memory", value)`. The bugs were purely display:
+1. `F0()` (summary label builder) had no cases for values > 4096 → showed "Unlimited"
+2. `l0()` (dropdown list builder) always set `isSelected=false` for new entries → no checkmark shown
+
+Both bugs made it appear the selection wasn't saving when in fact it was.
+
+### CI result
+Pending — v2.3.10-pre tag triggers build-quick.yml (Normal APK only)
+
+---
+
 ## Entry 034 — Fix VerifyError from invalid if-ne in VRAM l0() (2026-03-17)
 **Date:** 2026-03-17  |  **Commit:** `c83dcb0`  |  **Tag:** v2.3.9-pre  |  **CI:** pending
 
