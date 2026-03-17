@@ -100,6 +100,19 @@
     or-int/2addr v1, v2
     :cond_s7
 
+    # No cores selected — show Toast and abort (don't save)
+    if-nez v1, :cond_hasmask
+    check-cast p1, Landroid/app/Dialog;
+    invoke-virtual {p1}, Landroid/app/Dialog;->getContext()Landroid/content/Context;
+    move-result-object v4
+    const-string v5, "Select at least one core"
+    const/4 v6, 0x0
+    invoke-static {v4, v5, v6}, Landroid/widget/Toast;->makeText(Landroid/content/Context;Ljava/lang/CharSequence;I)Landroid/widget/Toast;
+    move-result-object v4
+    invoke-virtual {v4}, Landroid/widget/Toast;->show()V
+    return-void
+    :cond_hasmask
+
     # All 8 cores checked (0xFF) == No Limit — treat same as "No Limit" button
     const/16 v2, 0xff
     if-ne v1, v2, :cond_notmax
