@@ -1370,6 +1370,24 @@ Base APK asset was re-uploaded on 2026-03-17; needed a way to verify integrity v
 
 ---
 
+## Entry 041 — Immediate UI refresh via DialogSettingListItemEntity (2026-03-17)
+**Date:** 2026-03-17  |  **Commit:** `77c6cf2`  |  **Tag:** v2.4.2-beta5  |  **CI:** ✅ build-quick.yml run 23205026060 — 3m40s
+
+### Files created / moved / deleted
+- `patches/smali_classes16/com/xj/winemu/settings/CpuMultiSelectHelper.smali` [MOD]
+- `patches/smali_classes16/com/xj/winemu/settings/CpuMultiSelectHelper$2.smali` [MOD]
+- `patches/smali_classes16/com/xj/winemu/settings/CpuMultiSelectHelper$3.smali` [MOD]
+
+### Methods added / changed
+**`CpuMultiSelectHelper.show()`** — $2 constructor updated to `([ZSPUtilsStringFunction1)V` (5 args, non-range). $3 to `(SPUtilsStringFunction1)V` (4 args). Both now receive `p3` (callback).
+**`CpuMultiSelectHelper$2.onClick()`** — After `SPUtils.m()`, constructs `new DialogSettingListItemEntity()`, sets `id=newMask` via `iput`, `isSelected=true` via `iput-boolean`, calls `callback.invoke(entity)`.
+**`CpuMultiSelectHelper$3.onClick()`** — Same pattern with `id=0`.
+
+### Root cause / rationale
+beta4 removed callback invocation entirely — the row label only refreshed on back-out/re-enter. The original `e()` calls `callback.invoke(entity)` where entity is `DialogSettingListItemEntity`. `u0.invoke(entity)` uses the entity type correctly; when passed the wrong type (View) it crashed because Q() received something it couldn't use and produced null for j3. Fix: create a minimal entity with `id=newMask, isSelected=true` and pass it. `DialogSettingListItemEntity.<init>()V` initializes all fields to zero/null/false, so only `id` and `isSelected` need to be set.
+
+---
+
 ## Entry 040 — Remove callback invocation to fix j3 NPE crash; 80% height; smaller text (2026-03-17)
 **Date:** 2026-03-17  |  **Commit:** `401e43b`  |  **Tag:** v2.4.2-beta4  |  **CI:** ✅ build-quick.yml run 23204360488 — 3m51s
 
