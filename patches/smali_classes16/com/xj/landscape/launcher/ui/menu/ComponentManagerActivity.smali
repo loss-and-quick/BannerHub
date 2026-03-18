@@ -7,6 +7,8 @@
 .field private components:[Ljava/io/File;
 .field private selectedIndex:I
 .field private selectedType:I
+.field private pendingUri:Landroid/net/Uri;
+.field private pendingType:I
 
 .method public constructor <init>()V
     .locals 0
@@ -133,8 +135,8 @@
     check-cast v5, [Ljava/io/File;
     iput-object v5, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->components:[Ljava/io/File;
 
-    # build display list: [toggle, "+ Add New Component", dir1, dir2, ...]
-    add-int/lit8 v6, v3, 0x2
+    # build display list: [toggle, "+ Add New Component", dir1, dir2, ..., "✕ Remove All"]
+    add-int/lit8 v6, v3, 0x3
     new-array v6, v6, [Ljava/lang/String;
     const/4 v7, 0x0
     aput-object v9, v6, v7
@@ -153,6 +155,11 @@
     add-int/lit8 v7, v7, 0x1
     goto :name_loop
     :name_done
+
+    # append "✕ Remove All Components" at index v3+2
+    add-int/lit8 v4, v3, 0x2
+    const-string v8, "\u2715 Remove All Components"
+    aput-object v8, v6, v4
 
     new-instance v7, Landroid/widget/ArrayAdapter;
     sget v8, Landroid/R$layout;->simple_list_item_1:I
@@ -289,9 +296,15 @@
     invoke-virtual {p0}, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->showTypeSelection()V
     return-void
 
-    # position 2+ = existing component
+    # position 2+ = existing component OR "✕ Remove All" (last item at index n+2)
     :bh_pos_existing
     add-int/lit8 v1, p3, -0x2
+    iget-object v2, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->components:[Ljava/io/File;
+    array-length v2, v2
+    if-ne v1, v2, :do_select_comp
+    invoke-virtual {p0}, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->confirmRemoveAll()V
+    return-void
+    :do_select_comp
     iput v1, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->selectedIndex:I
     invoke-virtual {p0}, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->showOptions()V
     return-void
@@ -519,10 +532,9 @@
     const/4 v2, 0x3
     if-ne v1, v2, :replace_mode
 
-    # mode=3: inject new component via helper
+    # mode=3: check for duplicate first, then inject
     iget v1, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->selectedType:I
-    invoke-static {p0, v0, v1}, Lcom/xj/landscape/launcher/ui/menu/ComponentInjectorHelper;->injectComponent(Landroid/content/Context;Landroid/net/Uri;I)V
-    invoke-virtual {p0}, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->showComponents()V
+    invoke-virtual {p0, v0, v1}, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->checkDuplicate(Landroid/net/Uri;I)V
     return-void
 
     :replace_mode
@@ -699,6 +711,151 @@
     invoke-virtual {p0}, Ljava/io/File;->delete()Z
     return-void
 .end method
+
+# ── checkDuplicate(Uri, int): resolve name, check if already installed ──
+.method public checkDuplicate(Landroid/net/Uri;I)V
+    .locals 6
+    # p0=this  p1=uri  p2=type
+    # v0=name  v1=componentsBase  v2=dir  v3=builder  v4=msg  v5=listener/tmp
+
+    invoke-static {p0, p1, p2}, Lcom/xj/landscape/launcher/ui/menu/ComponentInjectorHelper;->getComponentName(Landroid/content/Context;Landroid/net/Uri;I)Ljava/lang/String;
+    move-result-object v0
+
+    invoke-virtual {p0}, Landroid/app/Activity;->getFilesDir()Ljava/io/File;
+    move-result-object v1
+    const-string v2, "usr/home/components"
+    new-instance v3, Ljava/io/File;
+    invoke-direct {v3, v1, v2}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
+    new-instance v1, Ljava/io/File;
+    invoke-direct {v1, v3, v0}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
+
+    invoke-virtual {v1}, Ljava/io/File;->exists()Z
+    move-result v2
+    if-eqz v2, :no_dup
+
+    # Store pending uri+type for the Replace listener
+    iput-object p1, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->pendingUri:Landroid/net/Uri;
+    iput p2, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->pendingType:I
+
+    # Build message: "<name>" is already installed.\nReplace it?
+    new-instance v4, Ljava/lang/StringBuilder;
+    invoke-direct {v4}, Ljava/lang/StringBuilder;-><init>()V
+    const-string v5, "\""
+    invoke-virtual {v4, v5}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v4, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    const-string v5, "\" is already installed.\nReplace it?"
+    invoke-virtual {v4, v5}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v4}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v4
+
+    new-instance v3, Landroid/app/AlertDialog$Builder;
+    invoke-direct {v3, p0}, Landroid/app/AlertDialog$Builder;-><init>(Landroid/content/Context;)V
+    const-string v5, "Already Installed"
+    invoke-virtual {v3, v5}, Landroid/app/AlertDialog$Builder;->setTitle(Ljava/lang/CharSequence;)Landroid/app/AlertDialog$Builder;
+    move-result-object v3
+    invoke-virtual {v3, v4}, Landroid/app/AlertDialog$Builder;->setMessage(Ljava/lang/CharSequence;)Landroid/app/AlertDialog$Builder;
+    move-result-object v3
+
+    new-instance v5, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity$4;
+    invoke-direct {v5, p0}, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity$4;-><init>(Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;)V
+    const-string v4, "Replace"
+    invoke-virtual {v3, v4, v5}, Landroid/app/AlertDialog$Builder;->setPositiveButton(Ljava/lang/CharSequence;Landroid/content/DialogInterface$OnClickListener;)Landroid/app/AlertDialog$Builder;
+    move-result-object v3
+    const-string v4, "Cancel"
+    const/4 v5, 0x0
+    invoke-virtual {v3, v4, v5}, Landroid/app/AlertDialog$Builder;->setNegativeButton(Ljava/lang/CharSequence;Landroid/content/DialogInterface$OnClickListener;)Landroid/app/AlertDialog$Builder;
+    move-result-object v3
+    invoke-virtual {v3}, Landroid/app/AlertDialog$Builder;->show()Landroid/app/AlertDialog;
+    return-void
+
+    :no_dup
+    invoke-static {p0, p1, p2}, Lcom/xj/landscape/launcher/ui/menu/ComponentInjectorHelper;->injectComponent(Landroid/content/Context;Landroid/net/Uri;I)V
+    invoke-virtual {p0}, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->showComponents()V
+    return-void
+.end method
+
+
+# ── confirmRemoveAll(): AlertDialog → removeAllComponents() ──
+.method public confirmRemoveAll()V
+    .locals 5
+    # p0=this
+    # v0=builder  v1=count  v2=sb  v3=msg  v4=tmp
+
+    iget-object v2, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->components:[Ljava/io/File;
+    array-length v1, v2
+
+    new-instance v2, Ljava/lang/StringBuilder;
+    invoke-direct {v2}, Ljava/lang/StringBuilder;-><init>()V
+    const-string v4, "Remove all "
+    invoke-virtual {v2, v4}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v2, v1}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+    const-string v4, " component(s)?\nThis cannot be undone."
+    invoke-virtual {v2, v4}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v2}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v3
+
+    new-instance v0, Landroid/app/AlertDialog$Builder;
+    invoke-direct {v0, p0}, Landroid/app/AlertDialog$Builder;-><init>(Landroid/content/Context;)V
+    const-string v4, "Remove All Components"
+    invoke-virtual {v0, v4}, Landroid/app/AlertDialog$Builder;->setTitle(Ljava/lang/CharSequence;)Landroid/app/AlertDialog$Builder;
+    move-result-object v0
+    invoke-virtual {v0, v3}, Landroid/app/AlertDialog$Builder;->setMessage(Ljava/lang/CharSequence;)Landroid/app/AlertDialog$Builder;
+    move-result-object v0
+
+    new-instance v3, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity$3;
+    invoke-direct {v3, p0}, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity$3;-><init>(Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;)V
+    const-string v4, "Remove All"
+    invoke-virtual {v0, v4, v3}, Landroid/app/AlertDialog$Builder;->setPositiveButton(Ljava/lang/CharSequence;Landroid/content/DialogInterface$OnClickListener;)Landroid/app/AlertDialog$Builder;
+    move-result-object v0
+    const-string v4, "Cancel"
+    const/4 v3, 0x0
+    invoke-virtual {v0, v4, v3}, Landroid/app/AlertDialog$Builder;->setNegativeButton(Ljava/lang/CharSequence;Landroid/content/DialogInterface$OnClickListener;)Landroid/app/AlertDialog$Builder;
+    move-result-object v0
+    invoke-virtual {v0}, Landroid/app/AlertDialog$Builder;->show()Landroid/app/AlertDialog;
+    return-void
+.end method
+
+
+# ── removeAllComponents(): delete all component dirs + unregister ──
+.method public removeAllComponents()V
+    .locals 7
+    # p0=this
+    # v0=EmuComponents  v1=HashMap(or null)  v2=components[]
+    # v3=length  v4=index  v5=dir  v6=name
+
+    invoke-static {}, Lcom/xj/winemu/EmuComponents;->e()Lcom/xj/winemu/EmuComponents;
+    move-result-object v0
+    const/4 v1, 0x0
+    if-eqz v0, :no_emu
+    iget-object v1, v0, Lcom/xj/winemu/EmuComponents;->a:Ljava/util/HashMap;
+    :no_emu
+
+    iget-object v2, p0, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->components:[Ljava/io/File;
+    array-length v3, v2
+    const/4 v4, 0x0
+
+    :remove_loop
+    if-ge v4, v3, :remove_done
+    aget-object v5, v2, v4
+    invoke-virtual {v5}, Ljava/io/File;->getName()Ljava/lang/String;
+    move-result-object v6
+    if-eqz v1, :skip_unreg
+    invoke-virtual {v1, v6}, Ljava/util/HashMap;->remove(Ljava/lang/Object;)Ljava/lang/Object;
+    :skip_unreg
+    invoke-static {v5}, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->deleteDir(Ljava/io/File;)V
+    add-int/lit8 v4, v4, 0x1
+    goto :remove_loop
+
+    :remove_done
+    const-string v5, "All components removed"
+    const/4 v6, 0x0
+    invoke-static {p0, v5, v6}, Landroid/widget/Toast;->makeText(Landroid/content/Context;Ljava/lang/CharSequence;I)Landroid/widget/Toast;
+    move-result-object v5
+    invoke-virtual {v5}, Landroid/widget/Toast;->show()V
+    invoke-virtual {p0}, Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;->showComponents()V
+    return-void
+.end method
+
 
 .method public onBackPressed()V
     .locals 1

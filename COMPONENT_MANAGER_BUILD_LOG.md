@@ -1953,3 +1953,19 @@ Restored Html.fromHtml `<small>` labels, $1 OnMultiChoiceClickListener, setMulti
 
 ### CI result
 Pending
+
+---
+
+### Entry 051 — Remove All + Duplicate Prevention (2026-03-18)
+
+**Files changed:**
+- `patches/smali_classes16/.../ComponentManagerActivity.smali` — 2 new fields (pendingUri, pendingType); showComponents() list grows by 1 ("✕ Remove All" at bottom when components exist); onItemClick mode=0 checks if tapped index == components.length → confirmRemoveAll(); onActivityResult mode=3 now calls checkDuplicate() instead of injectComponent() directly; added methods: checkDuplicate, confirmRemoveAll, removeAllComponents
+- `patches/smali_classes16/.../ComponentInjectorHelper.smali` — new getComponentName(Context, Uri, int) static method (mirrors name-resolution logic of injectComponent without extracting)
+- `patches/smali_classes16/.../ComponentManagerActivity$3.smali` [NEW] — DialogInterface.OnClickListener for Remove All confirm → calls removeAllComponents()
+- `patches/smali_classes16/.../ComponentManagerActivity$4.smali` [NEW] — DialogInterface.OnClickListener for Replace dup confirm → reads pendingUri/pendingType, calls injectComponent() + showComponents()
+
+**Root cause / design:**
+- Remove All: iterates components[], unregisters each from EmuComponents.a HashMap, calls deleteDir(), shows "All components removed" toast
+- Dup prevention: getComponentName() peeks at first byte to detect ZIP vs WCP, reads name from meta.json driverVersion (ZIP) or profile.json versionName (WCP), falls back to display name minus extension; if filesDir/usr/home/components/<name>/ exists → AlertDialog "Already Installed — Replace / Cancel"
+
+**CI:** pending

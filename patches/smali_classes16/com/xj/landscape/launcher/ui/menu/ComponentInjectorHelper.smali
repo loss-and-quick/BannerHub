@@ -500,6 +500,66 @@
 
 
 # ─────────────────────────────────────────────────────
+#  getComponentName(Context, Uri, int contentType) -> String
+#  Determines the folder name that injectComponent would use,
+#  without actually extracting anything. Used for dup detection.
+# ─────────────────────────────────────────────────────
+.method public static getComponentName(Landroid/content/Context;Landroid/net/Uri;I)Ljava/lang/String;
+    .locals 5
+    # p0=ctx  p1=uri  p2=contentType
+    # v0=firstByte  v1=name/profile  v2=JSONObject  v3=versionName  v4=tmp
+
+    :try_start
+    invoke-static {p0, p1}, Lcom/xj/landscape/launcher/ui/menu/ComponentInjectorHelper;->getFirstByte(Landroid/content/Context;Landroid/net/Uri;)I
+    move-result v0
+
+    # ZIP check: first byte 0x50 = 'P'
+    const/16 v4, 0x50
+    if-ne v0, v4, :wcp_name
+
+    # ZIP: name = displayName without extension
+    invoke-static {p0, p1}, Lcom/xj/landscape/launcher/ui/menu/ComponentInjectorHelper;->getDisplayName(Landroid/content/Context;Landroid/net/Uri;)Ljava/lang/String;
+    move-result-object v1
+    invoke-static {v1}, Lcom/xj/landscape/launcher/ui/menu/ComponentInjectorHelper;->stripExt(Ljava/lang/String;)Ljava/lang/String;
+    move-result-object v1
+    return-object v1
+
+    :wcp_name
+    # WCP: try versionName from profile.json
+    invoke-static {p0, p1, v0}, Lcom/xj/landscape/launcher/ui/menu/ComponentInjectorHelper;->readWcpProfile(Landroid/content/Context;Landroid/net/Uri;I)Ljava/lang/String;
+    move-result-object v1
+    if-eqz v1, :wcp_fallback
+
+    new-instance v2, Lorg/json/JSONObject;
+    invoke-direct {v2, v1}, Lorg/json/JSONObject;-><init>(Ljava/lang/String;)V
+    const-string v3, "versionName"
+    invoke-virtual {v2, v3}, Lorg/json/JSONObject;->optString(Ljava/lang/String;)Ljava/lang/String;
+    move-result-object v3
+    invoke-virtual {v3}, Ljava/lang/String;->isEmpty()Z
+    move-result v4
+    if-nez v4, :wcp_fallback
+    return-object v3
+
+    :wcp_fallback
+    invoke-static {p0, p1}, Lcom/xj/landscape/launcher/ui/menu/ComponentInjectorHelper;->getDisplayName(Landroid/content/Context;Landroid/net/Uri;)Ljava/lang/String;
+    move-result-object v1
+    invoke-static {v1}, Lcom/xj/landscape/launcher/ui/menu/ComponentInjectorHelper;->stripExt(Ljava/lang/String;)Ljava/lang/String;
+    move-result-object v1
+    return-object v1
+
+    :try_end
+    .catch Ljava/lang/Exception; {:try_start .. :try_end} :catch_gn
+    :catch_gn
+    move-exception v0
+    invoke-static {p0, p1}, Lcom/xj/landscape/launcher/ui/menu/ComponentInjectorHelper;->getDisplayName(Landroid/content/Context;Landroid/net/Uri;)Ljava/lang/String;
+    move-result-object v1
+    invoke-static {v1}, Lcom/xj/landscape/launcher/ui/menu/ComponentInjectorHelper;->stripExt(Ljava/lang/String;)Ljava/lang/String;
+    move-result-object v1
+    return-object v1
+.end method
+
+
+# ─────────────────────────────────────────────────────
 #  injectComponent(Context, Uri, int contentType)
 #  Main entry: detects format, extracts to new
 #  components/<name>/ folder, registers with EmuComponents.
