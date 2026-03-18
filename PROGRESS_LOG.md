@@ -1153,3 +1153,9 @@ ART 14 blocks cross-dex private field access. `DialogSettingListItemEntity` is i
 **Commit:** TBD  |  **Tag:** v2.4.4-pre  |  **Branch:** main
 **What changed:** Added ⚡ Sustained Perf: ON/OFF toggle as first item in ComponentManagerActivity list. Tapping toggles `sustained_perf` in `bh_prefs` SharedPreferences and shows a toast. WineActivity.onCreate() reads the flag (after :cond_perf_1) and calls `window.setSustainedPerformanceMode(true)` if enabled.
 **Files touched:** `patches/smali_classes16/.../ComponentManagerActivity.smali`, `patches/smali_classes15/.../WineActivity.smali`, `COMPONENT_MANAGER_BUILD_LOG.md`, `PROGRESS_LOG.md`
+
+### v2.4.6-pre — 2026-03-18
+**Commit:** `60cafd9` | **CI:** ✅
+- Moved Sustained Performance Mode toggle from Components menu to in-game sidebar (Controls tab)
+- Takes effect immediately while in-game; saves to bh_prefs/sustained_perf
+- ComponentManagerActivity list offsets corrected (Add New = pos 0, dirs = 1+, Remove All = last)
