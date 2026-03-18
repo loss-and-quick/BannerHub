@@ -1159,3 +1159,9 @@ ART 14 blocks cross-dex private field access. `DialogSettingListItemEntity` is i
 - Moved Sustained Performance Mode toggle from Components menu to in-game sidebar (Controls tab)
 - Takes effect immediately while in-game; saves to bh_prefs/sustained_perf
 - ComponentManagerActivity list offsets corrected (Add New = pos 0, dirs = 1+, Remove All = last)
+
+### v2.4.7-pre — 2026-03-18
+**Commit:** `2ab8f7a` | **CI:** ✅
+- Moved Sustained Performance + added Max Adreno Clocks to Performance sidebar tab
+- Max Adreno Clocks: root-only, locks kgsl-3d0 min_freq = max_freq; persists across launches
+- Used BhPerfSetupDelegate (smali_classes16 view) to avoid classes9 dex limit
