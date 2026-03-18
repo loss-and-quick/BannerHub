@@ -1,6 +1,6 @@
 # BannerHub
 
-**GameHub 5.3.5 ReVanced** — enhanced with a full Component Manager, in-app component downloader, RTS touch controls, VRAM unlock, per-game CPU core affinity, Steam offline launch, and more. Built with apktool — no root required.
+**GameHub 5.3.5 ReVanced** — enhanced with a full Component Manager, in-app component downloader, in-game Performance toggles, RTS touch controls, VRAM unlock, per-game CPU core affinity, Steam offline launch, and more. Built with apktool — no root required for most features.
 
 ## Video — Installation & Feature Showcase
 
@@ -36,6 +36,19 @@ Inside the Component Manager type-selection menu, tap **↓ Download from Online
 ### BCI Launcher Button
 Tap the icon in GameHub's top-right toolbar to open **BannersComponentInjector** (`com.banner.inject`) directly from inside GameHub. Shows a toast if it is not installed.
 
+### Performance Sidebar Toggles
+Two toggles in the in-game **Performance sidebar tab** (above Dual Battery Mode). Both states persist across launches and are re-applied on startup.
+
+| | Sustained Perf (Root+) | Max Adreno Clocks (Root) |
+|---|---|---|
+| **What it targets** | CPU performance governor | GPU (Adreno/kgsl-3d0) clock speed |
+| **No-root support** | ✅ Partial — tries `Window.setSustainedPerformanceMode()` | ❌ None — sysfs write requires root |
+| **Root effect** | Sets all CPU cores to `performance` governor | Locks GPU `min_freq = max_freq` (no downclocking) |
+| **Disable effect** | Reverts CPU governor to `schedutil` | Resets GPU `min_freq` to 0 |
+| **Best for** | CPU-heavy workloads, frame time spikes | GPU-heavy games, GPU clock dips |
+
+Use both together for maximum sustained performance (requires root).
+
 ### RTS Touch Controls
 *Thanks to [@Nightwalker743](https://github.com/Nightwalker743) for making this possible!*
 
@@ -50,28 +63,30 @@ Enable via **Settings → Controls tab** in the in-game sidebar. Adds a full ges
 - **Gesture settings dialog** — tap the gear icon in the Controls tab to customize two-finger and pinch actions
 
 ### VRAM Limit Unlock
-PC game settings → **VRAM Limit** now includes 6 GB, 8 GB, 12 GB, and 16 GB options in addition to the original 512 MB–4 GB range. The selected value is saved to MMKV and reflected in the settings summary immediately.
-
-### PC Game Settings: Offline Mode
-Opening PC game settings while offline no longer blocks the menus. Previously a `NoCacheException` from the remote API made all settings non-interactive. Both the container list and component list now fall back to empty data so the UI remains fully usable without a network connection.
+PC game settings → **VRAM Limit** now includes 6 GB, 8 GB, 12 GB, and 16 GB options in addition to the original 512 MB–4 GB range.
 
 ### Per-Game CPU Core Affinity
-PC game settings → **Core Count** now opens a multi-select dialog to choose exactly which CPU cores a game may use.
+PC game settings → **Core Count** opens a multi-select dialog to choose exactly which CPU cores a game may use.
 
 - 8 cores listed individually: Core 0–3 (Efficiency), Core 4–6 (Performance), Core 7 (Prime)
-- **Apply** saves the selected core bitmask for that game
-- **No Limit** clears the affinity mask (unrestricted)
-- **Cancel** discards changes with no save
-- Selecting all 8 cores and tapping Apply is treated as No Limit
-- Tapping Apply with nothing selected shows a warning toast and does not save
-- The settings row label refreshes immediately after any change
+- **Apply** saves the selected core bitmask; **No Limit** clears affinity; **Cancel** discards
+- Selecting all 8 cores = No Limit; selecting none shows a warning toast
+- Settings row label refreshes immediately after any change
+
+### PC Game Settings: Offline Mode
+Opening PC game settings while offline no longer blocks the menus. Container and component lists fall back to empty data so the UI remains fully usable without a network connection.
 
 ### Offline Steam Launch
-When autoLogin fails and no network is available at cold start, the Steam login screen is skipped and the game launch pipeline proceeds using cached config. When network is available and autoLogin fails, the login screen is shown as normal.
+When autoLogin fails and no network is available at cold start, the Steam login screen is skipped and the launch pipeline proceeds using cached config.
+
+### Settings → Advanced
+- EmuReady API toggle (defaults off on fresh installs)
+- CPU Usage display toggle
+- Performance Metrics toggle
+- Sustained Performance Mode toggle
 
 ### UI Tweaks
 - "My" tab renamed to **"My Games"**
-- EmuReady API toggle defaults to **off** on fresh installs (Settings → Advanced)
 
 ---
 
@@ -81,15 +96,15 @@ Download the APK matching your existing GameHub package from the [latest release
 
 | APK | Package | App Label |
 |-----|---------|-----------|
-| `Bannerhub-5.3.5-Revanced-Normal.apk` | `gamehub.lite` | GameHub Revanced |
-| `Bannerhub-5.3.5-Revanced-PuBG.apk` | `com.tencent.ig` | GameHub Revanced PuBG |
-| `Bannerhub-5.3.5-Revanced-AnTuTu.apk` | `com.antutu.ABenchMark` | GameHub Revanced AnTuTu |
-| `Bannerhub-5.3.5-Revanced-alt-AnTuTu.apk` | `com.antutu.benchmark.full` | GameHub Revanced AnTuTu |
-| `Bannerhub-5.3.5-Revanced-Ludashi.apk` | `com.ludashi.aibench` | GameHub Revanced Ludashi |
-| `Bannerhub-5.3.5-Revanced-Genshin.apk` | `com.mihoyo.genshinimpact` | GameHub Revanced Genshin |
-| `Bannerhub-5.3.5-Revanced-Original.apk` | `com.xiaoji.egggame` | GameHub Revanced |
+| `Bannerhub-5.3.5-Revanced-Normal.apk` | `banner.hub` | BannerHub |
+| `Bannerhub-5.3.5-Revanced-PuBG.apk` | `com.tencent.ig` | BannerHub PuBG |
+| `Bannerhub-5.3.5-Revanced-AnTuTu.apk` | `com.antutu.ABenchMark` | BannerHub AnTuTu |
+| `Bannerhub-5.3.5-Revanced-alt-AnTuTu.apk` | `com.antutu.benchmark.full` | BannerHub AnTuTu |
+| `Bannerhub-5.3.5-Revanced-Ludashi.apk` | `com.ludashi.aibench` | BannerHub Ludashi |
+| `Bannerhub-5.3.5-Revanced-Genshin.apk` | `com.mihoyo.genshinimpact` | BannerHub Genshin |
+| `Bannerhub-5.3.5-Revanced-Original.apk` | `com.xiaoji.egggame` | BannerHub Original |
 
-Each APK uses a unique package name and provider authority — all 7 variants can be installed simultaneously without conflicts. All APKs are signed with AOSP testkey (v1/v2/v3).
+The **Normal APK** uses package `banner.hub` — it installs alongside the original GameHub without replacing it. All 7 variants can be installed simultaneously without conflicts. All APKs are signed with AOSP testkey (v1/v2/v3).
 
 > **Note:** You must uninstall any previous BannerHub build before installing a new one if the signing certificate changed.
 
