@@ -19,6 +19,7 @@
             </com.xj.common.view.focus.focus.view.FocusableLinearLayout>
             <com.xj.winemu.view.SidebarSwitchItemView android:id="@id/hud_switch" android:layout_width="fill_parent" android:layout_height="@dimen/dp_56" app:switch_title="@string/winemu_hud_display" />
             <com.xj.common.view.focus.focus.view.FocusableRecyclerView android:id="@id/hud_options_rv" android:layout_width="fill_parent" android:layout_height="wrap_content" />
+            <com.xj.winemu.sidebar.BhPerfSetupDelegate android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
             <com.xj.winemu.view.SidebarSwitchItemView android:id="@id/switch_sustained_perf" android:layout_width="fill_parent" android:layout_height="@dimen/dp_56" app:switch_title="@string/winemu_sidebar_sustained_perf" />
             <com.xj.winemu.view.SidebarSwitchItemView android:id="@id/switch_max_adreno_clocks" android:layout_width="fill_parent" android:layout_height="@dimen/dp_56" app:switch_title="@string/winemu_sidebar_max_adreno_clocks" />
             <com.xj.winemu.view.SidebarSwitchItemView android:id="@id/switch_dual_battery_mode" android:layout_width="fill_parent" android:layout_height="@dimen/dp_56" app:switch_title="@string/winemu_sidebar_dual_battery_mode" />
