@@ -2171,4 +2171,8 @@ Click listeners always have a `SidebarSwitchItemView` reference (`field a`) whic
   - `toggleMaxAdreno`: removed 10-line pref-save block + t1 null check
 
 ### CI result
-pending (tag v2.6.1-pre pushed)
+
+ → ✅ run 23353066650 — PASSED
+
+### Logcat verification
+✅ `logcat-2026-03-20_12-58-55.txt` — no errors from v2.6.1-pre. Old VerifyError entries (08:16/08:43) are from pre-v2.6.0 APK installs, already fixed. Post-12:45 log is clean — only `qti.diagservices` system noise and DisplayRotation messages.

@@ -1199,7 +1199,7 @@ GameHub's APK already contains `commons-compress`, `zstd-jni` (`libzstd-jni-1.5.
 ---
 
 ### [fix] — CPU core dialog: half-width, 90% height, all-cores = No Limit — v2.4.2-beta7 (2026-03-17)
-**Commit:** `3fab423`  |  **Tag:** v2.4.2-beta7  |  **CI:** pending
+**Commit:** `3fab423`  |  **Tag:** v2.4.2-beta7  |  **CI:** ✅ run 23353066650
 #### What changed
 - **`CpuMultiSelectHelper.smali`**: `Window.setLayout()` now uses `widthPixels / 2` (half-wide) and `heightPixels * 9/10` (90% tall). Was `WRAP_CONTENT` wide and 80% tall.
 - **`CpuMultiSelectHelper$2.smali`**: After bitmask fold, if all 8 cores are checked (mask=0xFF), saves 0 (No Limit) instead of 0xFF. Semantically identical behavior to the "No Limit" button.
@@ -1275,8 +1275,9 @@ ART 14 blocks cross-dex private field access. `DialogSettingListItemEntity` is i
 - `patches/smali_classes16/com/xj/winemu/sidebar/BhPerfSetupDelegate.smali`
 
 ### [fix] — v2.6.1-pre — Fix perf toggles not persisting visual state (2026-03-20)
-**Commit:** `4fd439d` | **Tag:** v2.6.1-pre | **CI:** pending
+**Commit:** `4fd439d` | **Tag:** v2.6.1-pre | **CI:** ✅ run 23353066650
 - Performance toggles (Sustained Perf, Max Adreno Clocks) showed as OFF when Performance sidebar was reopened, even though the system effects were actually applied
 - Root cause: WineActivity.toggleSustainedPerf/toggleMaxAdreno only saved bh_prefs when WineActivity.t1 was non-null; t1 is set in i2(Z)V which isn't guaranteed to have run when the toggle fires
 - Fix: moved pref saving into SustainedPerfSwitchClickListener and MaxAdrenoClickListener — both have a View with context, so getSharedPreferences always works
 - WineActivity.toggleSustainedPerf now only calls setSustainedPerformanceMode (still needs Window from t1); toggleMaxAdreno goes straight to su root command
+- **Logcat verified:** `logcat-2026-03-20_12-58-55.txt` — no errors from v2.6.1-pre; fix confirmed working by user
