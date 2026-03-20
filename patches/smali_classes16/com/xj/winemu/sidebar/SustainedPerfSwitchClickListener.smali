@@ -35,7 +35,7 @@
 
 # virtual methods
 .method public final invoke()Ljava/lang/Object;
-    .locals 2
+    .locals 5
 
     # Get current switch state and toggle it
     iget-object v0, p0, Lcom/xj/winemu/sidebar/SustainedPerfSwitchClickListener;->a:Lcom/xj/winemu/view/SidebarSwitchItemView;
@@ -48,7 +48,20 @@
     # Update switch UI
     invoke-virtual {v0, v1}, Lcom/xj/winemu/view/SidebarSwitchItemView;->setSwitch(Z)V
 
-    # Save pref and apply to window
+    # Save pref directly from view context — always works, no WineActivity.t1 dependency
+    invoke-virtual {v0}, Landroid/view/View;->getContext()Landroid/content/Context;
+    move-result-object v2
+    const-string v3, "bh_prefs"
+    const/4 v4, 0x0
+    invoke-virtual {v2, v3, v4}, Landroid/content/Context;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;
+    move-result-object v2
+    invoke-interface {v2}, Landroid/content/SharedPreferences;->edit()Landroid/content/SharedPreferences$Editor;
+    move-result-object v2
+    const-string v3, "sustained_perf"
+    invoke-interface {v2, v3, v1}, Landroid/content/SharedPreferences$Editor;->putBoolean(Ljava/lang/String;Z)Landroid/content/SharedPreferences$Editor;
+    invoke-interface {v2}, Landroid/content/SharedPreferences$Editor;->apply()V
+
+    # Apply system effect (CPU governor via su + setSustainedPerformanceMode)
     invoke-static {v1}, Lcom/xj/winemu/WineActivity;->toggleSustainedPerf(Z)V
 
     sget-object v0, Lkotlin/Unit;->a:Lkotlin/Unit;

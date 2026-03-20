@@ -35,7 +35,7 @@
 
 # virtual methods
 .method public final invoke()Ljava/lang/Object;
-    .locals 3
+    .locals 5
 
     # Toggle switch state
     iget-object v0, p0, Lcom/xj/winemu/sidebar/MaxAdrenoClickListener;->a:Lcom/xj/winemu/view/SidebarSwitchItemView;
@@ -47,7 +47,20 @@
 
     invoke-virtual {v0, v1}, Lcom/xj/winemu/view/SidebarSwitchItemView;->setSwitch(Z)V
 
-    # Save pref and apply root command
+    # Save pref directly from view context — always works, no WineActivity.t1 dependency
+    invoke-virtual {v0}, Landroid/view/View;->getContext()Landroid/content/Context;
+    move-result-object v2
+    const-string v3, "bh_prefs"
+    const/4 v4, 0x0
+    invoke-virtual {v2, v3, v4}, Landroid/content/Context;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;
+    move-result-object v2
+    invoke-interface {v2}, Landroid/content/SharedPreferences;->edit()Landroid/content/SharedPreferences$Editor;
+    move-result-object v2
+    const-string v3, "max_adreno_clocks"
+    invoke-interface {v2, v3, v1}, Landroid/content/SharedPreferences$Editor;->putBoolean(Ljava/lang/String;Z)Landroid/content/SharedPreferences$Editor;
+    invoke-interface {v2}, Landroid/content/SharedPreferences$Editor;->apply()V
+
+    # Apply system effect (GPU min_freq via su)
     invoke-static {v1}, Lcom/xj/winemu/WineActivity;->toggleMaxAdreno(Z)V
 
     sget-object v0, Lkotlin/Unit;->a:Lkotlin/Unit;
