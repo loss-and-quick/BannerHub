@@ -5,18 +5,18 @@
 # Card-based RecyclerView, search bar, bottom action buttons, empty state
 # Swipe LEFT = remove, Swipe RIGHT = backup
 
-.field private recyclerView:Landroidx/recyclerview/widget/RecyclerView;
+.field public recyclerView:Landroidx/recyclerview/widget/RecyclerView;
 .field public adapter:Lcom/xj/landscape/launcher/ui/menu/BhComponentAdapter;
-.field private emptyState:Landroid/view/View;
-.field private countBadge:Landroid/widget/TextView;
+.field public emptyState:Landroid/view/View;
+.field public countBadge:Landroid/widget/TextView;
 
 # State fields (same semantics as before)
-.field private components:[Ljava/io/File;
-.field private selectedIndex:I
-.field private selectedType:I
-.field private pendingUri:Landroid/net/Uri;
-.field private pendingType:I
-.field private mode:I
+.field public components:[Ljava/io/File;
+.field public selectedIndex:I
+.field public selectedType:I
+.field public pendingUri:Landroid/net/Uri;
+.field public pendingType:I
+.field public mode:I
 
 .method public constructor <init>()V
     .locals 0
