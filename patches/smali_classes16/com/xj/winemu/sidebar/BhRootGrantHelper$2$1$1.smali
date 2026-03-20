@@ -16,7 +16,7 @@
 
     iput-object p1, p0, Lcom/xj/winemu/sidebar/BhRootGrantHelper$2$1$1;->a:Landroid/content/Context;
 
-    iput p2, p0, Lcom/xj/winemu/sidebar/BhRootGrantHelper$2$1$1;->b:Z
+    iput-boolean p2, p0, Lcom/xj/winemu/sidebar/BhRootGrantHelper$2$1$1;->b:Z
 
     return-void
 .end method

@@ -142,3 +142,98 @@
     :cond_done
     return-void
 .end method
+
+
+# Re-apply root state every time the Performance tab becomes visible.
+# This allows the toggles to un-grey and become clickable after the user
+# grants root via Settings -> Advanced -> Grant Root Access, without
+# needing to restart the app.
+.method protected onVisibilityChanged(Landroid/view/View;I)V
+    .locals 6
+
+    invoke-super {p0, p1, p2}, Landroid/view/View;->onVisibilityChanged(Landroid/view/View;I)V
+
+    # Only act when becoming visible (View.VISIBLE = 0)
+    if-nez p2, :cond_done
+
+    # Get parent view (performance_fl LinearLayout)
+    invoke-virtual {p0}, Landroid/view/View;->getParent()Landroid/view/ViewParent;
+    move-result-object v0
+    if-eqz v0, :cond_done
+    check-cast v0, Landroid/view/View;
+
+    # Get context
+    invoke-virtual {p0}, Landroid/view/View;->getContext()Landroid/content/Context;
+    move-result-object v1
+    if-eqz v1, :cond_done
+
+    # Get prefs
+    const-string v2, "bh_prefs"
+    const/4 v3, 0x0
+    invoke-virtual {v1, v2, v3}, Landroid/content/Context;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;
+    move-result-object v2
+
+    # Read root_granted
+    const-string v3, "root_granted"
+    const/4 v4, 0x0
+    invoke-interface {v2, v3, v4}, Landroid/content/SharedPreferences;->getBoolean(Ljava/lang/String;Z)Z
+    move-result v5
+
+    # --- Sustained Perf switch ---
+    const v1, 0x7f0a0f0e
+    invoke-virtual {v0, v1}, Landroid/view/View;->findViewById(I)Landroid/view/View;
+    move-result-object v1
+    check-cast v1, Lcom/xj/winemu/view/SidebarSwitchItemView;
+    if-eqz v1, :cond_adreno
+
+    const-string v3, "sustained_perf"
+    const/4 v4, 0x0
+    invoke-interface {v2, v3, v4}, Landroid/content/SharedPreferences;->getBoolean(Ljava/lang/String;Z)Z
+    move-result v3
+    invoke-virtual {v1, v3}, Lcom/xj/winemu/view/SidebarSwitchItemView;->setSwitch(Z)V
+
+    if-eqz v5, :cond_sustained_no_root
+
+    # Root granted — restore full alpha, wire click listener
+    const v3, 0x3f800000
+    invoke-virtual {v1, v3}, Landroid/view/View;->setAlpha(F)V
+    new-instance v3, Lcom/xj/winemu/sidebar/SustainedPerfSwitchClickListener;
+    invoke-direct {v3, v1}, Lcom/xj/winemu/sidebar/SustainedPerfSwitchClickListener;-><init>(Lcom/xj/winemu/view/SidebarSwitchItemView;)V
+    invoke-virtual {v1, v3}, Lcom/xj/winemu/view/SidebarSwitchItemView;->setClickListener(Lkotlin/jvm/functions/Function0;)V
+    goto :cond_adreno
+
+    :cond_sustained_no_root
+    const v3, 0x3f000000
+    invoke-virtual {v1, v3}, Landroid/view/View;->setAlpha(F)V
+
+    # --- Max Adreno Clocks switch ---
+    :cond_adreno
+    const v1, 0x7f0a0f0f
+    invoke-virtual {v0, v1}, Landroid/view/View;->findViewById(I)Landroid/view/View;
+    move-result-object v1
+    check-cast v1, Lcom/xj/winemu/view/SidebarSwitchItemView;
+    if-eqz v1, :cond_done
+
+    const-string v3, "max_adreno_clocks"
+    const/4 v4, 0x0
+    invoke-interface {v2, v3, v4}, Landroid/content/SharedPreferences;->getBoolean(Ljava/lang/String;Z)Z
+    move-result v3
+    invoke-virtual {v1, v3}, Lcom/xj/winemu/view/SidebarSwitchItemView;->setSwitch(Z)V
+
+    if-eqz v5, :cond_adreno_no_root
+
+    # Root granted — restore full alpha, wire click listener
+    const v3, 0x3f800000
+    invoke-virtual {v1, v3}, Landroid/view/View;->setAlpha(F)V
+    new-instance v3, Lcom/xj/winemu/sidebar/MaxAdrenoClickListener;
+    invoke-direct {v3, v1}, Lcom/xj/winemu/sidebar/MaxAdrenoClickListener;-><init>(Lcom/xj/winemu/view/SidebarSwitchItemView;)V
+    invoke-virtual {v1, v3}, Lcom/xj/winemu/view/SidebarSwitchItemView;->setClickListener(Lkotlin/jvm/functions/Function0;)V
+    goto :cond_done
+
+    :cond_adreno_no_root
+    const v3, 0x3f000000
+    invoke-virtual {v1, v3}, Landroid/view/View;->setAlpha(F)V
+
+    :cond_done
+    return-void
+.end method
