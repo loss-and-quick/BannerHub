@@ -2084,3 +2084,23 @@ restores alpha to 1.0f and wires listeners if granted, or greys out if not.
 
 ### CI result
 ✅ run 23342648406 — PASSED
+
+---
+
+## Entry 56 — v2.5.5-pre — Component description in game settings picker (2026-03-20)
+
+### Files modified
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/ComponentInjectorHelper.smali`
+  - Method: `appendLocalComponents(List, int)`
+  - Added 3 instructions after `setDownloaded(true)`: `invoke-virtual {v4} getBlurb()`, `move-result-object v7`, `invoke-virtual {v6, v7} setDesc(String)`
+
+### Methods involved
+- `ComponentInjectorHelper.appendLocalComponents()` — the injection point
+- `EnvLayerEntity.getBlurb()Ljava/lang/String;` — **not obfuscated** in 5.3.5 (confirmed at line 1511 of EnvLayerEntity.smali)
+- `DialogSettingListItemEntity.setDesc(String)V` — confirmed present (smali_classes12)
+
+### Root-cause analysis
+`appendLocalComponents()` built each `DialogSettingListItemEntity` via the no-arg constructor then called setTitle/setDisplayName/setType/setEnvLayerEntity/setDownloaded — but never called `setDesc()`. The blurb string was already stored in the `EnvLayerEntity` (it is written there by `registerComponent()` via the 19-param constructor param 1). Only needed to read it back and forward it to setDesc.
+
+### CI result
+⏳ pending (tag v2.5.5-pre pushed)
