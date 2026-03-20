@@ -1982,3 +1982,79 @@ Pending
 - App-installed components and BannerHub-injected components share the same `components/` folder. Need to distinguish them. Marker file approach: stamp every BannerHub-injected dir at injection time; Remove All only deletes stamped dirs.
 
 **CI:** pending
+
+---
+
+## Entry 051 — Fix: perf re-apply crash guard + grey out toggles without root (2026-03-18)
+**Date:** 2026-03-18  |  **Commit:** `d0a6fcb`  |  **Tag:** v2.5.1-pre  |  **CI:** pending
+
+### Files modified
+- `patches/smali_classes15/com/xj/winemu/WineActivity.smali`
+- `patches/smali_classes16/com/xj/winemu/sidebar/BhPerfSetupDelegate.smali`
+
+### Methods added / changed
+- **WineActivity** (unnamed on-resume method) [MOD] — added `:try_start_bh_perf` before the Sustained Perf re-apply block and `:try_end_bh_perf` + `.catch Ljava/lang/Exception;` + `:catch_bh_perf` label after `:cond_bh_adreno_skip`. Both re-apply blocks are now inside a single try/catch. Exception swallowed silently.
+- **BhPerfSetupDelegate.isRootAvailable()Z** [NEW static] — runs `{"su", "-c", "id"}` via Runtime.exec, calls waitFor(), returns true if exit == 0. Returns false on any Exception.
+- **BhPerfSetupDelegate.onAttachedToWindow()V** [MOD] — `.locals 5→6`; added `isRootAvailable()` check into v5; for each switch: if no root → `setAlpha(0x3f000000 / 0.5f)` + no click listener; if root → unchanged behaviour. Fixed float literal from `const/high16 v3, 0x3f00` (assembler error: low 16 bits not zeroed) to `const v3, 0x3f000000`.
+
+### Root cause / design
+- `setSustainedPerformanceMode()` is not supported on all OEMs — throws instead of silently failing on some devices; without a guard, enabling the pref + relaunching container crashed on launch.
+- `const/high16` smali instruction requires low 16 bits to be zero in the immediate; 0x3f00 only has 14 significant bits, which assembled to an invalid literal. `const v, 0x3f000000` is the correct form for 0.5f.
+- Root check in BhPerfSetupDelegate prevents non-root users from accidentally toggling features that do nothing (or prompt for root) on their device.
+
+---
+
+## Entry 051 — v2.5.1 STABLE: CI confirmed (2026-03-18)
+**Date:** 2026-03-18  |  **Commit:** `d0a6fcb`  |  **Tag:** v2.5.1  |  **CI:** ✅ build.yml run 23276212704 — 8 APKs (6m 17s)
+
+---
+
+## Entry 053 — v2.5.3-pre: fix Grant Root Access missing from build-quick.yml (2026-03-20)
+**Date:** 2026-03-20  |  **Commit:** `c7ecc4d`  |  **Tag:** v2.5.3-pre  |  **CI:** ✅ run 23339561713
+
+### What was changed
+Pre-releases use `build-quick.yml`, but the 3 Grant Root Access Python smali patches (SettingBtnHolder.w, SettingItemEntity.getContentName, SettingItemViewModel.k) were only in `build.yml`. Result: button was never inserted in the settings list, getContentName returned "" for contentType=0x64.
+
+### Root cause
+`build.yml` — used for stable tags — had the Python patch step. `build-quick.yml` — used for `-pre` and `-beta` tags — did not.
+
+### Fix
+Added identical Python patch step to `build-quick.yml` before the "Patch package name" step, with paths targeting `apktool_out/` (quick workflow uses single-job layout, no `apktool_out_base/` intermediate).
+
+### Files modified
+- `.github/workflows/build-quick.yml` — +103 lines (Python patch step for all 3 Grant Root Access smali patches)
+
+### CI result
+✅ Passed — run 23339561713, 3m38s
+
+---
+
+## Entry 052 — v2.5.2-pre: Grant Root Access button (port from bh-lite) (2026-03-20)
+**Date:** 2026-03-20  |  **Commit:** `493f9ae`  |  **Tag:** v2.5.2-pre  |  **CI:** ✅ run 23338789938
+
+### What was changed
+Port of the "Grant Root Access" dialog from BannerHub Lite to original BannerHub (5.3.5).
+
+Previously, `BhPerfSetupDelegate.isRootAvailable()` ran `su -c id` synchronously on every Performance sidebar open. Now root status is stored in `bh_prefs["root_granted"]` via an explicit user-initiated dialog in Settings → Advanced.
+
+### Files added (patches/smali_classes16/com/xj/winemu/sidebar/)
+- `BhRootGrantHelper.smali` — `requestRoot(Context)V`: shows dialog, branches on alreadyGranted; calls $1/$2 inner classes
+- `BhRootGrantHelper$1.smali` — "Revoke Access" DialogInterface.OnClickListener: stores root_granted=false, shows Toast
+- `BhRootGrantHelper$2.smali` — "Grant Access" DialogInterface.OnClickListener: starts Thread(BhRootGrantHelper$2$1)
+- `BhRootGrantHelper$2$1.smali` — Thread Runnable: runs su -c id, stores result, posts Handler(BhRootGrantHelper$2$1$1)
+- `BhRootGrantHelper$2$1$1.smali` — Handler.post Runnable: shows granted/denied Toast on main thread
+
+### Files modified
+- `BhPerfSetupDelegate.smali` — replaced `invoke-static isRootAvailable()Z` with `prefs.getBoolean("root_granted", false)` using v2 (SharedPreferences already in scope)
+- `build.yml` — added "Apply Grant Root Access smali patches" step (Python string patches):
+  - `SettingBtnHolder.w()` (smali_classes6): inject after `move-result p0` while p2=FocusableConstraintLayout, call BhRootGrantHelper.requestRoot(context), return Unit
+  - `SettingItemEntity.getContentName()` (smali_classes13): inject before :cond_15, return "Grant Root Access" for 0x64
+  - `SettingItemViewModel.k()` (smali_classes3): append TYPE_BTN(0x64) after Clear Cache before return
+
+### Method: SettingItemEntity constructor signature (5.3.5)
+`<init>(IILandroid/util/SparseArray;ZILkotlin/jvm/internal/DefaultConstructorMarker;)V`
+- v0=this, v1=type(TYPE_BTN), v2=contentType(0x64), v3=null, v4=false, v5=0xc, v6=null
+- v1/v3/v4/v5/v6 reused from the Clear Cache item directly above (still valid at injection point)
+
+### CI result
+Pending — run 23338789938

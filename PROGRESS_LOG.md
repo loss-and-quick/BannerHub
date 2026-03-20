@@ -4,6 +4,35 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [pre] — v2.5.3-pre — Fix: Grant Root Access patches missing from build-quick.yml (2026-03-20)
+**Commit:** `c7ecc4d`  |  **Tag:** v2.5.3-pre  |  **CI:** ✅ run 23339561713 (3m38s)
+**What changed:** Pre-releases use build-quick.yml but the 3 Grant Root Access Python smali patches were only added to build.yml. As a result the button was never added to the settings list and getContentName() never returned "Grant Root Access". Added the identical Python patch step to build-quick.yml targeting apktool_out/ instead of apktool_out_base/.
+**CI result:** ✅ passed
+
+---
+
+## [pre] — v2.5.2-pre — Settings: Grant Root Access button (port from bh-lite) (2026-03-20)
+**Commit:** `493f9ae`  |  **Tag:** v2.5.2-pre  |  **CI:** ✅ run 23338789938 (3m38s)
+**What changed:** Ported the explicit root-grant dialog from BannerHub Lite. Added "Grant Root Access" button to Settings → Advanced (contentType=0x64). Shows a full warning dialog; on confirmation runs `su -c id` via a background thread and stores `root_granted` in `bh_prefs`. BhPerfSetupDelegate now reads this pref instead of running a live `isRootAvailable()` check on every sidebar open. 5 new inner-class smali files in patches/smali_classes16. 3 Python string patches added to build.yml CI for SettingBtnHolder.w(), SettingItemEntity.getContentName(), SettingItemViewModel.k(). NOTE: patches were missing from build-quick.yml — fixed in v2.5.3-pre.
+**CI result:** ✅ passed (but missing build-quick.yml patches — see v2.5.3-pre)
+
+---
+
+## [stable] — v2.5.1 — Perf crash guard + root-gated toggles (2026-03-18)
+**Commit:** `d0a6fcb`  |  **Tag:** v2.5.1
+**What changed:** (A) try/catch guard on both BH on-launch perf re-apply blocks — prevents `setSustainedPerformanceMode()` crash on unsupported devices. (C) `BhPerfSetupDelegate` root check via `isRootAvailable()` — no-root devices see perf toggles at 0.5f alpha, non-interactive. Float literal bug fixed (`const/high16` → `const 0x3f000000`).
+**CI result:** ✅ build.yml run 23276212704 — 8 APKs built successfully
+
+---
+
+## [pre] — v2.5.1-pre — Fix: perf launch crash guard + grey out without root (2026-03-18)
+**Commit:** `d0a6fcb`  |  **Tag:** v2.5.1-pre
+**What changed:** (A) Wrapped both BannerHub on-launch re-apply blocks (Sustained Perf + Max Adreno) in try/catch — `setSustainedPerformanceMode()` throws on unsupported devices, previously crashing container launch. (C) Fixed `BhPerfSetupDelegate` float literal bug (`const/high16` → `const 0x3f000000`); added `isRootAvailable()` root check; no-root devices see both performance toggles at 0.5f alpha with no click listener.
+**Files touched:** `patches/smali_classes15/com/xj/winemu/WineActivity.smali` [MOD — try/catch around BH re-apply blocks]; `patches/smali_classes16/com/xj/winemu/sidebar/BhPerfSetupDelegate.smali` [MOD — isRootAvailable()Z, float fix, root guard]
+**CI result:** ✅ build-quick.yml run 23275952622 (3m 35s)
+
+---
+
 ## [stable] — v2.5.0 — Stable release (2026-03-18)
 **Commit:** `9b25f1a` (README) / tag on `8e78d4f`  |  **Tag:** v2.5.0
 **What changed:** Stable release of v2.4.6-pre through v2.4.9-pre line. Includes Sustained Perf (Root+) + Max Adreno Clocks toggles in Performance sidebar. README rewritten to reflect full feature set including performance toggle comparison table.
