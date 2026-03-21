@@ -8,7 +8,7 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 **Branch:** `gog-beta`  |  **Tag:** v2.7.0-beta7
 **What changed:** VerifyError on `GogLoginActivity$1`: private method `handleImplicitRedirect(Uri)` was called with `invoke-virtual` — ART rejects this. Private methods must use `invoke-direct`. Changed both call sites (`replace_all`).
 **Files touched:** `GogLoginActivity$1.smali`
-**CI result:** pending
+**CI result:** ✅ run 23385551233 — Normal APK built successfully (3m31s)
 
 ---
 
