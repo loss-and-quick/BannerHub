@@ -5,7 +5,7 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 ---
 
 ## [pre] — v2.6.2-pre5 — Fix source badge + refresh + type badge for Arihany items (2026-03-21)
-**Commit:** `TBD`  |  **Tag:** v2.6.2-pre5  |  **CI:** pending
+**Commit:** `26f5af5`  |  **Tag:** v2.6.2-pre5a  |  **CI:** ✅ run 23380498933
 **What changed:** Four fixes: (1) Bug #1: Added onResume() to ComponentManagerActivity → list now refreshes immediately when returning from ComponentDownloadActivity. (2) Bug #2a: setMaxLines(1) changed to setMaxLines(2) on nameText in onCreateViewHolder → source badge (appended as \n+repo) is now visible. (3) Bug #2b: $5 now scans components dir post-injection using System.currentTimeMillis() timestamp to find newly created dir → correct SP key regardless of filename format; falls back to filename-based key if scan finds nothing. (4) Type badge fix: $5 writes dirName+":type" → type string (FEXCore/Box64/VKD3D/GPU/DXVK); adapter reads SP type override before keyword detection → Arihany FEXCore/DXVK show correct badge. (5) Double-extension bug fixed in onItemClick: endsWith check prevents appending ".wcp" if filename already ends in ".wcp".
 **Files touched:** `ComponentManagerActivity.smali` [ADD onResume]; `BhComponentAdapter.smali` [setMaxLines 1→2, ADD type SP override in onBindViewHolder]; `ComponentDownloadActivity.smali` [ADD endsWith check in onItemClick]; `ComponentDownloadActivity$5.smali` [REWRITE run() with timestamp+scan+type]
 

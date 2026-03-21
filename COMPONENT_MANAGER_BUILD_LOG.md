@@ -32,7 +32,7 @@ Each entry covers one logical change unit (commit or closely related set of comm
 
 ## Entry 073 — Source badge + refresh + type badge fixes (v2.6.2-pre5)
 **Date:** 2026-03-21
-**Commit:** TBD  |  **Tag:** v2.6.2-pre5  |  **CI:** pending
+**Commit:** `26f5af5`  |  **Tag:** v2.6.2-pre5a  |  **CI:** ✅ run 23380498933
 
 ### Root cause analysis
 **Bug #1 (no refresh):** `ComponentManagerActivity` had no `onResume()` override. When `ComponentDownloadActivity.finish()` brought the manager to front, the adapter was never refreshed — new dirs invisible until full activity recreation.
