@@ -7,7 +7,7 @@
 #     Left: ImageView 60dp×60dp (thumbnail, loaded async by $4)
 #     Right: vertical LinearLayout
 #       - Title TextView (white, 15sp, bold)
-#       - Meta TextView (grey, 13sp): "Category · rating% · DLC: N"
+#       - Meta TextView (grey, 13sp): "Category · Developer"
 #   Tap on card opens GogGamesFragment$3 detail dialog.
 # Null list = session expired. Empty list = no games.
 
@@ -213,7 +213,7 @@
 
     invoke-virtual {v9, v10}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
 
-    # ── Meta string: "Category · rating% · DLC: N" ───────────────────────────
+    # ── Meta string: "Category · Developer" ──────────────────────────────────
     new-instance v12, Ljava/lang/StringBuilder;
     invoke-direct {v12}, Ljava/lang/StringBuilder;-><init>()V
 
@@ -222,25 +222,12 @@
     invoke-virtual {v12, v14}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
     :meta_no_cat
 
-    iget-object v14, v6, Lcom/xj/landscape/launcher/ui/menu/GogGame;->rating:Ljava/lang/String;
-    if-eqz v14, :meta_no_rating
+    iget-object v14, v6, Lcom/xj/landscape/launcher/ui/menu/GogGame;->developer:Ljava/lang/String;
+    if-eqz v14, :meta_no_dev
     const-string v15, " · "
     invoke-virtual {v12, v15}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
     invoke-virtual {v12, v14}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    const-string v15, "%"
-    invoke-virtual {v12, v15}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    :meta_no_rating
-
-    iget-object v14, v6, Lcom/xj/landscape/launcher/ui/menu/GogGame;->dlcCount:Ljava/lang/String;
-    if-eqz v14, :meta_no_dlc
-    const-string v15, "0"
-    invoke-virtual {v14, v15}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
-    move-result v15
-    if-nez v15, :meta_no_dlc
-    const-string v15, " · DLC: "
-    invoke-virtual {v12, v15}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    invoke-virtual {v12, v14}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    :meta_no_dlc
+    :meta_no_dev
 
     invoke-virtual {v12}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
     move-result-object v14  # v14 = meta string
