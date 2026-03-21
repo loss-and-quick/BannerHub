@@ -4,6 +4,14 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [beta] — v2.7.0-beta17 — Fix crash: GradientDrawable wrong package path (2026-03-21)
+**Branch:** `gog-beta`  |  **Tag:** v2.7.0-beta17
+**What changed:** `NoClassDefFoundError: android.graphics.GradientDrawable` — class does not exist at that path. Correct package is `android.graphics.drawable.GradientDrawable`. Replaced all 4 occurrences in `GogGamesFragment$2.smali`.
+**Files touched:** `GogGamesFragment$2.smali`
+**CI result:** ✅ run 23389246633 — Normal APK built successfully
+
+---
+
 ## [beta] — v2.7.0-beta14 — GOG game detail dialog + cover art + card list (2026-03-21)
 **Branch:** `gog-beta`  |  **Tag:** v2.7.0-beta14
 **What changed:** Full game detail experience on tap. (1) `$2.run()` rewritten: plain TextView list replaced with styled card rows — horizontal LinearLayout per game with 60dp ImageView thumbnail (async-loaded by new `$4`), title TextView (white 15sp bold), meta TextView (grey 13sp: "Category · rating% · DLC: N"), dark rounded GradientDrawable bg (10dp radius, #1A1A1A), 12/6dp margins. `$3` click listener now receives the full `GogGame` object. (2) `$3.onClick()` rewritten: replaces Toast with AlertDialog using `setView()` — custom view has 200dp cover art ImageView (async-loaded by `$4`), info TextView (Genre/Rating/DLC), blue store URL TextView. Dialog title = game title. (3) New `GogGamesFragment$4`: bg Runnable fetching Bitmap via HttpURLConnection + BitmapFactory, posts `$4$1` via `View.post()`. (4) New `GogGamesFragment$4$1`: UI-thread Runnable calling `setImageBitmap()`.
