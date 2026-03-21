@@ -30,6 +30,31 @@ Each entry covers one logical change unit (commit or closely related set of comm
 
 ---
 
+## Entry 086 — Fix: top padding clears tab bar; game titles tappable (v2.7.0-beta12, gog-beta)
+**Date:** 2026-03-21
+**Branch:** gog-beta  |  **Tag:** v2.7.0-beta12
+
+### Root-cause analysis
+**Overlap:** `GogGamesFragment` builds its layout programmatically. `page_container` starts at y=0 of the window; `FocusTabLayout` overlays on top. The programmatic root `FrameLayout` filled MATCH_PARENT from y=0, putting the first game title behind the tab strip ("ELDERBORN" visible peeking behind the LB button). Other fragments use XML layouts which presumably have the correct top position handled differently. Fix: compute `(int)(56f * density)` and call `FrameLayout.setPadding(0, topPad, 0, 0)` at the end of `onCreateView` using `v2`/`v3` (free after ScrollView add). `.locals 6` sufficient.
+
+**No click:** TextViews are not clickable by default and had no `OnClickListener`. Fix: new `GogGamesFragment$3` holds (fragment, title:String); `onClick` calls `Toast.makeText(context, title, LENGTH_SHORT).show()`. In `$2.run()` loop: saved title to `v8` (`move-object v8, v6`) immediately after `ArrayList.get()` before `v6` is overwritten by color/size/padding constants. Increased `.locals 8` → `.locals 9`.
+
+### Files created
+- `patches/smali_classes16/.../GogGamesFragment$3.smali` — `View.OnClickListener`; fields: `a` (fragment), `b` (title); `.locals 3` in `onClick`
+
+### Files modified
+- `patches/smali_classes16/.../GogGamesFragment.smali` — `onCreateView`: 7 new instructions computing 56dp padding + `setPadding(0, topPad, 0, 0)` on root FrameLayout
+- `patches/smali_classes16/.../GogGamesFragment$2.smali` — `run()`: `.locals 8→9`; `move-object v8, v6` after get(); `new-instance $3 + setOnClickListener` per item (4 new instructions in loop)
+
+### Methods changed
+- `GogGamesFragment.onCreateView` — added padding block; `.locals` unchanged (6)
+- `GogGamesFragment$2.run()` — `.locals` 8→9; saved title to v8; added click listener per item
+- `GogGamesFragment$3.onClick()` — new; `.locals 3`
+
+**CI result:** [CI✅] run 23387644699 — Normal APK built successfully
+
+---
+
 ## Entry 085 — Fix: detect expired GOG token, clear SP, show re-login prompt (v2.7.0-beta11, gog-beta)
 **Date:** 2026-03-21
 **Branch:** gog-beta  |  **Tag:** v2.7.0-beta11

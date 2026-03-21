@@ -4,6 +4,14 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [beta] — v2.7.0-beta12 — Fix: top padding clears tab bar; game titles tappable (2026-03-21)
+**Branch:** `gog-beta`  |  **Tag:** v2.7.0-beta12
+**What changed:** (1) Game list overlapped the tab bar — root FrameLayout starts at y=0 with FocusTabLayout overlaying on top; first game title was hidden behind the tab strip. Fix: compute 56dp via DisplayMetrics.density, call setPadding(0, topPad, 0, 0) on the root FrameLayout in onCreateView. (2) Game titles had no click listener — plain TextViews are not tappable. Fix: new GogGamesFragment$3 (View.OnClickListener) created per item in $2's loop; tap shows a Toast with the game title. Saved title to v8 before v6 was reused; increased $2 .locals 8→9.
+**Files touched:** `GogGamesFragment.smali`, `GogGamesFragment$2.smali`, `GogGamesFragment$3.smali` (new)
+**CI result:** ✅ run 23387644699 — Normal APK built successfully
+
+---
+
 ## [beta] — v2.7.0-beta11 — Fix: detect expired GOG token, clear SP, show re-login prompt (2026-03-21)
 **Branch:** `gog-beta`  |  **Tag:** v2.7.0-beta11
 **What changed:** Previously an expired `access_token` caused `GogGamesFragment$1` to get a non-200 response (HTTP 401) which was treated identically to an empty game library — UI showed "No GOG games found" with no indication of why. Fix: `$1.run()` now calls `getResponseCode()` after connecting; on non-200, clears `access_token` from `bh_gog_prefs` SharedPreferences and posts `null` to UI instead of an empty ArrayList. `$2.run()` null-checks the list before calling `size()`: null → "Session expired - sign in again via the GOG side menu"; empty ArrayList → "No GOG games found" (unchanged).
