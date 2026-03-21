@@ -7,11 +7,18 @@
 .field private activity:Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;
 .field private allComponents:[Ljava/io/File;
 .field private filteredComponents:[Ljava/io/File;
+.field private prefs:Landroid/content/SharedPreferences;
 
 .method public constructor <init>(Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;)V
-    .locals 1
+    .locals 3
     invoke-direct {p0}, Landroidx/recyclerview/widget/RecyclerView$Adapter;-><init>()V
     iput-object p1, p0, Lcom/xj/landscape/launcher/ui/menu/BhComponentAdapter;->activity:Lcom/xj/landscape/launcher/ui/menu/ComponentManagerActivity;
+    # Cache SharedPreferences for source tracking
+    const-string v0, "banners_sources"
+    const/4 v1, 0x0
+    invoke-virtual {p1, v0, v1}, Landroid/content/Context;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;
+    move-result-object v0
+    iput-object v0, p0, Lcom/xj/landscape/launcher/ui/menu/BhComponentAdapter;->prefs:Landroid/content/SharedPreferences;
     const/4 v0, 0x0
     new-array v0, v0, [Ljava/io/File;
     iput-object v0, p0, Lcom/xj/landscape/launcher/ui/menu/BhComponentAdapter;->allComponents:[Ljava/io/File;
@@ -435,9 +442,25 @@
     invoke-static {v2}, Lcom/xj/landscape/launcher/ui/menu/BhComponentAdapter;->getTypeColor(Ljava/lang/String;)I
     move-result v3    # typeColor
 
-    # Set name
+    # Set name — then overlay with "name\nrepoSource" if this was a BannerHub download
     iget-object v4, p1, Lcom/xj/landscape/launcher/ui/menu/BhComponentAdapter$ViewHolder;->nameText:Landroid/widget/TextView;
     invoke-virtual {v4, v1}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
+    iget-object v5, p0, Lcom/xj/landscape/launcher/ui/menu/BhComponentAdapter;->prefs:Landroid/content/SharedPreferences;
+    const/4 v4, 0x0
+    invoke-interface {v5, v1, v4}, Landroid/content/SharedPreferences;->getString(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+    move-result-object v5
+    if-eqz v5, :no_source
+    new-instance v0, Ljava/lang/StringBuilder;
+    invoke-direct {v0}, Ljava/lang/StringBuilder;-><init>()V
+    invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    const-string v1, "\n"
+    invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v0, v5}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v0}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v0
+    iget-object v4, p1, Lcom/xj/landscape/launcher/ui/menu/BhComponentAdapter$ViewHolder;->nameText:Landroid/widget/TextView;
+    invoke-virtual {v4, v0}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
+    :no_source
 
     # Set type badge text + color
     iget-object v4, p1, Lcom/xj/landscape/launcher/ui/menu/BhComponentAdapter$ViewHolder;->typeBadge:Landroid/widget/TextView;
