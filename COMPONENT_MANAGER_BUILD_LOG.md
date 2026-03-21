@@ -2304,3 +2304,27 @@ In smali, inner classes accessing outer-class fields must use `public` (or packa
 
 ### CI result
 → ✅ run 23366067758 — PASSED — Normal APK built
+
+---
+
+## Entry 64 — v2.7.0-pre — Black dark mode UI redesign (2026-03-20)
+
+### Files changed
+- `patches/smali_classes16/.../ComponentManagerActivity.smali`
+- `patches/smali_classes16/.../ComponentDownloadActivity.smali`
+- `patches/smali_classes16/.../ComponentDownloadActivity$DarkAdapter.smali`
+
+### Methods / sections changed
+- `ComponentManagerActivity.buildUI()` — removed search bar call; root bg → black
+- `ComponentManagerActivity.buildHeader()` — header bg → dark grey; title → orange
+- `ComponentManagerActivity.buildContent()` — RecyclerView bg → black
+- `ComponentManagerActivity.buildBottomBar()` — bar bg → dark grey; blue/green buttons → orange, 48dp→32dp, weight→WRAP_CONTENT left-aligned
+- `ComponentManagerActivity.makeBtn()` — added 16dp H / 8dp V padding
+- `ComponentDownloadActivity.onCreate()` — root bg → black; header bg → dark grey; title → orange; status text → darker grey; ListView bg → black; added ListView.setSelector() with semi-transparent orange
+- `ComponentDownloadActivity$DarkAdapter.getView()` — .locals 4→7; white→off-white text; solid bg → StateListDrawable (pressed=darker, selected=orange tint, default=dark)
+
+### Root-cause / design rationale
+User requested full black/dark mode with orange accent titles, off-white body text, darker grey hints, unified buttons, and visual feedback for touch/D-pad navigation. StateListDrawable on adapter items handles both pressed (touch) and state_selected (D-pad/controller) states natively. ListView selector adds a semi-transparent orange overlay for controller focus.
+
+### CI result
+→ ✅ run 23367550267 — PASSED — Normal APK built

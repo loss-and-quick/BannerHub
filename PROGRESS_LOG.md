@@ -1357,3 +1357,18 @@ ART 14 blocks cross-dex private field access. `DialogSettingListItemEntity` is i
 - `patches/smali_classes16/.../ComponentDownloadActivity$DarkAdapter.smali` — new
 - `patches/smali_classes16/.../ComponentDownloadActivity$BhBackBtn.smali` — new
 - `PROGRESS_LOG.md` — this entry
+
+### v2.7.0-pre — Black dark mode UI redesign (2026-03-20)
+**Commit:** `51fbaf9` | **Tag:** v2.7.0-pre
+
+**What changed:**
+- Root/RecyclerView/ListView background: deep black `0xFF0D0D0D` (was dark navy)
+- Header/bottom bar background: dark grey `0xFF161616` (was blue-tinted dark)
+- Title text ("Component Manager", "Download Components"): orange `0xFFFF9800`
+- Status/hint text: darker grey `0xFF888888` (was `0xFFAAAAAA`)
+- Item text: off-white `0xFFF0F0F0` (was `0xFFFFFFFF`)
+- Removed search bar from ComponentManagerActivity
+- Blue + green buttons unified to orange, 48dp → 32dp height, weight → WRAP_CONTENT (left-aligned)
+- Buttons have 16dp H / 8dp V padding via makeBtn()
+- DarkAdapter item background: StateListDrawable (pressed=`0xFF090909`, D-pad selected=`0xFF241A06`, default=`0xFF1A1A1A`)
+- ListView selector: semi-transparent orange `0x40FF9800` for D-pad/controller navigation highlight
