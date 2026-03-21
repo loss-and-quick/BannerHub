@@ -4,6 +4,13 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [pre] — v2.6.2-pre4 — Source tracking + ✓ installed indicator (2026-03-21)
+**Commit:** `11a6490`  |  **Tag:** v2.6.2-pre4  |  **CI:** ✅
+**What changed:** SharedPreferences `"banners_sources"` added. ComponentDownloadActivity tracks which repo was selected (mCurrentRepo field, set in each sw0_N case). After successful injection in $5, writes baseName→repoName and "dl:url"→"1". showAssets() reads SP to prefix already-downloaded assets with ✓. BhComponentAdapter reads SP in onBindViewHolder to show "name\nrepoName" for BannerHub-downloaded components. pre3 kept as rollback baseline release.
+**Files touched:** `ComponentDownloadActivity.smali` [ADD field mCurrentRepo; SET in sw0_N; ADD ✓ loop in showAssets]; `ComponentDownloadActivity$5.smali` [WRITE to SP after injection]; `BhComponentAdapter.smali` [ADD prefs field; LOAD in ctor; SHOW source in onBindViewHolder]
+
+---
+
 ## [pre] — v2.7.9-pre — Rollback to v2.7.0-pre state (2026-03-21)
 **Commit:** `6eed029`  |  **Tag:** v2.7.9-pre  |  **CI:** ✅
 **What changed:** Reverted ComponentManagerActivity.smali and BhComponentAdapter.smali to v2.7.0-pre state. Drops all button-to-header changes (v2.7.5–v2.7.8). Restores bottom bar with Add New + Download buttons.
