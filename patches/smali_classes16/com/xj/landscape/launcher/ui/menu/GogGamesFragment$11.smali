@@ -72,7 +72,7 @@
     if-nez v4, :have_dir
 
     const-string v9, "Game not installed"
-    invoke-virtual {p0, v0, v9}, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$11;->showToast(Landroid/content/Context;Ljava/lang/String;)V
+    invoke-direct {p0, v0, v9}, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$11;->showToast(Landroid/content/Context;Ljava/lang/String;)V
     return-void
 
     :have_dir
@@ -86,7 +86,7 @@
     if-nez v6, :src_exists
 
     const-string v9, "Install folder not found"
-    invoke-virtual {p0, v0, v9}, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$11;->showToast(Landroid/content/Context;Ljava/lang/String;)V
+    invoke-direct {p0, v0, v9}, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$11;->showToast(Landroid/content/Context;Ljava/lang/String;)V
     return-void
 
     :src_exists
@@ -101,7 +101,7 @@
     # v7 = dest
 
     # ── Recursive copy ────────────────────────────────────────────────────────
-    invoke-virtual {p0, v5, v7}, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$11;->copyDir(Ljava/io/File;Ljava/io/File;)V
+    invoke-direct {p0, v5, v7}, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$11;->copyDir(Ljava/io/File;Ljava/io/File;)V
 
     # ── Toast "Copied to Downloads/{dirName}" ─────────────────────────────────
     new-instance v8, Ljava/lang/StringBuilder;
@@ -112,7 +112,7 @@
     invoke-virtual {v8}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
     move-result-object v8   # message
 
-    invoke-virtual {p0, v0, v8}, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$11;->showToast(Landroid/content/Context;Ljava/lang/String;)V
+    invoke-direct {p0, v0, v8}, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$11;->showToast(Landroid/content/Context;Ljava/lang/String;)V
 
     return-void
 .end method
@@ -172,11 +172,11 @@
     if-eqz v6, :is_file
 
     # Directory → recurse
-    invoke-virtual {p0, v3, v5}, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$11;->copyDir(Ljava/io/File;Ljava/io/File;)V
+    invoke-direct {p0, v3, v5}, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$11;->copyDir(Ljava/io/File;Ljava/io/File;)V
     goto :next
 
     :is_file
-    invoke-virtual {p0, v3, v5}, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$11;->copyFile(Ljava/io/File;Ljava/io/File;)V
+    invoke-direct {p0, v3, v5}, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$11;->copyFile(Ljava/io/File;Ljava/io/File;)V
 
     :next
     add-int/lit8 v2, v2, 0x1
