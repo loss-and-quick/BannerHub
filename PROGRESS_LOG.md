@@ -4,6 +4,33 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [beta] — v2.7.0-beta35 — fix: VerifyError in assembleFile — use v6 not v11 for size int (2026-03-22)
+**Branch:** `gog-beta`  |  **Tag:** v2.7.0-beta35
+**Commit:** `6a12617`
+**What changed:** `assembleFile()` used `move-result v11` to store the `size` optInt, but v11=p0=this. On the second loop iteration, verifier sees v11 as Conflict (reference on loop-entry vs int in body) → rejects `invoke-direct {p0,...}` at offset 0x5C. Fix: use v6 (free after cdnPath consumed) instead of v11. Update `if-eq v10,v11` → `if-eq v10,v6`.
+**Files touched:** `GogDownloadManager$1.smali` (modified)
+**CI result:** ✅ run 23393056199
+
+---
+
+## [beta] — v2.7.0-beta34 — fix: VerifyError in assembleFile (long-to-int before if-nez) (2026-03-22)
+**Branch:** `gog-beta`  |  **Tag:** v2.7.0-beta34
+**Commit:** `5c76246`
+**What changed:** `assembleFile()` had `move-result-wide v9` (from `File.length()J`) followed immediately by `if-nez v9`. Dalvik verifier rejects if-nez on `Long (Low Half)`: `[0x7E] type Long (Low Half) unexpected as arg to if-eqz/if-nez`. Fix: `long-to-int v9, v9` inserted between the two instructions.
+**Files touched:** `GogDownloadManager$1.smali` (modified)
+**CI result:** ✅ run 23392891841
+
+---
+
+## [beta] — v2.7.0-beta33 — fix: Install button placement + Toast crash fix (2026-03-22)
+**Branch:** `gog-beta`  |  **Tag:** v2.7.0-beta33
+**Commit:** `45f1f3a`
+**What changed:** Install button moved from embedded scroll content to `setNegativeButton()` in standard AlertDialog button bar (always visible across from "Close"). Fixed crash when tapping Install: `showToast()` was calling `Toast.show()` from background thread (RuntimeException: Can't create handler inside thread that has not called Looper.prepare()); now posts via `Handler(Looper.getMainLooper())`. New `GogDownloadManager$2.smali` Toast Runnable. `GogGamesFragment$6` changed to `DialogInterface$OnClickListener`.
+**Files touched:** `GogGamesFragment$3.smali` (modified), `GogGamesFragment$6.smali` (modified), `GogDownloadManager$1.smali` (modified), `GogDownloadManager$2.smali` (new)
+**CI result:** ✅ run 23392758366
+
+---
+
 ## [beta] — v2.7.0-beta32 — fix: register range errors + Task #6 Gen 2 GOG download pipeline (2026-03-22)
 **Branch:** `gog-beta`  |  **Tag:** v2.7.0-beta32
 **Commit:** `14c4dcb` (beta32) / `04d994d` (beta31) / `8de2765` (beta30)
@@ -1722,3 +1749,14 @@ ART 14 blocks cross-dex private field access. `DialogSettingListItemEntity` is i
 - Card margins changed from 12/4/12/4 → 12/8/12/8 dp (v3→v4 for top/bottom)
 
 **Root cause:** Same failure as v2.7.2/v2.7.3: GradientDrawable.setStroke(II)V in onCreateViewHolder is silently caught by RecyclerView in this GameHub version, causing 0 cards rendered. setStroke on a card GradientDrawable inside onCreateViewHolder must not be used here.
+
+### [pre] — v2.7.0-beta36 — GOG game launch: save exe path + Launch button (2026-03-21)
+**Commit:** pending  |  **Tag:** v2.7.0-beta36
+#### What changed
+- `GogDownloadManager$1.smali`: added field `c` (String) to hold temp_executable; in Step 2 extracts `products[0].temp_executable` from build manifest and stores it; in Step 7 after install, saves full exe path to `bh_gog_prefs` as `gog_exe_{gameId}`
+- `GogGamesFragment$3.smali`: detail dialog now checks `bh_gog_prefs` for `gog_exe_{gameId}` — shows "Launch" button (GogGamesFragment$7) if installed, "Install" button (GogGamesFragment$6) if not
+- `GogGamesFragment$7.smali`: new DialogInterface$OnClickListener; reads stored exe path, normalizes backslashes, builds WineActivityData(gameId, exePath, isLocalGame=true, gameName), starts PcGameSetupActivity with wine_data Parcelable + FLAG_ACTIVITY_NEW_TASK
+#### Files touched
+- `patches/smali_classes16/.../GogDownloadManager$1.smali`
+- `patches/smali_classes16/.../GogGamesFragment$3.smali`
+- `patches/smali_classes16/.../GogGamesFragment$7.smali` (new)

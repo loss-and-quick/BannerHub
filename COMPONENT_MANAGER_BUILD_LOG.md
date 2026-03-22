@@ -3210,3 +3210,65 @@ Previous tap showed a Toast (title only). Replaced with full detail dialog using
 ### CI result
 → beta14/beta15 failed (v16 register error in $1 and $2 — move-object/from16 fix applied in beta16)
 → ✅ v2.7.0-beta16 run 23389111217 — Normal APK built successfully
+
+## Entry 74 — v2.7.0-beta33 — Install button placement + Toast crash fix (2026-03-22)
+
+### Files changed
+- `patches/smali_classes16/.../GogGamesFragment$3.smali` — modified
+- `patches/smali_classes16/.../GogGamesFragment$6.smali` — modified
+- `patches/smali_classes16/.../GogDownloadManager$1.smali` — modified
+- `patches/smali_classes16/.../GogDownloadManager$2.smali` — new
+
+### Methods changed
+- `GogGamesFragment$3.onClick(View)` — removed embedded Button view from scroll content; added `setNegativeButton("Install", new GogGamesFragment$6(ctx, game))` to AlertDialog builder so button appears in standard dialog button bar alongside "Close", always visible regardless of content length. `.locals 12→11`.
+- `GogGamesFragment$6.onClick(DialogInterface,I)` — changed from `View$OnClickListener` to `DialogInterface$OnClickListener`; method signature updated from `onClick(View)` to `onClick(DialogInterface,I)`.
+- `GogDownloadManager$1.showToast(String)` — changed from direct `Toast.makeText().show()` (crashes on background thread) to `new Handler(Looper.getMainLooper()).post(new GogDownloadManager$2(ctx, msg))`. `.locals 3→4`.
+- `GogDownloadManager$2.run()` — new Toast Runnable: `Toast.makeText(a, b, 0).show()` called on main thread via Handler post.
+
+### Root-cause / design
+Two bugs reported from beta32 testing:
+1. **Button placement**: Install button was added as a child `View` inside the scroll `LinearLayout`. For games with long descriptions, the button was scrolled off-screen. Fix: use `AlertDialog.Builder.setNegativeButton()` which places the button in the standard dialog button bar — always visible, outside the scroll area.
+2. **Toast crash**: `showToast()` called `Toast.makeText().show()` directly from the background `GogDownloadManager$1` thread. This throws `RuntimeException: Can't create handler inside thread that has not called Looper.prepare()` because Toast requires a Looper. Fix: create a Toast Runnable (`$2`) and post it to the main thread via `Handler(Looper.getMainLooper())`.
+
+### CI result
+→ ✅ run 23392758366 — Normal APK built successfully
+
+## Entry 75 — v2.7.0-beta34 — VerifyError fix: long-to-int before if-nez on File.length() (2026-03-22)
+
+### Files changed
+- `patches/smali_classes16/.../GogDownloadManager$1.smali` — modified
+
+### Methods changed
+- `GogDownloadManager$1.assembleFile()` — added `long-to-int v9, v9` between `move-result-wide v9` (from `File.length()J`) and `if-nez v9`.
+
+### Root-cause / design
+`File.length()` returns `long`. `move-result-wide v9` stores the result as a wide pair v9:v10, leaving v9 typed as `Long (Low Half)` in the verifier. The subsequent `if-nez v9` caused `VerifyError: [0x7E] type Long (Low Half) unexpected as arg to if-eqz/if-nez` at runtime when `GogDownloadManager.startDownload()` first tried to load the class. `long-to-int v9, v9` converts the wide result to an int before the branch. Chunk files are never larger than 2^31 bytes so truncation is safe.
+
+### CI result
+→ ✅ run 23392891841 — Normal APK built successfully
+
+## Entry 76 — v2.7.0-beta35 — VerifyError fix: use v6 not v11 for size int in assembleFile (2026-03-22)
+
+### Files changed
+- `patches/smali_classes16/.../GogDownloadManager$1.smali` — modified
+
+### Methods changed
+- `GogDownloadManager$1.assembleFile()` — changed `move-result v11` (size optInt) to `move-result v6`; changed `if-eq v10, v11` to `if-eq v10, v6`.
+
+### Root-cause / design
+`assembleFile()` has `.locals 11`, so p0=v11 (this). The `size` optInt result was stored with `move-result v11`, overwriting `p0`. On the first loop iteration this is undetected. On the back-edge of the loop, the verifier merges register types: v11 was a reference on loop-entry (from p0=this) but an int inside the loop body. Verifier marks v11 as `Conflict`. The next use of p0 as a reference (in `invoke-direct {p0, v6}, buildCdnPath(...)`) at bytecode offset 0x5C is rejected: "tried to get class from non-reference register v11 (type=Conflict)". Fix: use `v6` which is free at that point (cdnPath string in v6 was already consumed at line 660).
+
+### CI result
+→ ✅ run 23393056199 — Normal APK built successfully
+
+### 399 — v2.7.0-beta36 — GOG launch: save exe path on install, Launch button in detail dialog (2026-03-21)
+**Files changed:**
+- `GogDownloadManager$1.smali`: added field `c:String` for temp_executable; Step 2 extracts `products[0].temp_executable` and stores in field `c`; Step 7 saves full exe path (installDir + "/" + normalized temp_executable) to `bh_gog_prefs` key `gog_exe_{gameId}`
+- `GogGamesFragment$3.smali`: reads `gog_exe_{gameId}` from prefs at dialog open time; if non-empty shows "Launch" button (GogGamesFragment$7), else shows "Install" button (GogGamesFragment$6)
+- `GogGamesFragment$7.smali` (new): DialogInterface$OnClickListener; reads stored exe path, normalizes backslashes, builds WineActivityData(gameId, exePath, null, 0, false, true, null, gameName, false×10), starts PcGameSetupActivity with "wine_data" Parcelable extra + FLAG_ACTIVITY_NEW_TASK
+
+### Root-cause / design
+GameHub launches PC games via PcGameSetupActivity, passing a WineActivityData Parcelable under key "wine_data". The key fields are gameId (String), exePath (absolute path to .exe), and isLocalGame=true. The exe path comes from GOG's build manifest `products[0].temp_executable`, normalized and joined with the install directory path. The field `c` on GogDownloadManager$1 bridges the temp_executable string from Step 2 to the Step 7 SharedPreferences write. The Launch vs Install decision is made at dialog open time by checking the prefs key presence.
+
+### CI result
+→ pending (beta36 tag not yet pushed)

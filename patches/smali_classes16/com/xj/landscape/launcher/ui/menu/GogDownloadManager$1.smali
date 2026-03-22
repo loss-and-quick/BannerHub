@@ -14,6 +14,7 @@
 
 .field public final a:Landroid/content/Context;
 .field public final b:Lcom/xj/landscape/launcher/ui/menu/GogGame;
+.field public c:Ljava/lang/String;
 
 
 .method public constructor <init>(Landroid/content/Context;Lcom/xj/landscape/launcher/ui/menu/GogGame;)V
@@ -933,6 +934,28 @@
     move-result-object v5  # installDir (File)
     invoke-virtual {v5}, Ljava/io/File;->mkdirs()Z
 
+    # Extract products[0].temp_executable → store in field c for later SP write
+    const-string v9, "products"
+    invoke-virtual {v3, v9}, Lorg/json/JSONObject;->optJSONArray(Ljava/lang/String;)Lorg/json/JSONArray;
+    move-result-object v9
+    if-eqz v9, :exe_skip
+    invoke-virtual {v9}, Lorg/json/JSONArray;->length()I
+    move-result v10
+    if-lez v10, :exe_skip
+    const/4 v10, 0x0
+    invoke-virtual {v9, v10}, Lorg/json/JSONArray;->optJSONObject(I)Lorg/json/JSONObject;
+    move-result-object v9
+    if-eqz v9, :exe_skip
+    const-string v10, "temp_executable"
+    invoke-virtual {v9, v10}, Lorg/json/JSONObject;->optString(Ljava/lang/String;)Ljava/lang/String;
+    move-result-object v9
+    if-eqz v9, :exe_skip
+    invoke-virtual {v9}, Ljava/lang/String;->isEmpty()Z
+    move-result v10
+    if-nez v10, :exe_skip
+    iput-object v9, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->c:Ljava/lang/String;
+    :exe_skip
+
     # ── Step 3: depot manifests → collect DepotFile items ────────────────────
     new-instance v8, Ljava/util/ArrayList;
     invoke-direct {v8}, Ljava/util/ArrayList;-><init>()V
@@ -1078,6 +1101,43 @@
     :try_mf_end
     .catch Ljava/lang/Exception; {:try_mf_start .. :try_mf_end} :mf_skip
     :mf_skip
+
+    # Save full exe path to bh_gog_prefs as "gog_exe_{gameId}" for launch
+    iget-object v13, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->c:Ljava/lang/String;
+    if-eqz v13, :sp_skip
+    iget-object v0, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->b:Lcom/xj/landscape/launcher/ui/menu/GogGame;
+    iget-object v14, v0, Lcom/xj/landscape/launcher/ui/menu/GogGame;->gameId:Ljava/lang/String;
+    iget-object v0, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->a:Landroid/content/Context;
+    const-string v3, "bh_gog_prefs"
+    const/4 v4, 0x0
+    invoke-virtual {v0, v3, v4}, Landroid/content/Context;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;
+    move-result-object v3
+    invoke-virtual {v3}, Landroid/content/SharedPreferences;->edit()Landroid/content/SharedPreferences$Editor;
+    move-result-object v3
+    new-instance v4, Ljava/lang/StringBuilder;
+    invoke-direct {v4}, Ljava/lang/StringBuilder;-><init>()V
+    const-string v6, "gog_exe_"
+    invoke-virtual {v4, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v4, v14}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v4}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v4
+    invoke-virtual {v5}, Ljava/io/File;->getAbsolutePath()Ljava/lang/String;
+    move-result-object v6
+    const-string v7, "\\"
+    const-string v8, "/"
+    invoke-virtual {v13, v7, v8}, Ljava/lang/String;->replace(Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Ljava/lang/String;
+    move-result-object v13
+    new-instance v7, Ljava/lang/StringBuilder;
+    invoke-direct {v7}, Ljava/lang/StringBuilder;-><init>()V
+    invoke-virtual {v7, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    const-string v6, "/"
+    invoke-virtual {v7, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v7, v13}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v7}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v6
+    invoke-interface {v3, v4, v6}, Landroid/content/SharedPreferences$Editor;->putString(Ljava/lang/String;Ljava/lang/String;)Landroid/content/SharedPreferences$Editor;
+    invoke-interface {v3}, Landroid/content/SharedPreferences$Editor;->apply()V
+    :sp_skip
 
     # Delete chunk cache dir
     invoke-direct {p0, v12}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->deleteDir(Ljava/io/File;)V
