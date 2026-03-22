@@ -1793,3 +1793,10 @@ ART 14 blocks cross-dex private field access. `DialogSettingListItemEntity` is i
 - `GogDownloadManager$1.smali`: after depot_loop_done, if field c (temp_executable) is still null, scan all DepotFile JSONObjects for first path ending in `.exe` not containing `redist`; normalize backslashes; store in field c so SP write can record gog_exe_
 #### Files touched
 - `patches/smali_classes16/.../GogDownloadManager$1.smali`
+
+### [test] — v2.7.0-beta41 — option 1: Z: drive path for Wine exe launch (2026-03-22)
+**Commit:** `ba7f9dd`  |  **Tag:** v2.7.0-beta41
+#### What changed
+- `GogGamesFragment$7.smali`: convert Android absolute path to Z: drive format before passing to WineActivityData exePath
+#### Files touched
+- `patches/smali_classes16/.../GogGamesFragment$7.smali`

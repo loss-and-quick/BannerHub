@@ -3314,3 +3314,13 @@ Many GOG games do not include `products[0].temp_executable` in their build manif
 ### 403 — v2.7.0-beta40 — fix: exe fallback scan for missing temp_executable (2026-03-22)
 **Files changed:**
 - `GogDownloadManager$1.smali`: inserted exe_scan_loop block after depot_loop_done — scans ArrayList<JSONObject> for first .exe path (skipping redist), stores in field c
+
+### Root-cause / design
+WineActivity launched but called finish() on itself (app-request) 2-3 seconds after Wine initialized. No crash — controlled exit. Root cause hypothesis: Android absolute path (/data/user/0/banner.hub/files/gog_games/...) not visible to Wine's filesystem. Option 1: convert to Z: drive path (Z:\data\user\0\...). Rollback tag: v2.7.0-beta40-launch-fallback.
+
+### CI result
+→ ✅ Normal APK built successfully
+
+### 404 — v2.7.0-beta41 — test: option 1 — Z: drive path for Wine exe launch (2026-03-22)
+**Files changed:**
+- `GogGamesFragment$7.smali`: Z: drive conversion (/ → \, prepend Z:) applied to exePath before WineActivityData constructor
