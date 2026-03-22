@@ -253,13 +253,17 @@
     invoke-virtual {v8, v14}, Landroid/widget/Button;->setText(Ljava/lang/CharSequence;)V
     const v14, 0xFFFFFFFF  # white text
     invoke-virtual {v8, v14}, Landroid/widget/TextView;->setTextColor(I)V
-    # LP(MATCH_PARENT, 40dp) — setMinimumHeight doesn't work; must use explicit LP
+    const/high16 v14, 0x41400000  # 12.0f sp (default ~14-15sp, 20% smaller)
+    invoke-virtual {v8, v14}, Landroid/widget/TextView;->setTextSize(F)V
+    # LP(WRAP_CONTENT, 40dp, gravity=END) — right-aligned compact button
     const/high16 v14, 0x42200000  # 40.0f
     mul-float v14, v2, v14
     float-to-int v14, v14
     new-instance v13, Landroid/widget/LinearLayout$LayoutParams;
-    const/4 v15, -0x1  # MATCH_PARENT
+    const/4 v15, -0x2  # WRAP_CONTENT
     invoke-direct {v13, v15, v14}, Landroid/widget/LinearLayout$LayoutParams;-><init>(II)V
+    const v15, 0x800005  # Gravity.END
+    iput v15, v13, Landroid/widget/LinearLayout$LayoutParams;->gravity:I
     invoke-virtual {v9, v8, v13}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
 
     # ── ProgressBar (GONE — shown during download, horizontal style) ──────────
@@ -292,6 +296,8 @@
     invoke-virtual {v12, v14}, Landroid/widget/Button;->setText(Ljava/lang/CharSequence;)V
     const v14, 0xFFFFFFFF  # white text
     invoke-virtual {v12, v14}, Landroid/widget/TextView;->setTextColor(I)V
+    const/high16 v14, 0x41400000  # 12.0f sp
+    invoke-virtual {v12, v14}, Landroid/widget/TextView;->setTextSize(F)V
 
     # Check gog_exe_{gameId} → show+enable Launch if already installed
     iget-object v13, v6, Lcom/xj/landscape/launcher/ui/menu/GogGame;->gameId:Ljava/lang/String;
@@ -335,13 +341,15 @@
     new-instance v13, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$7;
     invoke-direct {v13, v3, v6}, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$7;-><init>(Landroid/content/Context;Lcom/xj/landscape/launcher/ui/menu/GogGame;)V
     invoke-virtual {v12, v13}, Landroid/view/View;->setOnClickListener(Landroid/view/View$OnClickListener;)V
-    # LP(MATCH_PARENT, 40dp) for Launch button — same as Install button
+    # LP(WRAP_CONTENT, 40dp, gravity=END) for Launch button
     const/high16 v14, 0x42200000  # 40.0f
     mul-float v14, v2, v14
     float-to-int v14, v14
     new-instance v13, Landroid/widget/LinearLayout$LayoutParams;
-    const/4 v15, -0x1  # MATCH_PARENT
+    const/4 v15, -0x2  # WRAP_CONTENT
     invoke-direct {v13, v15, v14}, Landroid/widget/LinearLayout$LayoutParams;-><init>(II)V
+    const v15, 0x800005  # Gravity.END
+    iput v15, v13, Landroid/widget/LinearLayout$LayoutParams;->gravity:I
     invoke-virtual {v9, v12, v13}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
 
     # ── Wire Install button click → $6 (shows size dialog) ───────────────────
