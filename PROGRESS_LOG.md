@@ -1800,3 +1800,10 @@ ART 14 blocks cross-dex private field access. `DialogSettingListItemEntity` is i
 - `GogGamesFragment$7.smali`: convert Android absolute path to Z: drive format before passing to WineActivityData exePath
 #### Files touched
 - `patches/smali_classes16/.../GogGamesFragment$7.smali`
+
+### [feat] — v2.7.0-beta42 — GOG launch: use built-in Import Game flow (2026-03-22)
+**Commit:** `9362545`  |  **Tag:** v2.7.0-beta42
+#### What changed
+- `GogGamesFragment$7.smali`: replaced WineActivityData + PcGameSetupActivity launch with `LandscapeLauncherMainActivity.B3(exePath)` call, which triggers the built-in `EditImportedGameInfoDialog` (Import Game flow). Uses the full absolute exe path stored in `gog_exe_` SP key.
+#### Files touched
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/GogGamesFragment$7.smali`
