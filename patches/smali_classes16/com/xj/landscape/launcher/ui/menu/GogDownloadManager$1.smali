@@ -662,12 +662,12 @@
     move-result-object v8  # chunkUrl
 
     # Skip download if cached non-empty
-    # v9 low-word of file length is non-zero for any non-empty chunk file (< 4GB)
     invoke-virtual {v7}, Ljava/io/File;->exists()Z
     move-result v0
     if-eqz v0, :af_download
     invoke-virtual {v7}, Ljava/io/File;->length()J
-    move-result-wide v9   # v9=low-word, v10=high-word (v10 was free)
+    move-result-wide v9   # v9=low-word, v10=high-word
+    long-to-int v9, v9    # convert to int so if-nez is valid (verifier rejects if-nez on long)
     if-nez v9, :af_cached
 
     :af_download
