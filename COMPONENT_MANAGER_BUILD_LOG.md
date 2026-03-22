@@ -63,8 +63,8 @@ Full Gen 2 GOG download pipeline implemented as smali classes in smali_classes16
 - `patches/smali_classes16/.../GogGamesFragment$3.smali` [MOD]
 - `patches/smali_classes16/.../GogGamesFragment$6.smali` [NEW]
 
-**Commit:** `(pending)`
-**CI result:** (pending)
+**Commit:** `14c4dcb` (beta32 — final fix) / `04d994d` (beta31) / `8de2765` (beta30)
+**CI result:** [CI✅] run 23392542553 (beta32)
 
 ---
 

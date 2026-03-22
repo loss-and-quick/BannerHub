@@ -4,12 +4,12 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
-## [beta] — v2.7.0-beta30 — feat: Task #6 Gen 2 GOG download pipeline (2026-03-21)
-**Branch:** `gog-beta`  |  **Tag:** v2.7.0-beta30
-**Commit:** `(pending)`
-**What changed:** Full Gen 2 GOG download pipeline. New `GogDownloadManager.smali` (static `startDownload(Context, GogGame)`), `GogDownloadManager$1.smali` (7-step Runnable: builds API → compressed manifest → depot manifests → secure CDN link → chunk download with retry → zlib assembly → finalize), `GogGamesFragment$6.smali` (Install button click listener). Added "Install" button (dark green) to game detail dialog in `GogGamesFragment$3.smali`.
-**Files touched:** `GogDownloadManager.smali` (new), `GogDownloadManager$1.smali` (new), `GogGamesFragment$3.smali` (Install button added), `GogGamesFragment$6.smali` (new)
-**CI result:** (pending)
+## [beta] — v2.7.0-beta32 — fix: register range errors + Task #6 Gen 2 GOG download pipeline (2026-03-22)
+**Branch:** `gog-beta`  |  **Tag:** v2.7.0-beta32
+**Commit:** `14c4dcb` (beta32) / `04d994d` (beta31) / `8de2765` (beta30)
+**What changed:** Full Gen 2 GOG download pipeline (beta30) + assembler fixes (beta31/32). `GogDownloadManager.smali` static entry, `GogDownloadManager$1.smali` 7-step Runnable (builds API → gzip/zlib/plain manifest → depot manifests language filter → secure CDN link → chunk download 3-retry → zlib Inflater assembly → finalize), `GogGamesFragment$6.smali` Install click listener. Install button (dark green) added to game detail dialog. Fixes: cmpg-long→cmp-long; run() .locals 16→15 (p0=v15 in range); assembleFile() .locals 14→11 (p0-p4=v11-v15 in range).
+**Files touched:** `GogDownloadManager.smali` (new), `GogDownloadManager$1.smali` (new), `GogGamesFragment$3.smali` (modified), `GogGamesFragment$6.smali` (new)
+**CI result:** ✅ run 23392542553
 
 ---
 
