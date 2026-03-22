@@ -246,13 +246,11 @@
 
     invoke-virtual {v9, v11}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
 
-    # ── ProgressBar (GONE — spans right section width during download) ────────
-    new-instance v11, Landroid/widget/ProgressBar;
-    const v14, 0x0101020f  # progressBarStyleHorizontal
-    const/4 v15, 0x0
-    invoke-direct {v11, v3, v15, v14}, Landroid/widget/ProgressBar;-><init>(Landroid/content/Context;Landroid/util/AttributeSet;I)V
-    const/16 v14, 0x64
-    invoke-virtual {v11, v14}, Landroid/widget/ProgressBar;->setMax(I)V
+    # ── Percentage TextView (GONE — shows "0%"→"100%" during download) ────────
+    new-instance v11, Landroid/widget/TextView;
+    invoke-direct {v11, v3}, Landroid/widget/TextView;-><init>(Landroid/content/Context;)V
+    const v14, 0xFFFFFFFF  # white text
+    invoke-virtual {v11, v14}, Landroid/widget/TextView;->setTextColor(I)V
     const/16 v14, 0x8  # GONE
     invoke-virtual {v11, v14}, Landroid/view/View;->setVisibility(I)V
     invoke-virtual {v9, v11}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
@@ -274,15 +272,18 @@
     const/16 v14, 0x11  # Gravity.CENTER
     invoke-virtual {v8, v14}, Landroid/widget/LinearLayout;->setGravity(I)V
 
-    # Button side: 40dp
-    const/high16 v14, 0x42200000  # 40.0f
+    # Button width: 90dp, height: 40dp
+    const/high16 v14, 0x42B40000  # 90.0f
     mul-float v14, v2, v14
-    float-to-int v14, v14  # v14 = 40dp px — reused for both buttons
+    float-to-int v14, v14  # v14 = 90dp px (width)
+    const/high16 v15, 0x42200000  # 40.0f
+    mul-float v15, v2, v15
+    float-to-int v15, v15  # v15 = 40dp px (height)
 
     # ── Launch Button — created first so Download listener can hold its ref ───
     new-instance v12, Landroid/widget/Button;
     invoke-direct {v12, v3}, Landroid/widget/Button;-><init>(Landroid/content/Context;)V
-    const-string v15, "▶"
+    const-string v15, "Launch"
     invoke-virtual {v12, v15}, Landroid/widget/Button;->setText(Ljava/lang/CharSequence;)V
     const v15, 0xFFFFFFFF  # white text
     invoke-virtual {v12, v15}, Landroid/widget/TextView;->setTextColor(I)V
@@ -328,23 +329,23 @@
     # ── Download Button ───────────────────────────────────────────────────────
     new-instance v10, Landroid/widget/Button;
     invoke-direct {v10, v3}, Landroid/widget/Button;-><init>(Landroid/content/Context;)V
-    const-string v15, "↓"
+    const-string v15, "Download"
     invoke-virtual {v10, v15}, Landroid/widget/Button;->setText(Ljava/lang/CharSequence;)V
     const v15, 0xFFFFFFFF  # white text
     invoke-virtual {v10, v15}, Landroid/widget/TextView;->setTextColor(I)V
 
     new-instance v13, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$6;
-    invoke-direct {v13, v3, v6, v11, v12}, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$6;-><init>(Landroid/content/Context;Lcom/xj/landscape/launcher/ui/menu/GogGame;Landroid/widget/ProgressBar;Landroid/widget/Button;)V
+    invoke-direct {v13, v3, v6, v11, v12}, Lcom/xj/landscape/launcher/ui/menu/GogGamesFragment$6;-><init>(Landroid/content/Context;Lcom/xj/landscape/launcher/ui/menu/GogGame;Landroid/widget/TextView;Landroid/widget/Button;)V
     invoke-virtual {v10, v13}, Landroid/view/View;->setOnClickListener(Landroid/view/View$OnClickListener;)V
 
-    # Add Download (top) with fixed 40dp×40dp LP
+    # Add Download (top) with fixed 90dp×40dp LP
     new-instance v13, Landroid/widget/LinearLayout$LayoutParams;
-    invoke-direct {v13, v14, v14}, Landroid/widget/LinearLayout$LayoutParams;-><init>(II)V
+    invoke-direct {v13, v14, v15}, Landroid/widget/LinearLayout$LayoutParams;-><init>(II)V
     invoke-virtual {v8, v10, v13}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
 
-    # Add Launch (bottom) with fixed 40dp×40dp LP
+    # Add Launch (bottom) with fixed 90dp×40dp LP
     new-instance v13, Landroid/widget/LinearLayout$LayoutParams;
-    invoke-direct {v13, v14, v14}, Landroid/widget/LinearLayout$LayoutParams;-><init>(II)V
+    invoke-direct {v13, v14, v15}, Landroid/widget/LinearLayout$LayoutParams;-><init>(II)V
     invoke-virtual {v8, v12, v13}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
 
     # Add column to card: WRAP_CONTENT × MATCH_PARENT

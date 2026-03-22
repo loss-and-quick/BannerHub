@@ -8,11 +8,11 @@
 # progresses (5% → 20% → 40% → 45% → 85% → 90% → 100% "✓ Complete").
 
 
-.method public static startDownload(Landroid/content/Context;Lcom/xj/landscape/launcher/ui/menu/GogGame;Landroid/widget/ProgressBar;Landroid/widget/Button;)V
+.method public static startDownload(Landroid/content/Context;Lcom/xj/landscape/launcher/ui/menu/GogGame;Landroid/widget/TextView;Landroid/widget/Button;)V
     .locals 3
 
     new-instance v0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;
-    invoke-direct {v0, p0, p1, p2, p3}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;-><init>(Landroid/content/Context;Lcom/xj/landscape/launcher/ui/menu/GogGame;Landroid/widget/ProgressBar;Landroid/widget/Button;)V
+    invoke-direct {v0, p0, p1, p2, p3}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;-><init>(Landroid/content/Context;Lcom/xj/landscape/launcher/ui/menu/GogGame;Landroid/widget/TextView;Landroid/widget/Button;)V
 
     new-instance v1, Ljava/lang/Thread;
     invoke-direct {v1, v0}, Ljava/lang/Thread;-><init>(Ljava/lang/Runnable;)V

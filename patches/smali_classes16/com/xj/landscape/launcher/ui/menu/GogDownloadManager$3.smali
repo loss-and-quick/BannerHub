@@ -2,24 +2,24 @@
 .super Ljava/lang/Object;
 
 # BannerHub: UI-thread Runnable posted by GogDownloadManager$1 to update the
-# card-level ProgressBar during download.
-# progress 0-99: updates bar only.
-# progress >= 100: hides bar and calls setEnabled(true) on the Launch button.
+# card-level percentage TextView during download.
+# progress 0-99: updates text to "X%".
+# progress >= 100: hides TextView and calls setEnabled(true) on the Launch button.
 
 .implements Ljava/lang/Runnable;
 
-.field public final a:Landroid/widget/ProgressBar;
+.field public final a:Landroid/widget/TextView;
 .field public final b:Landroid/widget/Button;
 .field public final c:I
 .field public final d:Ljava/lang/String;
 
 
-.method public constructor <init>(Landroid/widget/ProgressBar;Landroid/widget/Button;ILjava/lang/String;)V
+.method public constructor <init>(Landroid/widget/TextView;Landroid/widget/Button;ILjava/lang/String;)V
     .locals 0
 
     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
 
-    iput-object p1, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$3;->a:Landroid/widget/ProgressBar;
+    iput-object p1, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$3;->a:Landroid/widget/TextView;
     iput-object p2, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$3;->b:Landroid/widget/Button;
     iput p3, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$3;->c:I
     iput-object p4, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$3;->d:Ljava/lang/String;
@@ -29,19 +29,30 @@
 
 
 .method public run()V
-    .locals 2
+    .locals 3
 
-    # Update progress bar value
-    iget-object v0, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$3;->a:Landroid/widget/ProgressBar;
+    # Build "X%" string from progress int
     iget v1, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$3;->c:I
-    invoke-virtual {v0, v1}, Landroid/widget/ProgressBar;->setProgress(I)V
+    invoke-static {v1}, Ljava/lang/Integer;->toString(I)Ljava/lang/String;
+    move-result-object v2
+    new-instance v0, Ljava/lang/StringBuilder;
+    invoke-direct {v0}, Ljava/lang/StringBuilder;-><init>()V
+    invoke-virtual {v0, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    const-string v2, "%"
+    invoke-virtual {v0, v2}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v0}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v0  # v0 = "X%"
 
-    # If progress >= 100: hide ProgressBar and enable Launch button
+    # Set text on percentage TextView
+    iget-object v2, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$3;->a:Landroid/widget/TextView;
+    invoke-virtual {v2, v0}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
+
+    # If progress >= 100: hide TextView and enable Launch button
     iget v1, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$3;->c:I
     const/16 v0, 0x64
     if-lt v1, v0, :run_done
 
-    iget-object v0, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$3;->a:Landroid/widget/ProgressBar;
+    iget-object v0, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$3;->a:Landroid/widget/TextView;
     const/16 v1, 0x8  # GONE
     invoke-virtual {v0, v1}, Landroid/view/View;->setVisibility(I)V
 
