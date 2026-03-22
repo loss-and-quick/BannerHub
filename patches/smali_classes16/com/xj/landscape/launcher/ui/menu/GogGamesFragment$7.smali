@@ -76,7 +76,23 @@
     const-string v5, "\\"
     const-string v6, "/"
     invoke-virtual {v4, v5, v6}, Ljava/lang/String;->replace(Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Ljava/lang/String;
-    move-result-object v4  # exePath normalized → v3
+    move-result-object v4  # exePath with forward slashes
+
+    # Option 1: convert Android path to Z: drive path
+    # e.g. /data/user/0/banner.hub/files/gog_games/Title/Game.exe
+    #   -> Z:\data\user\0\banner.hub\files\gog_games\Title\Game.exe
+    const-string v5, "/"
+    const-string v6, "\\"
+    invoke-virtual {v4, v5, v6}, Ljava/lang/String;->replace(Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Ljava/lang/String;
+    move-result-object v5
+
+    new-instance v6, Ljava/lang/StringBuilder;
+    invoke-direct {v6}, Ljava/lang/StringBuilder;-><init>()V
+    const-string v7, "Z:"
+    invoke-virtual {v6, v7}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v6, v5}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v6}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v4  # exePath = "Z:\data\user\0\banner.hub\files\gog_games\Title\Game.exe"
 
     # Rearrange for range invoke: v1=WineActivityData(this), v2=gameId, v3=exePath, v9=gameName
     move-object v3, v4   # v3 = exePath
