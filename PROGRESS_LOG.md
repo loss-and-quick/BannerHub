@@ -1824,3 +1824,13 @@ ART 14 blocks cross-dex private field access. `DialogSettingListItemEntity` is i
 - `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/GogDownloadManager.smali`
 - `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/GogGamesFragment$6.smali`
 - `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/GogGamesFragment$3.smali`
+
+### [fix] — v2.7.0-beta45 — Install button back in button bar; progress at top of dialog (2026-03-22)
+**Commit:** `d7f6a3a`  |  **Tag:** v2.7.0-beta45
+#### What changed
+- Install button restored to AlertDialog button bar (setNegativeButton). Dialog stays open because after show() we call getButton(BUTTON_NEGATIVE) and set a new View.OnClickListener — this replaces AlertDialog's internal dismiss handler
+- ProgressBar + status text inserted at indices 1 and 2 in content LinearLayout via addView(view, index) — always visible just below the title without scrolling
+- GogGamesFragment$6 simplified: Button field removed (button is p1 in onClick), constructor is now (Context, GogGame, ProgressBar, TextView)
+#### Files touched
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/GogGamesFragment$3.smali`
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/GogGamesFragment$6.smali`
