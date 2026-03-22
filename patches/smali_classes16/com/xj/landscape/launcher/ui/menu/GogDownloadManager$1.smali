@@ -1110,7 +1110,7 @@
     const/4 v4, 0x0
     invoke-virtual {v0, v3, v4}, Landroid/content/Context;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;
     move-result-object v3
-    invoke-virtual {v3}, Landroid/content/SharedPreferences;->edit()Landroid/content/SharedPreferences$Editor;
+    invoke-interface {v3}, Landroid/content/SharedPreferences;->edit()Landroid/content/SharedPreferences$Editor;
     move-result-object v3
 
     # Always write gog_dir_{gameId} = installDir name (e.g. "CyberpunkRedMod")
