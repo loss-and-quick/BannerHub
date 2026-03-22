@@ -1276,7 +1276,48 @@
     move-result-object v6
     invoke-interface {v3, v4, v6}, Landroid/content/SharedPreferences$Editor;->putString(Ljava/lang/String;Ljava/lang/String;)Landroid/content/SharedPreferences$Editor;
     :sp_apply
+    # ── Write gog_cover_{gameId} = installDir/cover.jpg path ─────────────────
+    new-instance v6, Ljava/lang/StringBuilder;
+    invoke-direct {v6}, Ljava/lang/StringBuilder;-><init>()V
+    const-string v7, "gog_cover_"
+    invoke-virtual {v6, v7}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v6, v14}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v6}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v6              # v6 = "gog_cover_{gameId}"
+    invoke-virtual {v5}, Ljava/io/File;->getAbsolutePath()Ljava/lang/String;
+    move-result-object v7              # v7 = installDir path
+    new-instance v8, Ljava/lang/StringBuilder;
+    invoke-direct {v8}, Ljava/lang/StringBuilder;-><init>()V
+    invoke-virtual {v8, v7}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    const-string v7, "/cover.jpg"
+    invoke-virtual {v8, v7}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v8}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v7              # v7 = "installDir/cover.jpg"
+    invoke-interface {v3, v6, v7}, Landroid/content/SharedPreferences$Editor;->putString(Ljava/lang/String;Ljava/lang/String;)Landroid/content/SharedPreferences$Editor;
     invoke-interface {v3}, Landroid/content/SharedPreferences$Editor;->apply()V
+
+    # ── Download and save cover image to installDir/cover.jpg (best effort) ───
+    iget-object v6, p0, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->b:Lcom/xj/landscape/launcher/ui/menu/GogGame;
+    iget-object v6, v6, Lcom/xj/landscape/launcher/ui/menu/GogGame;->imageUrl:Ljava/lang/String;
+    if-eqz v6, :cover_skip
+    invoke-virtual {v6}, Ljava/lang/String;->isEmpty()Z
+    move-result v7
+    if-nez v7, :cover_skip
+    const-string v7, ""
+    invoke-direct {p0, v6, v7}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->fetchBytes(Ljava/lang/String;Ljava/lang/String;)[B
+    move-result-object v6              # v6 = image bytes or null
+    if-eqz v6, :cover_skip
+    :try_cover_start
+    new-instance v7, Ljava/io/File;
+    const-string v8, "cover.jpg"
+    invoke-direct {v7, v5, v8}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
+    new-instance v8, Ljava/io/FileOutputStream;
+    invoke-direct {v8, v7}, Ljava/io/FileOutputStream;-><init>(Ljava/io/File;)V
+    invoke-virtual {v8, v6}, Ljava/io/OutputStream;->write([B)V
+    invoke-virtual {v8}, Ljava/io/FileOutputStream;->close()V
+    :try_cover_end
+    .catch Ljava/lang/Exception; {:try_cover_start .. :try_cover_end} :cover_skip
+    :cover_skip
 
     # Delete chunk cache dir
     invoke-direct {p0, v12}, Lcom/xj/landscape/launcher/ui/menu/GogDownloadManager$1;->deleteDir(Ljava/io/File;)V
