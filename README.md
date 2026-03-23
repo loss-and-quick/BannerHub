@@ -207,6 +207,10 @@ Located in the in-game **Performance sidebar tab**, above the Dual Battery Mode 
 
 Both toggles require root and are greyed out on non-rooted devices. Root access is checked once when you grant it in **Settings → Advanced**. The toggles read that stored result — there is no root permission popup every time the sidebar opens.
 
+> **WARNING — USE AT YOUR OWN RISK**
+>
+> These toggles override your device's thermal management. Forcing the CPU and GPU to run at maximum frequency continuously generates significantly more heat than normal operation. Sustained high temperatures can cause permanent damage to your device's processor, battery, and other components. Device manufacturers do not support or warrant against damage caused by overriding performance governors. By using these toggles you accept full responsibility for any damage, data loss, throttling, unexpected shutdowns, or reduced component lifespan that results. **Do not leave these enabled unattended. Monitor your device temperature. Disable them immediately if your device becomes uncomfortably hot.**
+
 Both toggles require root. Without root, both are greyed out at 50% opacity and have no click listener — tapping them does nothing.
 
 #### Sustained Performance Mode
