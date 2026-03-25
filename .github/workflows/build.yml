@@ -39,12 +39,6 @@ jobs:
           echo "Decompiling: $APK"
           java -jar $HOME/bin/apktool.jar d "$APK" -o apktool_out_base -f
 
-      - name: Patch versionName
-        run: |
-          TAG="${GITHUB_REF_NAME#v}"
-          sed -i "s/^  versionName: .*/  versionName: '$TAG'/" apktool_out_base/apktool.yml
-          grep versionName apktool_out_base/apktool.yml
-
       - name: Remove uncompilable apktool artifacts
         run: |
           rm -f apktool_out_base/res/values/raws.xml
