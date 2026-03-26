@@ -1,6 +1,6 @@
 # BannerHub
 
-**GameHub 5.3.5 ReVanced** — extended with a full Component Manager, in-app component downloader, GOG Games tab, in-game performance toggles, RTS touch controls, VRAM unlock, per-game CPU core affinity, root access management, offline Steam launch, and more. Built entirely with apktool smali patching — no source code, no external library injection.
+**GameHub 5.3.5 ReVanced** — extended with a full Component Manager, in-app component downloader, GOG Games library (side menu), in-game performance toggles, RTS touch controls, VRAM unlock, per-game CPU core affinity, root access management, offline Steam launch, and more. Built entirely with apktool smali patching — no source code, no external library injection.
 
 ## AI Disclaimer
 
@@ -22,7 +22,7 @@ Before any stable release is published, all changes are manually debugged and te
 
 - [Installation](#installation)
 - [Features](#features)
-  - [GOG Games Tab](#gog-games-tab)
+  - [GOG Games](#gog-games)
   - [Component Manager](#component-manager)
   - [In-App Component Downloader](#in-app-component-downloader)
   - [BCI Launcher Button](#bci-launcher-button)
@@ -70,7 +70,7 @@ All 9 variants can be installed simultaneously. All APKs are signed with AOSP te
 
 ## Features
 
-### GOG Games Tab
+### GOG Games
 
 Accessible via the left side menu → **GOG**.
 
