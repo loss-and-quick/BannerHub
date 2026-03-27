@@ -1,13 +1,16 @@
 package com.xj.winemu.sidebar;
 
+import android.app.Activity;
 import android.app.ActivityManager;
 import android.content.Context;
 import android.graphics.Typeface;
 import android.os.BatteryManager;
 import android.os.Handler;
 import android.os.Looper;
-import android.view.Gravity;
+import android.view.MotionEvent;
+import android.view.View;
 import android.view.ViewGroup;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -28,14 +31,19 @@ public class BhFrameRating extends LinearLayout implements Runnable {
 
     private final TextView tvGpu, tvCpu, tvRam, tvBat, tvTmp, tvFps;
     private final Handler handler = new Handler(Looper.getMainLooper());
+    private final Activity activity;
 
     // CPU stat tracking across samples
     private long prevTotal = 0, prevIdle = 0;
 
     private volatile boolean running = false;
 
+    // Drag state
+    private float dragLastX, dragLastY;
+
     public BhFrameRating(Context ctx) {
         super(ctx);
+        this.activity = ctx instanceof Activity ? (Activity) ctx : null;
         setOrientation(HORIZONTAL);
         setBackgroundColor(0xCC000000); // semi-transparent black
         setPadding(16, 8, 16, 8);
@@ -51,6 +59,38 @@ public class BhFrameRating extends LinearLayout implements Runnable {
         tvTmp = addLabel(ctx, "TMP --\u00b0C", 0xFFEF9A9A);
         addSep(ctx);
         tvFps = addLabel(ctx, "FPS --", 0xFF76FF03);
+
+        // Drag to reposition
+        setOnTouchListener(new OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) v.getLayoutParams();
+                if (lp == null) return false;
+                switch (event.getActionMasked()) {
+                    case MotionEvent.ACTION_DOWN:
+                        // Switch to absolute positioning on first drag
+                        if (lp.gravity != 0) {
+                            lp.gravity = 0;
+                            lp.leftMargin = v.getLeft();
+                            lp.topMargin = v.getTop();
+                            v.setLayoutParams(lp);
+                        }
+                        dragLastX = event.getRawX();
+                        dragLastY = event.getRawY();
+                        return true;
+                    case MotionEvent.ACTION_MOVE:
+                        int dx = (int) (event.getRawX() - dragLastX);
+                        int dy = (int) (event.getRawY() - dragLastY);
+                        lp.leftMargin += dx;
+                        lp.topMargin += dy;
+                        v.setLayoutParams(lp);
+                        dragLastX = event.getRawX();
+                        dragLastY = event.getRawY();
+                        return true;
+                }
+                return false;
+            }
+        });
     }
 
     private TextView addLabel(Context ctx, String text, int color) {
@@ -133,14 +173,20 @@ public class BhFrameRating extends LinearLayout implements Runnable {
     // ── Data readers ────────────────────────────────────────────────────
 
     private int readGpu() {
-        // Adreno: gpu_busy_percentage
-        String v = readSysfsLine("/sys/class/kgsl/kgsl-3d0/gpu_busy_percentage");
+        // Adreno: gpubusy format "busy total" → compute percentage
+        String v = readSysfsLine("/sys/class/kgsl/kgsl-3d0/gpubusy");
         if (v != null) {
-            try { return Integer.parseInt(v.trim().replaceAll("[^0-9]", "")); }
-            catch (NumberFormatException ignored) {}
+            try {
+                String[] parts = v.trim().split("\\s+");
+                if (parts.length >= 2) {
+                    long busy = Long.parseLong(parts[0]);
+                    long total = Long.parseLong(parts[1]);
+                    if (total > 0) return (int) (100L * busy / total);
+                }
+            } catch (NumberFormatException ignored) {}
         }
-        // Adreno fallback: devfreq/gpu_load
-        v = readSysfsLine("/sys/class/kgsl/kgsl-3d0/devfreq/gpu_load");
+        // Adreno: gpu_busy_percentage
+        v = readSysfsLine("/sys/class/kgsl/kgsl-3d0/gpu_busy_percentage");
         if (v != null) {
             try { return Integer.parseInt(v.trim().replaceAll("[^0-9]", "")); }
             catch (NumberFormatException ignored) {}
@@ -233,20 +279,17 @@ public class BhFrameRating extends LinearLayout implements Runnable {
         return 0;
     }
 
-    /** Reads FPS via reflection from GameHub's ProfilePuller singleton. */
+    /** Reads FPS via WineActivity.h (WinUIBridge) field → M() method. */
     private float readFps() {
+        if (activity == null) return 0f;
         try {
-            // ProfilePuller.a = Companion object
-            Class<?> cls = Class.forName("com.winemu.core.utils.ProfilePuller");
-            Field fCompanion = cls.getField("a");
-            Object companion = fCompanion.get(null);
-            // ProfilePuller$Companion.a() → ProfilePuller instance
-            Method getInstance = companion.getClass().getMethod("a");
-            Object puller = getInstance.invoke(companion);
-            if (puller == null) return 0f;
-            // ProfilePuller.c() → float FPS
-            Method getFps = puller.getClass().getMethod("c");
-            Object result = getFps.invoke(puller);
+            // WineActivity.h = WinUIBridge instance
+            Field hField = activity.getClass().getField("h");
+            Object bridge = hField.get(activity);
+            if (bridge == null) return 0f;
+            // WinUIBridge.M() → float FPS
+            Method getM = bridge.getClass().getMethod("M");
+            Object result = getM.invoke(bridge);
             return result == null ? 0f : (float) result;
         } catch (Exception e) {
             return 0f;

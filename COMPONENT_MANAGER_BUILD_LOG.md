@@ -3665,3 +3665,17 @@ Porting BannerHub (5.3.5 smali) UI upgrades to BannerHub Lite (5.1.4 Java extens
 - `patches/smali_classes5/HomeLeftMenuDialog.smali`: pswitch_10 const-class updated from com.xj.landscape.launcher.ui.menu.GogMainActivity → app.revanced.extension.gamehub.GogMainActivity
 - `patches/AndroidManifest.xml`: removed old smali package registrations; added app.revanced.extension.gamehub.GogMainActivity/GogLoginActivity/GogGamesActivity
 - `build.yml` + `build-quick.yml`: added Java compilation step (javac + d8) injecting classes18.dex into rebuilt APK
+
+## Entry 79 — v2.7.5-pre — Fix Winlator HUD: root cache, real FPS, drag support (2026-03-27)
+
+**Files touched:**
+- `extension/BhFrameRating.java`
+- `patches/smali_classes16/com/xj/winemu/sidebar/BhPerfSetupDelegate.smali`
+
+**Root cause analysis:**
+1. **Root dialog on every sidebar open**: `isRootAvailable()` ran `su -c id` on the UI thread every `onAttachedToWindow()` call. With Magisk, this triggers a root grant dialog every time the Performance sidebar opens. Fixed by adding `rootChecked`/`rootAvailable` static fields — su is spawned at most once per app process lifetime.
+2. **FPS stuck at 1**: `ProfilePuller$AdrenoProfilePuller.c()` reads GPU utilization (busy/total ratio 0.0–1.0) from `/sys/class/kgsl/kgsl-3d0/gpubusy`, NOT FPS. Returned ~1.0 which displayed as "FPS 1". Fixed by reading FPS from `WineActivity.h` (WinUIBridge field) → `.M()` method via reflection. Also changed BhPerfSetupDelegate to pass Activity (not applicationContext) to BhFrameRating so the WinUIBridge can be accessed.
+3. **HUD cannot be dragged**: No touch listener was added. Fixed by adding `OnTouchListener` in constructor — on ACTION_DOWN, switches LayoutParams gravity to 0 and records absolute position; on ACTION_MOVE, updates leftMargin/topMargin.
+4. **GPU showing 0%**: `gpu_busy_percentage` sysfs file may not be world-readable. Switched to `gpubusy` (same file GameHub uses natively, format "busy total") as primary source.
+
+**CI:** v2.7.5-pre

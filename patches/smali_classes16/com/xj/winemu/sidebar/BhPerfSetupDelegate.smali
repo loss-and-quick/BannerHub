@@ -2,6 +2,9 @@
 .super Landroid/view/View;
 .source "SourceFile"
 
+# Static cache for root availability — checked once, not on every sidebar open.
+.field private static rootChecked:Z
+.field private static rootAvailable:Z
 
 # direct methods
 .method public constructor <init>(Landroid/content/Context;Landroid/util/AttributeSet;)V
@@ -14,9 +17,17 @@
 
 # Returns true if root (su) is available and granted.
 # Runs "su -c id" and checks exit code — returns false on any failure.
+# Result is cached in static fields so the su process only spawns once.
 .method public static isRootAvailable()Z
     .locals 4
 
+    # Return cached result if already checked
+    sget-boolean v0, Lcom/xj/winemu/sidebar/BhPerfSetupDelegate;->rootChecked:Z
+    if-eqz v0, :do_check
+    sget-boolean v0, Lcom/xj/winemu/sidebar/BhPerfSetupDelegate;->rootAvailable:Z
+    return v0
+
+    :do_check
     :try_start_0
     invoke-static {}, Ljava/lang/Runtime;->getRuntime()Ljava/lang/Runtime;
     move-result-object v0
@@ -48,12 +59,20 @@
     if-nez v1, :cond_no_root
     const/4 v0, 0x1
     :cond_no_root
+    # Cache result
+    const/4 v1, 0x1
+    sput-boolean v1, Lcom/xj/winemu/sidebar/BhPerfSetupDelegate;->rootChecked:Z
+    sput-boolean v0, Lcom/xj/winemu/sidebar/BhPerfSetupDelegate;->rootAvailable:Z
     return v0
     :try_end_0
 
     .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :catch_0
     :catch_0
+    # Cache as unavailable
+    const/4 v0, 0x1
+    sput-boolean v0, Lcom/xj/winemu/sidebar/BhPerfSetupDelegate;->rootChecked:Z
     const/4 v0, 0x0
+    sput-boolean v0, Lcom/xj/winemu/sidebar/BhPerfSetupDelegate;->rootAvailable:Z
     return v0
 .end method
 
@@ -198,11 +217,9 @@
 
     if-nez v9, :cond_fr_update_vis
 
-    # Create BhFrameRating with application context to avoid Window leak
-    invoke-virtual {v1}, Landroid/app/Activity;->getApplicationContext()Landroid/content/Context;
-    move-result-object v10
+    # Create BhFrameRating with Activity context (needed for FPS reflection on WinUIBridge)
     new-instance v9, Lcom/xj/winemu/sidebar/BhFrameRating;
-    invoke-direct {v9, v10}, Lcom/xj/winemu/sidebar/BhFrameRating;-><init>(Landroid/content/Context;)V
+    invoke-direct {v9, v1}, Lcom/xj/winemu/sidebar/BhFrameRating;-><init>(Landroid/content/Context;)V
 
     const-string v10, "bh_frame_rating"
     invoke-virtual {v9, v10}, Landroid/view/View;->setTag(Ljava/lang/Object;)V
