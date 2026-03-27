@@ -6,7 +6,7 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ## [pre] — v2.7.4-pre4 — Wine Task Manager three-tab UI (2026-03-27)
 **Branch:** `main`  |  **Tag:** v2.7.4-pre4
-**Commit:** `44c53437d`
+**Commit:** `e9b3b12e3`
 **What changed:**
 - Wine Task Manager sidebar tab: upgraded from single list to three-tab UI
   - **Applications tab**: .exe processes with PID + Kill button
