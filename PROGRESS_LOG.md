@@ -4,20 +4,15 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
-## [pre] — v2.7.4-pre4 — Wine Task Manager three-tab UI (2026-03-27)
+## [pre] — v2.7.4-pre4 — Wine Task Manager: always-visible Container Info + two tabs (2026-03-27)
 **Branch:** `main`  |  **Tag:** v2.7.4-pre4
-**Commit:** `e9b3b12e3`
+**Commit:** `52b99d47c`
 **What changed:**
-- Wine Task Manager sidebar tab: upgraded from single list to three-tab UI
-  - **Applications tab**: .exe processes with PID + Kill button
-  - **Processes tab**: Wine infrastructure processes (non-.exe) with PID + Kill button
-  - **Performance tab**: CPU cores active/total, RAM used/total (MB), VRAM (KGSL sysfs)
-- BhTabListener: parameterised by tabIndex, calls fragment.showTab(I)
-- showTab(I): hides all three layout panels, shows selected one
-- onScanComplete: routes each process to appsLayout (.exe) or procsLayout
-- Empty-state placeholders shown when no processes in either list
-- Fix: .locals 14 → 13 in onScanComplete (p2 mapped to v16, invalid in standard invoke)
-- All new classes in smali_classes16 (classes6/classes9 at 65535 limit)
+- Wine Task Manager: Container Info (CPU/RAM/VRAM) always visible at top of panel
+- Two tabs below: Applications (Wine infra non-.exe) + Processes (Windows .exe)
+- Performance tab removed; Container Info built directly into root layout
+- Applications/Processes routing fixed (was backwards vs Wine task manager convention)
+- 10sp mixed-case button text so labels fit in tab bar width
 #### Files touched
 - `patches/res/drawable/sidebar_taskmanager.xml` (new)
 - `patches/res/layout/winemu_activitiy_settings_layout.xml` (new tab item)
