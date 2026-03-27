@@ -4,6 +4,19 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [pre] — v2.7.7-pre — 3-way API selector AlertDialog (2026-03-27)
+**Branch:** `main`  |  **Tag:** v2.7.7-pre
+**Commit:** `526ad99f9`
+**What changed:**
+- Replaced cycle-tap EmuReady toggle with AlertDialog showing all 3 API options as radio buttons
+- `GameHubPrefs.setApiSource(I)V`: saves api_source + last_api_source prefs, clears caches, shows toast
+- `BhApiSelectorListener` (new): `DialogInterface.OnClickListener` — calls setApiSource, dismisses dialog, updates switch visual
+- `SettingSwitchHolder.w()` patched: bumped `.locals 5→9`, intercepts CONTENT_TYPE_API (0x1a), builds AlertDialog with 3 options pre-selected from getApiSource(), shows dialog, returns Unit early
+**Files touched:** `patches/smali_classes6/…/GameHubPrefs.smali`, `patches/smali_classes16/…/BhApiSelectorListener.smali` (new), `patches/smali_classes10/…/SettingSwitchHolder.smali` (new)
+**CI result:** ✅ run 23652279209
+
+---
+
 ## [stable] — v2.7.3 — Cancel download, exe picker, Set .exe in detail dialog (2026-03-26)
 **Branch:** `main`  |  **Tag:** v2.7.3
 **Commit:** `b0445ba48`

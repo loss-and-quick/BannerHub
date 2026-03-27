@@ -3711,3 +3711,22 @@ Porting BannerHub (5.3.5 smali) UI upgrades to BannerHub Lite (5.1.4 Java extens
 **UX:** Tap the "Compatibility API" row in settings to cycle. Toast confirms selection. Switch ON = non-GameHub selected.
 
 **CI:** v2.7.6-pre
+
+## Entry 82 — v2.7.7-pre — 3-way API selector AlertDialog (2026-03-27)
+
+**Files touched:**
+- [MOD] `patches/smali_classes6/app/revanced/extension/gamehub/prefs/GameHubPrefs.smali`
+- [NEW] `patches/smali_classes16/com/xj/winemu/sidebar/BhApiSelectorListener.smali`
+- [NEW] `patches/smali_classes10/com/xj/landscape/launcher/ui/setting/holder/SettingSwitchHolder.smali`
+
+**Root cause / motivation:**
+Cycle-tap was confusing — user couldn't tell which API was active or switch directly to a specific one.
+Solution: intercept the click at `SettingSwitchHolder.w()` (has the View's context available) and show an
+AlertDialog with radio buttons pre-selected from the current `api_source` pref.
+
+**Methods added / changed:**
+- `GameHubPrefs.setApiSource(I)V` — saves `api_source` + `last_api_source` int prefs, calls `clearComponentAndTokenCaches()`, shows appropriate toast
+- `BhApiSelectorListener.onClick(DialogInterface, int)V` — implements `DialogInterface.OnClickListener`; calls `setApiSource(which)`, dismisses dialog, updates switchBtn via `isExternalAPI()`
+- `SettingSwitchHolder.w()` — bumped `.locals 5→9`; after `getContentType()→v3`, check `v3==0x1a`; if yes: fetch switchBtn, get context, build AlertDialog.Builder with 3-item CharSequence array, pre-select `getApiSource()`, attach `BhApiSelectorListener`, `show()`, return Unit early; else fall through to `:cond_normal_toggle`
+
+**CI:** ✅ run 23652279209 (v2.7.7-pre, 3m53s)
