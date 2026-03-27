@@ -527,7 +527,7 @@
 # p1 = ArrayList<String> names, p2 = ArrayList<Integer> pids
 # Splits into appsLayout (.exe) and procsLayout (wine* infra)
 .method public onScanComplete(Ljava/util/ArrayList;Ljava/util/ArrayList;)V
-    .locals 14
+    .locals 13
     # v0  = appsLayout
     # v1  = procsLayout
     # v2  = context
@@ -537,11 +537,10 @@
     # v6  = pid (int)
     # v7  = row LinearLayout
     # v8  = name TextView
-    # v9  = StringBuilder
-    # v10 = temp string
+    # v9  = StringBuilder / temp
+    # v10 = temp string / LP height arg (reused)
     # v11 = Kill Button
-    # v12 = LP for name TextView
-    # v13 = isExe / KillListener / temp
+    # v12 = LP for name TextView / KillListener / isExe (reused)
 
     iget-object v0, p0, Lcom/xj/winemu/sidebar/BhTaskManagerFragment;->appsLayout:Landroid/widget/LinearLayout;
     if-eqz v0, :done
@@ -600,8 +599,8 @@
     invoke-virtual {v8, v9}, Landroid/widget/TextView;->setTextSize(F)V
     new-instance v12, Landroid/widget/LinearLayout$LayoutParams;
     const/4 v9, 0x0
-    const/4 v13, -0x2
-    invoke-direct {v12, v9, v13}, Landroid/widget/LinearLayout$LayoutParams;-><init>(II)V
+    const/4 v10, -0x2
+    invoke-direct {v12, v9, v10}, Landroid/widget/LinearLayout$LayoutParams;-><init>(II)V
     const/high16 v9, 0x3f800000
     iput v9, v12, Landroid/widget/LinearLayout$LayoutParams;->weight:F
     invoke-virtual {v7, v8, v12}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
@@ -615,16 +614,16 @@
     invoke-virtual {v11, v9}, Landroid/widget/Button;->setTextColor(I)V
     const/high16 v9, 0x41400000
     invoke-virtual {v11, v9}, Landroid/widget/Button;->setTextSize(F)V
-    new-instance v13, Lcom/xj/winemu/sidebar/BhTaskManagerFragment$KillListener;
-    invoke-direct {v13, v6, p0}, Lcom/xj/winemu/sidebar/BhTaskManagerFragment$KillListener;-><init>(ILcom/xj/winemu/sidebar/BhTaskManagerFragment;)V
-    invoke-virtual {v11, v13}, Landroid/widget/Button;->setOnClickListener(Landroid/view/View$OnClickListener;)V
+    new-instance v12, Lcom/xj/winemu/sidebar/BhTaskManagerFragment$KillListener;
+    invoke-direct {v12, v6, p0}, Lcom/xj/winemu/sidebar/BhTaskManagerFragment$KillListener;-><init>(ILcom/xj/winemu/sidebar/BhTaskManagerFragment;)V
+    invoke-virtual {v11, v12}, Landroid/widget/Button;->setOnClickListener(Landroid/view/View$OnClickListener;)V
     invoke-virtual {v7, v11}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
 
     # Route row to appsLayout (.exe) or procsLayout (wine infra)
     const-string v9, ".exe"
     invoke-virtual {v5, v9}, Ljava/lang/String;->endsWith(Ljava/lang/String;)Z
-    move-result v13
-    if-eqz v13, :add_to_procs
+    move-result v12
+    if-eqz v12, :add_to_procs
     invoke-virtual {v0, v7}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
     goto :next_proc
     :add_to_procs
