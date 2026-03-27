@@ -3733,6 +3733,20 @@ AlertDialog with radio buttons pre-selected from the current `api_source` pref.
 
 ---
 
+## Entry 86 — v2.7.4-pre5 — VRam Limit row in Container Info (2026-03-27)
+**Commit:** `0371035de`  |  **Tag:** v2.7.4-pre5  |  **Branch:** main  |  **[CI✅]** run 23667070420
+
+**Root-cause analysis:**
+Task Manager RAM row (5718 MB / 15278 MB total) showed device system RAM — no VRam limit visible, even when user had VRam Limit = 512 MB in Game Settings. `WINEMU_MEMORY_LIMIT` env var is the VRam limit (not system RAM), set by EnvironmentController via execve into wine child process. System RAM shows nothing container-specific, so a dedicated VRam row is needed.
+
+**Methods changed:**
+- `onCreateView(...)` in `BhTaskManagerFragment.smali`: RAM label renamed "Sys RAM:"; new VRam Limit row added after it — calls `readWineEnv("WINEMU_MEMORY_LIMIT")`, appends " MB" if found, "Unlimited" if null
+
+**Files modified:** 1
+- `patches/smali_classes16/com/xj/winemu/sidebar/BhTaskManagerFragment.smali`
+
+---
+
 ## Entry 85 — v2.7.4-pre4 — fix: smali if-ltz for readWineEnv() zero comparisons (2026-03-27)
 **Commit:** `b258d3848`  |  **Tag:** v2.7.4-pre4  |  **Branch:** main  |  **[CI✅]** run 23666627847
 

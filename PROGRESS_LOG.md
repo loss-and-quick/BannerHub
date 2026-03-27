@@ -4,6 +4,18 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [pre] — v2.7.4-pre5 — VRam Limit row + Sys RAM rename in Container Info (2026-03-27)
+**Branch:** `main`  |  **Tag:** v2.7.4-pre5
+**Commit:** `0371035de`  |  **CI:** ✅ run 23667070420
+**What changed:**
+- Added "VRam Limit:" row to Container Info: reads WINEMU_MEMORY_LIMIT from wine child /proc/pid/environ via readWineEnv(); shows "512 MB" or "Unlimited"
+- Renamed "RAM:" label to "Sys RAM:" to clearly distinguish system RAM from VRam
+- Container Info order: CPU Cores / Sys RAM / VRam Limit / Device / Android
+#### Files touched
+- `patches/smali_classes16/com/xj/winemu/sidebar/BhTaskManagerFragment.smali`
+
+---
+
 ## [pre] — v2.7.4-pre4 — fix: smali if-ltz for readWineEnv zero comparisons (2026-03-27)
 **Branch:** `main`  |  **Tag:** v2.7.4-pre4
 **Commit:** `b258d3848`  |  **CI:** ✅ run 23666627847
