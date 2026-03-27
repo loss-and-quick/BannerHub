@@ -2143,3 +2143,32 @@ ART 14 blocks cross-dex private field access. `DialogSettingListItemEntity` is i
 #### Files touched
 - `extension/GogDownloadManager.java`
 - `extension/GogGamesActivity.java`
+
+### [feat] — v2.7.4-pre — Winlator HUD Style toggle in performance sidebar (2026-03-27)
+**Commit:** `f2bd3a51c`  |  **Tag:** v2.7.4-pre  |  **CI:** ✅ run 23647642646
+#### What changed
+- `BhFrameRating.java` (new): compact horizontal HUD bar — GPU% | CPU% | RAM% | BAT watts | TMP °C | FPS
+  - GPU: kgsl/gpu_busy_percentage (Adreno) + Mali fallback
+  - CPU: /proc/stat diff
+  - RAM: ActivityManager.MemoryInfo
+  - BAT: BatteryManager current × sysfs voltage
+  - TMP: battery/thermal sysfs
+  - FPS: ProfilePuller.a.a().c() via reflection
+  - Injected into DecorView (TOP|RIGHT), tag "bh_frame_rating"; background thread, stops on detach
+- `BhHudStyleSwitchListener.smali` (new): click handler — toggles BhFrameRating, hides GameHub hudLayer when Winlator HUD on
+- `BhPerfSetupDelegate.smali` (updated): adds "Winlator HUD Style" SidebarSwitchItemView programmatically below Max Adreno Clocks; injects BhFrameRating into DecorView on first sidebar open
+#### Files touched
+- `extension/BhFrameRating.java`
+- `patches/smali_classes16/com/xj/winemu/sidebar/BhHudStyleSwitchListener.smali`
+- `patches/smali_classes16/com/xj/winemu/sidebar/BhPerfSetupDelegate.smali`
+
+### [fix] — v2.7.5-pre — Winlator HUD: root cache, real FPS, drag (2026-03-27)
+**Commit:** `b2500486d`  |  **Tag:** v2.7.5-pre
+#### What changed
+- Root dialog: `isRootAvailable()` now caches in static fields — su only runs once, no Magisk dialog on every sidebar open
+- FPS was stuck at 1: `ProfilePuller.c()` returns GPU ratio (0-1), not FPS. Fixed to use `WineActivity.h.M()` (WinUIBridge) via reflection
+- Drag support added to BhFrameRating via OnTouchListener — matches built-in HUD behaviour
+- GPU: switched to `gpubusy` (busy/total format) as primary source — same path GameHub uses
+#### Files touched
+- `extension/BhFrameRating.java`
+- `patches/smali_classes16/com/xj/winemu/sidebar/BhPerfSetupDelegate.smali`
