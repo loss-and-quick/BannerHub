@@ -3730,3 +3730,40 @@ AlertDialog with radio buttons pre-selected from the current `api_source` pref.
 - `SettingSwitchHolder.w()` — bumped `.locals 5→9`; after `getContentType()→v3`, check `v3==0x1a`; if yes: fetch switchBtn, get context, build AlertDialog.Builder with 3-item CharSequence array, pre-select `getApiSource()`, attach `BhApiSelectorListener`, `show()`, return Unit early; else fall through to `:cond_normal_toggle`
 
 **CI:** ✅ run 23652279209 (v2.7.7-pre, 3m53s)
+
+---
+
+## Entry 83 — v2.7.4-pre4 — Wine Task Manager sidebar tab (2026-03-27)
+
+**Files touched:**
+- [NEW] `patches/res/drawable/sidebar_taskmanager.xml`
+- [NEW] `patches/res/layout/winemu_activitiy_settings_layout.xml`
+- [MOD] `patches/res/values/public.xml` — added id/sidebar_taskmanager (0x7f0a0f10) + drawable/sidebar_taskmanager (0x7f080b4e)
+- [NEW] `patches/smali_classes16/com/xj/winemu/sidebar/BhTaskClickListener.smali`
+- [NEW] `patches/smali_classes16/com/xj/winemu/sidebar/BhTaskManagerFragment.smali`
+- [NEW] `patches/smali_classes16/com/xj/winemu/sidebar/BhTaskManagerFragment$KillListener.smali`
+- [NEW] `patches/smali_classes16/com/xj/winemu/sidebar/BhTaskManagerFragment$RefreshListener.smali`
+- [NEW] `patches/smali_classes16/com/xj/winemu/sidebar/BhTaskManagerFragment$ScanRunnable.smali`
+- [NEW] `patches/smali_classes16/com/xj/winemu/sidebar/BhTaskManagerFragment$UpdateRunnable.smali`
+- [MOD] `patches/smali_classes3/com/xj/winemu/sidebar/WineActivityDrawerContent.smali`
+
+**Root cause / motivation:**
+User requested a new in-game sidebar tab for Wine process management and container info.
+classes6 and classes9 are both at 65535 method-ref limit — all new code placed in smali_classes16.
+
+**Methods added / changed:**
+- `BhTaskClickListener.invoke()V` — Function0; calls `WineActivityDrawerContent.U("BhTaskManagerFragment")`
+- `BhTaskManagerFragment.<init>()V` — trivial Fragment constructor
+- `BhTaskManagerFragment.onCreateView()` — builds programmatic ScrollView UI: container info (CPU/RAM/VRAM), process list header, Refresh button, processListLayout
+- `BhTaskManagerFragment.startScan()V` — spawns background Thread(ScanRunnable)
+- `BhTaskManagerFragment.onScanComplete(ArrayList,ArrayList)V` — clears+repopulates processListLayout with name TextViews + Kill buttons
+- `BhTaskManagerFragment$ScanRunnable.run()V` — reads /proc/*/comm, filters wine/.exe, posts UpdateRunnable
+- `BhTaskManagerFragment$ScanRunnable.readFirstLine(String)String` — RandomAccessFile first-line reader, null on exception
+- `BhTaskManagerFragment$UpdateRunnable.run()V` — calls onScanComplete on main thread
+- `BhTaskManagerFragment$KillListener.onClick(View)V` — Process.sendSignal(pid,9) + startScan()
+- `BhTaskManagerFragment$RefreshListener.onClick(View)V` — calls startScan()
+- `WineActivityDrawerContent.<init>(Context,AttributeSet,I)V` — added findViewById(0x7f0a0f10) + BhTaskClickListener setup after keyboard tab wiring
+- `WineActivityDrawerContent.U(String)V` — added hash check for -0x31c4b8be ("BhTaskManagerFragment") + new-instance + goto :goto_0
+
+**Commit:** `7a36c3ea3`  |  **Tag:** v2.7.4-pre4
+**CI:** queued

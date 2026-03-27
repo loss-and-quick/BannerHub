@@ -4,6 +4,31 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [pre] — v2.7.4-pre4 — Wine Task Manager sidebar tab (2026-03-27)
+**Branch:** `main`  |  **Tag:** v2.7.4-pre4
+**Commit:** `7a36c3ea3`
+**What changed:**
+- New in-game sidebar tab: Wine Task Manager
+- Tab icon placed between Settings gear and keyboard icon (where user's arrow pointed)
+- Container info section: CPU active cores / total cores, RAM used/total (MB), VRAM (KGSL kgsl-3d0/gpumem_mapped → gpumem_alloc fallback → "N/A")
+- Wine processes list: scans /proc for comm names containing "wine" or ending ".exe"
+- Per-process Kill button (SIGKILL via android.os.Process.sendSignal)
+- Refresh button re-runs the scan
+- All new classes in smali_classes16 (classes6/classes9 at 65535 limit)
+#### Files touched
+- `patches/res/drawable/sidebar_taskmanager.xml` (new)
+- `patches/res/layout/winemu_activitiy_settings_layout.xml` (new tab item)
+- `patches/res/values/public.xml` (2 new IDs)
+- `patches/smali_classes16/com/xj/winemu/sidebar/BhTaskClickListener.smali` (new)
+- `patches/smali_classes16/com/xj/winemu/sidebar/BhTaskManagerFragment.smali` (new)
+- `patches/smali_classes16/com/xj/winemu/sidebar/BhTaskManagerFragment$KillListener.smali` (new)
+- `patches/smali_classes16/com/xj/winemu/sidebar/BhTaskManagerFragment$RefreshListener.smali` (new)
+- `patches/smali_classes16/com/xj/winemu/sidebar/BhTaskManagerFragment$ScanRunnable.smali` (new)
+- `patches/smali_classes16/com/xj/winemu/sidebar/BhTaskManagerFragment$UpdateRunnable.smali` (new)
+- `patches/smali_classes3/com/xj/winemu/sidebar/WineActivityDrawerContent.smali` (constructor + U() patched)
+
+---
+
 ## [pre] — v2.7.7-pre — 3-way API selector AlertDialog (2026-03-27)
 **Branch:** `main`  |  **Tag:** v2.7.7-pre
 **Commit:** `526ad99f9`
