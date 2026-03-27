@@ -2183,3 +2183,13 @@ ART 14 blocks cross-dex private field access. `DialogSettingListItemEntity` is i
 #### Files touched
 - `extension/BhFrameRating.java`
 - `patches/smali_classes16/com/xj/winemu/sidebar/BhPerfSetupDelegate.smali`
+
+### [feat] — v2.7.6-pre — 3-way API selector: GameHub / EmuReady / BannerHub (2026-03-27)
+**Commit:** `70376313a`  |  **Tag:** v2.7.6-pre
+#### What changed
+- Settings "Compatibility API" row cycles: GameHub (0) → EmuReady (1) → BannerHub (2) → back
+- api_source int pref replaces use_external_api boolean
+- BannerHub URL: `https://bannerhub-api.the412banner.workers.dev/`
+- All isExternalAPI() call sites unchanged
+#### Files touched
+- `patches/smali_classes6/app/revanced/extension/gamehub/prefs/GameHubPrefs.smali`
