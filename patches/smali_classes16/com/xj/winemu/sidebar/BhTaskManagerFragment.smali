@@ -3,13 +3,16 @@
 .source "SourceFile"
 
 # Wine Task Manager sidebar tab — two-tab UI:
-#   Always visible at top: Container Info (CPU cores, RAM, VRAM)
+#   Always visible at top: Container Info (device, Android ver, CPU, RAM)
 #   Tab 0 "Applications" — Wine infra processes (non-.exe)
 #   Tab 1 "Processes"    — Windows .exe processes
+#   Auto-refreshes every 3 seconds while visible
 
 .field public appsLayout:Landroid/widget/LinearLayout;
 .field public procsLayout:Landroid/widget/LinearLayout;
 .field public bhContext:Landroid/content/Context;
+.field public handler:Landroid/os/Handler;
+.field public autoRefresher:Ljava/lang/Runnable;
 
 # Colors (0xAARRGGBB signed ints):
 #   white   = -1          (0xFFFFFFFF)
@@ -123,61 +126,6 @@
     return-object v0
 
     :ram_err
-    const-string v0, "N/A"
-    return-object v0
-.end method
-
-# ── Build the VRAM info string ────────────────────────────────────
-# Reads from Qualcomm KGSL sysfs; falls back to "N/A"
-.method private static getVramInfo()Ljava/lang/String;
-    .locals 4
-    const-string v0, "/sys/class/kgsl/kgsl-3d0/gpumem_mapped"
-    invoke-static {v0}, Lcom/xj/winemu/sidebar/BhTaskManagerFragment;->readFileLine(Ljava/lang/String;)Ljava/lang/String;
-    move-result-object v0
-    if-eqz v0, :try_gpu_total
-
-    :try_start_0
-    invoke-virtual {v0}, Ljava/lang/String;->trim()Ljava/lang/String;
-    move-result-object v0
-    invoke-static {v0}, Ljava/lang/Long;->parseLong(Ljava/lang/String;)J
-    move-result-wide v0
-    const-wide/32 v2, 0x100000  # 1 MB = 1048576
-    div-long/2addr v0, v2
-    new-instance v2, Ljava/lang/StringBuilder;
-    invoke-direct {v2}, Ljava/lang/StringBuilder;-><init>()V
-    invoke-virtual {v2, v0, v1}, Ljava/lang/StringBuilder;->append(J)Ljava/lang/StringBuilder;
-    const-string v3, " MB (mapped)"
-    invoke-virtual {v2, v3}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    invoke-virtual {v2}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
-    move-result-object v0
-    return-object v0
-    :try_end_0
-    .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :try_gpu_total
-
-    :try_gpu_total
-    const-string v0, "/sys/class/kgsl/kgsl-3d0/gpumem_alloc"
-    invoke-static {v0}, Lcom/xj/winemu/sidebar/BhTaskManagerFragment;->readFileLine(Ljava/lang/String;)Ljava/lang/String;
-    move-result-object v0
-    if-eqz v0, :vram_na
-    :try_start_1
-    invoke-virtual {v0}, Ljava/lang/String;->trim()Ljava/lang/String;
-    move-result-object v0
-    invoke-static {v0}, Ljava/lang/Long;->parseLong(Ljava/lang/String;)J
-    move-result-wide v0
-    const-wide/32 v2, 0x100000
-    div-long/2addr v0, v2
-    new-instance v2, Ljava/lang/StringBuilder;
-    invoke-direct {v2}, Ljava/lang/StringBuilder;-><init>()V
-    invoke-virtual {v2, v0, v1}, Ljava/lang/StringBuilder;->append(J)Ljava/lang/StringBuilder;
-    const-string v3, " MB (alloc)"
-    invoke-virtual {v2, v3}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-    invoke-virtual {v2}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
-    move-result-object v0
-    return-object v0
-    :try_end_1
-    .catch Ljava/lang/Exception; {:try_start_1 .. :try_end_1} :vram_na
-
-    :vram_na
     const-string v0, "N/A"
     return-object v0
 .end method
@@ -369,15 +317,33 @@
     move-result-object v3
     invoke-virtual {v2, v3}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
 
-    # VRAM row
-    invoke-static {}, Lcom/xj/winemu/sidebar/BhTaskManagerFragment;->getVramInfo()Ljava/lang/String;
-    move-result-object v3
+    # Device name row
+    sget-object v3, Landroid/os/Build;->MODEL:Ljava/lang/String;
     new-instance v4, Ljava/lang/StringBuilder;
     invoke-direct {v4}, Ljava/lang/StringBuilder;-><init>()V
-    const-string v5, "VRAM:        "
+    const-string v5, "Device:      "
     invoke-virtual {v4, v5}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
     invoke-virtual {v4, v3}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
     invoke-virtual {v4}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v3
+    invoke-static {v0, v3}, Lcom/xj/winemu/sidebar/BhTaskManagerFragment;->makeInfoText(Landroid/content/Context;Ljava/lang/String;)Landroid/widget/TextView;
+    move-result-object v3
+    invoke-virtual {v2, v3}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
+
+    # Android version row
+    sget-object v3, Landroid/os/Build$VERSION;->RELEASE:Ljava/lang/String;
+    sget v4, Landroid/os/Build$VERSION;->SDK_INT:I
+    new-instance v5, Ljava/lang/StringBuilder;
+    invoke-direct {v5}, Ljava/lang/StringBuilder;-><init>()V
+    const-string v6, "Android:     "
+    invoke-virtual {v5, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v5, v3}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    const-string v6, " (API "
+    invoke-virtual {v5, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v5, v4}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+    const-string v6, ")"
+    invoke-virtual {v5, v6}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual {v5}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
     move-result-object v3
     invoke-static {v0, v3}, Lcom/xj/winemu/sidebar/BhTaskManagerFragment;->makeInfoText(Landroid/content/Context;Ljava/lang/String;)Landroid/widget/TextView;
     move-result-object v3
@@ -467,9 +433,6 @@
     iput-object v3, p0, Lcom/xj/winemu/sidebar/BhTaskManagerFragment;->procsLayout:Landroid/widget/LinearLayout;
     invoke-virtual {v2, v3}, Landroid/widget/LinearLayout;->addView(Landroid/view/View;)V
 
-    # Kick off initial scan (populates appsLayout + procsLayout)
-    invoke-virtual {p0}, Lcom/xj/winemu/sidebar/BhTaskManagerFragment;->startScan()V
-
     return-object v1
 
     :return_null
@@ -485,6 +448,34 @@
     invoke-direct {v1, p0}, Lcom/xj/winemu/sidebar/BhTaskManagerFragment$ScanRunnable;-><init>(Lcom/xj/winemu/sidebar/BhTaskManagerFragment;)V
     invoke-direct {v0, v1}, Ljava/lang/Thread;-><init>(Ljava/lang/Runnable;)V
     invoke-virtual {v0}, Ljava/lang/Thread;->start()V
+    return-void
+.end method
+
+# ── onResume — start 3-second auto-refresh loop ──────────────────
+.method public onResume()V
+    .locals 3
+    invoke-super {p0}, Landroidx/fragment/app/Fragment;->onResume()V
+    invoke-static {}, Landroid/os/Looper;->getMainLooper()Landroid/os/Looper;
+    move-result-object v0
+    new-instance v1, Landroid/os/Handler;
+    invoke-direct {v1, v0}, Landroid/os/Handler;-><init>(Landroid/os/Looper;)V
+    iput-object v1, p0, Lcom/xj/winemu/sidebar/BhTaskManagerFragment;->handler:Landroid/os/Handler;
+    new-instance v2, Lcom/xj/winemu/sidebar/BhTaskManagerFragment$AutoRefreshRunnable;
+    invoke-direct {v2, p0, v1}, Lcom/xj/winemu/sidebar/BhTaskManagerFragment$AutoRefreshRunnable;-><init>(Lcom/xj/winemu/sidebar/BhTaskManagerFragment;Landroid/os/Handler;)V
+    iput-object v2, p0, Lcom/xj/winemu/sidebar/BhTaskManagerFragment;->autoRefresher:Ljava/lang/Runnable;
+    invoke-virtual {v1, v2}, Landroid/os/Handler;->post(Ljava/lang/Runnable;)Z
+    return-void
+.end method
+
+# ── onPause — stop auto-refresh loop ────────────────────────────
+.method public onPause()V
+    .locals 2
+    invoke-super {p0}, Landroidx/fragment/app/Fragment;->onPause()V
+    iget-object v0, p0, Lcom/xj/winemu/sidebar/BhTaskManagerFragment;->handler:Landroid/os/Handler;
+    if-eqz v0, :no_handler
+    const/4 v1, 0x0
+    invoke-virtual {v0, v1}, Landroid/os/Handler;->removeCallbacksAndMessages(Ljava/lang/Object;)V
+    :no_handler
     return-void
 .end method
 
