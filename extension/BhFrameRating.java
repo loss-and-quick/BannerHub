@@ -179,6 +179,16 @@ public class BhFrameRating extends LinearLayout implements Runnable {
                     case MotionEvent.ACTION_UP:
                         if (!dragMoved) {
                             toggleOrientation();
+                        } else {
+                            // Persist position so it survives sidebar re-opens
+                            try {
+                                FrameLayout.LayoutParams slp =
+                                        (FrameLayout.LayoutParams) v.getLayoutParams();
+                                v.getContext().getSharedPreferences("bh_prefs", 0).edit()
+                                        .putInt("hud_pos_x", slp.leftMargin)
+                                        .putInt("hud_pos_y", (int) v.getTranslationY())
+                                        .apply();
+                            } catch (Exception ignored) {}
                         }
                         return true;
                 }
@@ -246,8 +256,19 @@ public class BhFrameRating extends LinearLayout implements Runnable {
         return Math.round(dp * ctx.getResources().getDisplayMetrics().density);
     }
 
+    /** Sets only the background alpha so labels stay fully opaque. */
+    private void applyBackgroundOpacity(int opacity0to100) {
+        int alpha = opacity0to100 * 255 / 100;
+        setBackgroundColor(android.graphics.Color.argb(alpha, 0, 0, 0));
+    }
+
     private void toggleOrientation() {
         isVertical = !isVertical;
+        // Persist orientation
+        try {
+            getContext().getSharedPreferences("bh_prefs", 0).edit()
+                    .putBoolean("hud_vertical", isVertical).apply();
+        } catch (Exception ignored) {}
         setOrientation(isVertical ? VERTICAL : HORIZONTAL);
 
         // Restore WRAP_CONTENT width in both modes — vertical content (2-per-row cores,
@@ -332,12 +353,36 @@ public class BhFrameRating extends LinearLayout implements Runnable {
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
-        // Restore extra detail state and opacity from pref
         try {
             SharedPreferences sp = getContext().getSharedPreferences("bh_prefs", 0);
             extraDetail = sp.getBoolean("hud_extra_detail", false);
             extraDetailGroup.setVisibility(extraDetail && isVertical ? VISIBLE : GONE);
-            setAlpha(sp.getInt("hud_opacity", 80) / 100f);
+            applyBackgroundOpacity(sp.getInt("hud_opacity", 80));
+
+            final boolean savedVertical = sp.getBoolean("hud_vertical", false);
+            final int savedX = sp.getInt("hud_pos_x", -1);
+            final int savedY = sp.getInt("hud_pos_y", -1);
+
+            // Post so the view is laid out before we measure/reposition
+            handler.post(new Runnable() {
+                @Override public void run() {
+                    if (!isAttachedToWindow()) return;
+                    // 1. Restore orientation
+                    if (savedVertical && !isVertical) toggleOrientation();
+                    // 2. Restore explicit position (overrides gravity + any reclamp from toggle)
+                    if (savedX >= 0 || savedY >= 0) {
+                        ViewGroup.LayoutParams vlp = getLayoutParams();
+                        if (vlp instanceof FrameLayout.LayoutParams) {
+                            FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) vlp;
+                            lp.gravity = 0;
+                            lp.topMargin = 0;
+                            if (savedX >= 0) lp.leftMargin = savedX;
+                            setLayoutParams(lp);
+                            if (savedY >= 0) setTranslationY(savedY);
+                        }
+                    }
+                }
+            });
         } catch (Exception ignored) {}
         running = true;
         Thread t = new Thread(this, "BhFrameRating");

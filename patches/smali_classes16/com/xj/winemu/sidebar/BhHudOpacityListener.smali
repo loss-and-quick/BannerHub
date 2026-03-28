@@ -20,7 +20,7 @@
 
 # virtual methods
 .method public onProgressChanged(Landroid/widget/SeekBar;IZ)V
-    .locals 5
+    .locals 4
     # p1 = SeekBar, p2 = progress (0-100), p3 = fromUser (ignored)
 
     # Save "hud_opacity" pref
@@ -47,11 +47,15 @@
     move-result-object v1
     if-eqz v1, :done
 
-    int-to-float v2, p2
+    # alpha = progress * 255 / 100 (integer) — background only, text stays opaque
+    const/16 v2, 0xFF
+    mul-int v2, p2, v2
     const/16 v3, 0x64
-    int-to-float v3, v3
-    div-float v2, v2, v3
-    invoke-virtual {v1, v2}, Landroid/view/View;->setAlpha(F)V
+    div-int v2, v2, v3
+    const/4 v3, 0x0
+    invoke-static {v2, v3, v3, v3}, Landroid/graphics/Color;->argb(IIII)I
+    move-result v2
+    invoke-virtual {v1, v2}, Landroid/view/View;->setBackgroundColor(I)V
 
     :done
     return-void
