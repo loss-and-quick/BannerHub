@@ -5,7 +5,6 @@ import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.SharedPreferences;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -200,41 +199,48 @@ public class BhFrameRating extends LinearLayout implements Runnable {
     }
 
     // ── API name ─────────────────────────────────────────────────────────
-    // Reads from pc_g_setting{gameId} SharedPreferences, same source GameHub uses.
-    // Keys: "pc_ls_DXVK" for DXVK, "pc_ls_VK3k" for VKD3D.
-    // JSON structure mirrors PcSettingDataEntity — uses "displayName" if set, else "name".
-    // Falls back to "WineD3D" when neither key is populated.
+    // Reads the runtime engine name from UnifiedHUDView.a — the same field the
+    // original GameHub HUD renders. Wine (DXVK/VKD3D/WineD3D) reports this via
+    // a native perf socket callback when the first frame is presented.
+    //
+    // Reflection chain:
+    //   WineActivity.g → ActivityWineBinding
+    //   .hudLayer       → HUDLayer
+    //   .b              → UnifiedHUDView
+    //   .a              → engine name String (uppercased by setEngineName())
+    //
+    // Falls back to "API" if reflection fails or Wine hasn't reported yet ("N/A").
 
     private String readApiName() {
         if (activity == null) return "API";
         try {
-            // WineActivity.u = WineActivityData; WineActivityData.a = gameId
-            Field uField = activity.getClass().getDeclaredField("u");
-            uField.setAccessible(true);
-            Object wineData = uField.get(activity);
-            if (wineData == null) return "API";
-            Field aField = wineData.getClass().getDeclaredField("a");
+            // WineActivity.g = ActivityWineBinding
+            Field gField = activity.getClass().getDeclaredField("g");
+            gField.setAccessible(true);
+            Object binding = gField.get(activity);
+            if (binding == null) return "API";
+
+            // ActivityWineBinding.hudLayer = HUDLayer
+            Field hudLayerField = binding.getClass().getDeclaredField("hudLayer");
+            hudLayerField.setAccessible(true);
+            Object hudLayer = hudLayerField.get(binding);
+            if (hudLayer == null) return "API";
+
+            // HUDLayer.b = UnifiedHUDView
+            Field bField = hudLayer.getClass().getDeclaredField("b");
+            bField.setAccessible(true);
+            Object unifiedHud = bField.get(hudLayer);
+            if (unifiedHud == null) return "API";
+
+            // UnifiedHUDView.a = engine name (e.g. "DXVK", "VKD3D", "WINEDD3D")
+            Field aField = unifiedHud.getClass().getDeclaredField("a");
             aField.setAccessible(true);
-            Object gameIdObj = aField.get(wineData);
-            if (gameIdObj == null) return "API";
-            String gameId = gameIdObj.toString();
+            Object nameObj = aField.get(unifiedHud);
+            if (nameObj == null) return "API";
 
-            SharedPreferences sp = activity.getSharedPreferences("pc_g_setting" + gameId, 0);
-
-            // DXVK (key: "pc_ls_DXVK")
-            String dxvkJson = sp.getString("pc_ls_DXVK", null);
-            if (dxvkJson != null && !dxvkJson.isEmpty()) {
-                return "DXVK";
-            }
-
-            // VKD3D (key: "pc_ls_VK3k")
-            String vkd3dJson = sp.getString("pc_ls_VK3k", null);
-            if (vkd3dJson != null && !vkd3dJson.isEmpty()) {
-                return "VKD3D";
-            }
-
-            // Neither set — WineD3D (software renderer)
-            return "WineD3D";
+            String name = nameObj.toString().trim();
+            if (name.isEmpty() || name.equals("N/A")) return "API";
+            return name;
         } catch (Exception e) {
             return "API";
         }
