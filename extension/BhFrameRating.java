@@ -180,7 +180,7 @@ public class BhFrameRating extends LinearLayout implements Runnable {
         TextView tv = new TextView(ctx);
         tv.setText(text);
         tv.setTextColor(color);
-        tv.setTextSize(11f);
+        tv.setTextSize(10f);
         tv.setPadding(4, 0, 4, 0);
         tv.setTypeface(Typeface.MONOSPACE);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
@@ -196,7 +196,7 @@ public class BhFrameRating extends LinearLayout implements Runnable {
         TextView tv = new TextView(ctx);
         tv.setText(" | ");
         tv.setTextColor(0xFF555555);
-        tv.setTextSize(11f);
+        tv.setTextSize(10f);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -210,7 +210,7 @@ public class BhFrameRating extends LinearLayout implements Runnable {
         TextView tv = new TextView(ctx);
         tv.setText(text);
         tv.setTextColor(color);
-        tv.setTextSize(10f);
+        tv.setTextSize(9f);
         tv.setPadding(4, 2, 4, 2);
         tv.setTypeface(Typeface.MONOSPACE);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
@@ -227,6 +227,16 @@ public class BhFrameRating extends LinearLayout implements Runnable {
     private void toggleOrientation() {
         isVertical = !isVertical;
         setOrientation(isVertical ? VERTICAL : HORIZONTAL);
+
+        // Fix overlay width: set fixed dp width in vertical mode so extra detail rows
+        // have consistent room regardless of leftMargin position on screen.
+        ViewGroup.LayoutParams flp = getLayoutParams();
+        if (flp != null) {
+            flp.width = isVertical
+                    ? dpToPx(getContext(), 220)
+                    : ViewGroup.LayoutParams.WRAP_CONTENT;
+            setLayoutParams(flp);
+        }
 
         // Show/hide " | " separators
         int sepVis = isVertical ? GONE : VISIBLE;
@@ -266,10 +276,9 @@ public class BhFrameRating extends LinearLayout implements Runnable {
 
     /** Re-clamps overlay position after layout has settled (e.g. after orientation toggle). */
     private void reclampPosition() {
-        getViewTreeObserver().addOnGlobalLayoutListener(
-                new ViewTreeObserver.OnGlobalLayoutListener() {
-            @Override public void onGlobalLayout() {
-                getViewTreeObserver().removeOnGlobalLayoutListener(this);
+        // postDelayed one frame so getHeight() reflects the new vertical layout, not stale dims.
+        handler.postDelayed(new Runnable() {
+            @Override public void run() {
                 ViewGroup.LayoutParams vlp = getLayoutParams();
                 if (!(vlp instanceof FrameLayout.LayoutParams)) return;
                 FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) vlp;
@@ -281,7 +290,7 @@ public class BhFrameRating extends LinearLayout implements Runnable {
                 if (lp.topMargin  + getHeight() > screenH) lp.topMargin  = screenH - getHeight();
                 setLayoutParams(lp);
             }
-        });
+        }, 32); // two frames — ensures layout has settled
     }
 
     @Override
