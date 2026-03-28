@@ -4,6 +4,15 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [fix] — v2.7.5-pre22 — gray out Extra Detailed checkbox (coming soon) (2026-03-28)
+**Branch:** `main`  |  **Tag:** v2.7.5-pre22
+**Commit:** `e373e10b7`  |  **CI:** queued
+**What changed:** Extra Detailed checkbox: text → "Extra Detailed (coming soon)", color gray (0xFF888888), force-unchecked, setEnabled(false), listener removed.
+#### Files touched
+- `patches/smali_classes16/com/xj/winemu/sidebar/BhPerfSetupDelegate.smali`
+
+---
+
 ## [fix] — v2.7.5-pre21 — remove tvTimeH; time after API in both modes (2026-03-28)
 **Branch:** `main`  |  **Tag:** v2.7.5-pre21
 **Commit:** `fa3f53960`  |  **CI:** queued
