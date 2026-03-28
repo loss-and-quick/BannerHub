@@ -4,6 +4,17 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [pre] — v2.7.5-pre6 — fix: VerifyError crash opening Performance tab (2026-03-28)
+**Branch:** `main`  |  **Tag:** v2.7.5-pre6
+**Commit:** `bc18a57c9`  |  **CI:** ✅ run 23689336694
+**What changed:**
+- Root cause: `:cond_hud_switch_exists` is a join point reached by paths both with and without `check-cast v0, ViewGroup`. Verifier merges to common supertype `View`. My `addView()` on `ViewGroup` with a `View`-typed register → VerifyError crash when opening the Performance sidebar
+- Fix: `check-cast v0, Landroid/view/ViewGroup;` added immediately before the checkbox `addView()` call
+#### Files touched
+- `patches/smali_classes16/com/xj/winemu/sidebar/BhPerfSetupDelegate.smali`
+
+---
+
 ## [pre] — v2.7.5-pre5 — feat: Extra Detailed checkbox for Winlator HUD (2026-03-28)
 **Branch:** `main`  |  **Tag:** v2.7.5-pre5
 **Commit:** `3efcb78ad`  |  **CI:** ✅ run 23689179502
