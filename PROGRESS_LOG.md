@@ -4,6 +4,16 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [feat] — v2.7.5-pre24 — solid text; bg-only transparency; persist position+orientation (2026-03-28)
+**Branch:** `main`  |  **Tag:** v2.7.5-pre24
+**Commit:** `8f1884660`  |  **CI:** queued
+**What changed:** applyBackgroundOpacity() changes background alpha only (text stays opaque). HUD persists hud_vertical, hud_pos_x, hud_pos_y to bh_prefs and restores on attach. BhHudOpacityListener uses Color.argb + setBackgroundColor.
+#### Files touched
+- `extension/BhFrameRating.java`
+- `patches/smali_classes16/com/xj/winemu/sidebar/BhHudOpacityListener.smali`
+
+---
+
 ## [feat] — v2.7.5-pre23 — HUD Opacity slider in Performance sidebar (2026-03-28)
 **Branch:** `main`  |  **Tag:** v2.7.5-pre23
 **Commit:** `f56405f9c`  |  **CI:** queued
