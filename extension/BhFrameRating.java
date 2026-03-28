@@ -111,11 +111,11 @@ public class BhFrameRating extends LinearLayout implements Runnable {
         extraDetailGroup.addView(divider, divLp);
 
         tvTime     = addExtraLabel(ctx, "TIME --:--", 0xFFFFFFFF);
-        tvCpuCores = addExtraLabel(ctx, "C0:--  C1:--  C2:--  C3:--\nC4:--  C5:--  C6:--  C7:--", 0xFFFFFFFF);
-        tvGpuInfo  = addExtraLabel(ctx, "GPU -- | --MHz", 0xFFFFAB91);
-        tvGpuTemp  = addExtraLabel(ctx, "GPU TMP --\u00b0C", 0xFFEF9A9A);
+        tvCpuCores = addExtraLabel(ctx, "C0:-- C1:--\nC2:-- C3:--\nC4:-- C5:--\nC6:-- C7:--", 0xFFFFFFFF);
+        tvGpuInfo  = addExtraLabel(ctx, "--\n--MHz", 0xFFFFAB91);
+        tvGpuTemp  = addExtraLabel(ctx, "TMP --\u00b0C", 0xFFEF9A9A);
         tvRamDetail= addExtraLabel(ctx, "RAM --G / --G", 0xFF90CAF9);
-        tvSwap     = addExtraLabel(ctx, "SWAP --G / --G", 0xFFB39DDB);
+        tvSwap     = addExtraLabel(ctx, "SW --/--G", 0xFFB39DDB);
 
         LinearLayout.LayoutParams egLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -228,13 +228,11 @@ public class BhFrameRating extends LinearLayout implements Runnable {
         isVertical = !isVertical;
         setOrientation(isVertical ? VERTICAL : HORIZONTAL);
 
-        // Fix overlay width: set fixed dp width in vertical mode so extra detail rows
-        // have consistent room regardless of leftMargin position on screen.
+        // Restore WRAP_CONTENT width in both modes — vertical content (2-per-row cores,
+        // trimmed labels) naturally sets the narrow width we want.
         ViewGroup.LayoutParams flp = getLayoutParams();
         if (flp != null) {
-            flp.width = isVertical
-                    ? dpToPx(getContext(), 220)
-                    : ViewGroup.LayoutParams.WRAP_CONTENT;
+            flp.width = ViewGroup.LayoutParams.WRAP_CONTENT;
             setLayoutParams(flp);
         }
 
@@ -368,17 +366,21 @@ public class BhFrameRating extends LinearLayout implements Runnable {
                         if (extraDetail && isVertical) {
                             if (coreMhz != null && coreMhz.length >= 8) {
                                 tvCpuCores.setText(String.format(
-                                        "C0:%4d  C1:%4d  C2:%4d  C3:%4d\n" +
-                                        "C4:%4d  C5:%4d  C6:%4d  C7:%4d",
-                                        coreMhz[0], coreMhz[1], coreMhz[2], coreMhz[3],
-                                        coreMhz[4], coreMhz[5], coreMhz[6], coreMhz[7]));
+                                        "C0:%4d C1:%4d\n" +
+                                        "C2:%4d C3:%4d\n" +
+                                        "C4:%4d C5:%4d\n" +
+                                        "C6:%4d C7:%4d",
+                                        coreMhz[0], coreMhz[1],
+                                        coreMhz[2], coreMhz[3],
+                                        coreMhz[4], coreMhz[5],
+                                        coreMhz[6], coreMhz[7]));
                             }
                             String model = gpuModel != null ? gpuModel : "--";
-                            tvGpuInfo.setText("GPU " + model + " | " + gpuMhz + "MHz");
-                            tvGpuTemp.setText("GPU TMP " + gpuThermal + "\u00b0C");
+                            tvGpuInfo.setText(model + "\n" + gpuMhz + "MHz");
+                            tvGpuTemp.setText("TMP " + gpuThermal + "\u00b0C");
                             if (ramDetail != null && ramDetail.length >= 2) {
                                 tvRamDetail.setText(String.format(
-                                        "RAM %.1fG / %.1fG", ramDetail[0], ramDetail[1]));
+                                        "RAM %.1f/%.1fG", ramDetail[0], ramDetail[1]));
                             }
                             if (swapStr != null) tvSwap.setText(swapStr);
                             if (timeStr != null) tvTime.setText("TIME " + timeStr);
@@ -635,7 +637,7 @@ public class BhFrameRating extends LinearLayout implements Runnable {
         } catch (IOException ignored) {}
         float total = swapTotal / (1024f * 1024f);
         float used  = (swapTotal - swapFree) / (1024f * 1024f);
-        return String.format("SWAP %.1fG / %.1fG", used, total);
+        return String.format("SW %.1f/%.1fG", used, total);
     }
 
     private long parseMemInfoKb(String line) {
