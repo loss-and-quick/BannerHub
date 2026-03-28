@@ -151,6 +151,15 @@ public class BhFrameRating extends LinearLayout implements Runnable {
                         int dy = (int) (event.getRawY() - dragLastY);
                         lp.leftMargin += dx;
                         lp.topMargin += dy;
+                        // Clamp so overlay never overflows screen edges
+                        int screenW = v.getRootView().getWidth();
+                        int screenH = v.getRootView().getHeight();
+                        if (lp.leftMargin < 0) lp.leftMargin = 0;
+                        if (lp.topMargin < 0) lp.topMargin = 0;
+                        if (lp.leftMargin + v.getWidth() > screenW)
+                            lp.leftMargin = screenW - v.getWidth();
+                        if (lp.topMargin + v.getHeight() > screenH)
+                            lp.topMargin = screenH - v.getHeight();
                         v.setLayoutParams(lp);
                         dragLastX = event.getRawX();
                         dragLastY = event.getRawY();
