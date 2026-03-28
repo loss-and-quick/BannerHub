@@ -4,6 +4,16 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [feat] — v2.7.5-pre25 — black text outline below 30% opacity (2026-03-28)
+**Branch:** `main`  |  **Tag:** v2.7.5-pre25
+**Commit:** `e788691bb`  |  **CI:** queued
+**What changed:** applyBackgroundOpacity() calls setShadowLayer(3f,0,0,black) on all TextViews when opacity<30, clears otherwise. BhHudOpacityListener simplified to delegate to this method.
+#### Files touched
+- `extension/BhFrameRating.java`
+- `patches/smali_classes16/com/xj/winemu/sidebar/BhHudOpacityListener.smali`
+
+---
+
 ## [feat] — v2.7.5-pre24 — solid text; bg-only transparency; persist position+orientation (2026-03-28)
 **Branch:** `main`  |  **Tag:** v2.7.5-pre24
 **Commit:** `8f1884660`  |  **CI:** queued
