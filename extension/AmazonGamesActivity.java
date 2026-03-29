@@ -1,6 +1,7 @@
 package app.revanced.extension.gamehub;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Typeface;
@@ -361,9 +362,7 @@ public class AmazonGamesActivity extends Activity {
             installBtn.setBackgroundColor(0xFFFF9900);
             installBtn.setTextColor(0xFF000000);
             installBtn.setTextSize(13f);
-            installBtn.setOnClickListener(v ->
-                    Toast.makeText(this,
-                            "Install coming in Phase 3: " + game.title, Toast.LENGTH_SHORT).show());
+            installBtn.setOnClickListener(v -> startInstall(game, installBtn));
             btnRow.addView(installBtn, new LinearLayout.LayoutParams(-2, dp(40)));
         } else {
             // Launch button
@@ -385,12 +384,119 @@ public class AmazonGamesActivity extends Activity {
             unBtn.setTextSize(13f);
             LinearLayout.LayoutParams unLp = new LinearLayout.LayoutParams(-2, dp(40));
             unLp.leftMargin = dp(8);
-            unBtn.setOnClickListener(v ->
-                    Toast.makeText(this, "Uninstall coming in Phase 6", Toast.LENGTH_SHORT).show());
+            unBtn.setOnClickListener(v -> confirmUninstall(game));
             btnRow.addView(unBtn, unLp);
         }
 
         return section;
+    }
+
+    // ── Install / Uninstall ───────────────────────────────────────────────────
+
+    private void startInstall(AmazonGame game, Button installBtn) {
+        installBtn.setEnabled(false);
+        installBtn.setText("Installing…");
+
+        new Thread(() -> {
+            String token = AmazonCredentialStore.getValidAccessToken(this);
+            if (token == null) {
+                uiHandler.post(() -> {
+                    installBtn.setEnabled(true);
+                    installBtn.setText("Install");
+                    Toast.makeText(this, "Login required", Toast.LENGTH_SHORT).show();
+                });
+                return;
+            }
+
+            // Install dir: filesDir/Amazon/{title sanitized}
+            String sanitized = game.title.replaceAll("[^a-zA-Z0-9 \\-_]", "").trim();
+            if (sanitized.isEmpty()) sanitized = "game_" + game.productId.hashCode();
+            File installDir = new File(new File(getFilesDir(), "Amazon"), sanitized);
+
+            AmazonDownloadManager.ProgressCallback cb = (dl, total, file) -> {
+                int pct = (total > 0) ? (int) (dl * 100 / total) : -1;
+                String label = pct >= 0 ? "Installing… " + pct + "%" : "Installing…";
+                uiHandler.post(() -> installBtn.setText(label));
+            };
+
+            boolean ok = AmazonDownloadManager.install(
+                    this, game, token, installDir, cb, null);
+
+            if (ok) {
+                game.isInstalled = true;
+                game.installPath  = installDir.getAbsolutePath();
+                // Update cache with install status
+                List<AmazonGame> cached = loadCachedGames();
+                if (cached != null) {
+                    for (AmazonGame c : cached) {
+                        if (c.productId.equals(game.productId)) {
+                            c.isInstalled = true;
+                            c.installPath = game.installPath;
+                            break;
+                        }
+                    }
+                    saveCachedGames(cached);
+                }
+                uiHandler.post(() -> {
+                    Toast.makeText(this, game.title + " installed!", Toast.LENGTH_SHORT).show();
+                    // Refresh the card list to show Launch button
+                    showGames(allGames);
+                });
+            } else {
+                uiHandler.post(() -> {
+                    installBtn.setEnabled(true);
+                    installBtn.setText("Install");
+                    Toast.makeText(this, "Install failed: " + game.title, Toast.LENGTH_SHORT).show();
+                });
+            }
+        }).start();
+    }
+
+    private void confirmUninstall(AmazonGame game) {
+        new android.app.AlertDialog.Builder(this)
+            .setTitle("Uninstall " + game.title)
+            .setMessage("This will delete all installed game files. Continue?")
+            .setPositiveButton("Uninstall", (d, w) -> uninstallGame(game))
+            .setNegativeButton("Cancel", null)
+            .show();
+    }
+
+    private void uninstallGame(AmazonGame game) {
+        new Thread(() -> {
+            if (!game.installPath.isEmpty()) {
+                deleteDir(new File(game.installPath));
+            }
+            game.isInstalled = true; // will be set false below
+            game.isInstalled = false;
+            game.installPath  = "";
+
+            List<AmazonGame> cached = loadCachedGames();
+            if (cached != null) {
+                for (AmazonGame c : cached) {
+                    if (c.productId.equals(game.productId)) {
+                        c.isInstalled = false;
+                        c.installPath  = "";
+                        break;
+                    }
+                }
+                saveCachedGames(cached);
+            }
+            uiHandler.post(() -> {
+                Toast.makeText(this, game.title + " uninstalled", Toast.LENGTH_SHORT).show();
+                showGames(allGames);
+            });
+        }).start();
+    }
+
+    private static void deleteDir(File dir) {
+        if (dir == null || !dir.exists()) return;
+        if (dir.isDirectory()) {
+            File[] children = dir.listFiles();
+            if (children != null) {
+                for (File child : children) deleteDir(child);
+            }
+        }
+        dir.delete();
     }
 
     // ── Cover art async loader ────────────────────────────────────────────────

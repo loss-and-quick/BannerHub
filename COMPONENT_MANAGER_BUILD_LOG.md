@@ -4022,3 +4022,22 @@ Online: API provides the list so this went unnoticed. Offline: API fails → fal
 
 **Commit:** (pending)  |  **Branch:** amazon-integration
 **CI:** pending
+
+---
+
+## Entry 125 — amazon-integration Phase 3 — Manifest parser + download pipeline (2026-03-29)
+
+**Root cause / motivation:** Phase 3 implements the actual game download: protobuf manifest parsing and parallel file-by-hash download.
+
+**What was added:**
+- `AmazonManifest`: parse binary format (4-byte big-endian headerSize, ManifestHeader protobuf for compression, LZMA/XZ body); minimal ProtoReader (varint/length-delimited/skip); XZInputStream detection via 0xFD 0x37 magic; ManifestFile.hashHex() uses `b & 0xFF` for correct unsigned encoding; ManifestFile.unixPath() converts backslashes; ParsedManifest computes allFiles + totalInstallSize
+- `AmazonDownloadManager`: ExecutorService(6) batches; downloadFileWithRetry (3 attempts, exponential backoff); resume check destFile.length()==file.size; file URL = appendPath(baseUrl, "files/"+hashHex); User-Agent "nile/0.1 Amazon"; SHA-256 verify (Arrays.equals); write to .tmp then rename; progress AtomicLong + lastEmit compareAndSet (emit every 512KB); cancellation checked between batches + in read loop; IN_PROGRESS_MARKER at start / COMPLETE_MARKER on success; manifest cached at filesDir/manifests/amazon/
+- `AmazonGamesActivity` updated: Install → startInstall() → background thread; progress on button text; install state + installPath persisted to bh_amazon_prefs cache; Uninstall → confirmUninstall() → AlertDialog → deleteDir recursive; showGames() refreshes cards after install/uninstall
+
+**Files changed:**
+- `extension/AmazonManifest.java` (new)
+- `extension/AmazonDownloadManager.java` (new)
+- `extension/AmazonGamesActivity.java` (install/uninstall wired up)
+
+**Commit:** (pending)  |  **Branch:** amazon-integration
+**CI:** pending

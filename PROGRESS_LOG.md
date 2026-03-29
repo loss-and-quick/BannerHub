@@ -2668,3 +2668,14 @@ ART 14 blocks cross-dex private field access. `DialogSettingListItemEntity` is i
 - `extension/AmazonGame.java` (new)
 - `extension/AmazonApiClient.java` (new)
 - `extension/AmazonGamesActivity.java` (replaced stub with full impl)
+
+### [feat] — amazon-integration branch — Phase 3: Manifest parser + download pipeline (2026-03-29)
+**Commit:** (pending)  |  **Branch:** amazon-integration
+#### What changed
+- AmazonManifest.java: binary protobuf manifest parser (4-byte big-endian headerSize + ManifestHeader + LZMA/XZ body); minimal ProtoReader varint decoder; extracts packages/files/hashes; uses org.tukaani.xz (XZInputStream + LZMAInputStream)
+- AmazonDownloadManager.java: 6-parallel file downloads with 3-retry backoff (1s/2s/4s); SHA-256 verify; resume support (skip file if destFile.length()==file.size); progress callback every 512KB; cancellation check per batch + in read loop; IN_PROGRESS/COMPLETE markers; manifest cache at filesDir/manifests/amazon/
+- AmazonGamesActivity.java: Install button wired to real AmazonDownloadManager.install(); progress shown on button ("Installing… N%"); Uninstall with confirmation dialog + recursive delete; install state persisted to bh_amazon_prefs cache
+#### Files touched
+- `extension/AmazonManifest.java` (new)
+- `extension/AmazonDownloadManager.java` (new)
+- `extension/AmazonGamesActivity.java` (install + uninstall wired)
