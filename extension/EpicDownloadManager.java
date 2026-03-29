@@ -610,7 +610,7 @@ public class EpicDownloadManager {
                     catch (NumberFormatException ignored) { c.groupNum = 0; }
                 }
                 if (chunkFilesizeList != null) {
-                    try { c.fileSize = Long.parseLong(chunkFilesizeList.optString(guidHex, "0")); }
+                    try { c.fileSize = Long.parseLong(chunkFilesizeList.optString(guidHex, "0"), 16); }
                     catch (NumberFormatException ignored) { c.fileSize = 0; }
                 }
                 c.windowSize = 0;
