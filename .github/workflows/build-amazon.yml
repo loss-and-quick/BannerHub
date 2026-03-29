@@ -1,18 +1,16 @@
-name: Build APK
+name: Build APK (Amazon branch — artifact only, no release)
 
 on:
-  workflow_dispatch:
   push:
-    tags:
-      - 'v*'
-      - '!v*-pre*'
-      - '!v*-beta*'
-      - '!v*-amazon*'
+    branches:
+      - amazon-integration
 
 jobs:
+  build:
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
 
-  prepare:
-    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -38,23 +36,23 @@ jobs:
         run: |
           APK=$(ls base/*.apk | head -1)
           echo "Decompiling: $APK"
-          java -jar $HOME/bin/apktool.jar d "$APK" -o apktool_out_base -f
+          java -jar $HOME/bin/apktool.jar d "$APK" -o apktool_out -f
 
       - name: Remove uncompilable apktool artifacts
         run: |
-          rm -f apktool_out_base/res/values/raws.xml
-          sed -i '/firebase_common_keep\|firebase_crashlytics_keep/d' apktool_out_base/res/values/public.xml
+          rm -f apktool_out/res/values/raws.xml
+          sed -i '/firebase_common_keep\|firebase_crashlytics_keep/d' apktool_out/res/values/public.xml
 
           # Extract original classes12.dex and skip smali reassembly (dex index limit workaround)
           APK=$(ls base/*.apk | head -1)
-          unzip -p "$APK" classes12.dex > apktool_out_base/classes12.dex
-          rm -rf apktool_out_base/smali_classes12
+          unzip -p "$APK" classes12.dex > classes12.dex
+          rm -rf apktool_out/smali_classes12
 
       - name: Apply patches
         run: |
           if [ -d "patches" ] && [ "$(ls -A patches)" ]; then
             echo "Applying patches..."
-            cp -r patches/. apktool_out_base/
+            cp -r patches/. apktool_out/
             echo "Patches applied."
           else
             echo "No patches to apply."
@@ -79,7 +77,7 @@ jobs:
           # Patch 1: SettingBtnHolder.w() — handle click for contentType=0x64 (Grant Root Access)
           # Injected EARLY right after getContentType() move-result p0, while p2 is still a View.
           patch(
-              'apktool_out_base/smali_classes6/com/xj/landscape/launcher/ui/setting/holder/SettingBtnHolder.smali',
+              'apktool_out/smali_classes6/com/xj/landscape/launcher/ui/setting/holder/SettingBtnHolder.smali',
               '    move-result p0\n'
               '\n'
               '    .line 15\n'
@@ -112,7 +110,7 @@ jobs:
 
           # Patch 2: SettingItemEntity.getContentName() — return "Grant Root Access" for contentType=0x64
           patch(
-              'apktool_out_base/smali_classes13/com/xj/landscape/launcher/data/model/entity/SettingItemEntity.smali',
+              'apktool_out/smali_classes13/com/xj/landscape/launcher/data/model/entity/SettingItemEntity.smali',
               '    :cond_15\n'
               '    invoke-static {p0}, Lapp/revanced/extension/gamehub/prefs/GameHubPrefs;->getCustomSettingName(I)Ljava/lang/String;\n',
               '    :cond_15\n'
@@ -132,7 +130,7 @@ jobs:
 
           # Patch 3: SettingItemViewModel.k() — add Grant Root Access TYPE_BTN below Clear Cache
           patch(
-              'apktool_out_base/smali_classes3/com/xj/landscape/launcher/vm/SettingItemViewModel.smali',
+              'apktool_out/smali_classes3/com/xj/landscape/launcher/vm/SettingItemViewModel.smali',
               '    invoke-interface {p0, v0}, Ljava/util/List;->add(Ljava/lang/Object;)Z\n'
               '\n'
               '    .line 79\n'
@@ -163,110 +161,37 @@ jobs:
           print("\nAll Grant Root Access patches applied successfully.")
           PYEOF
 
-      - name: Upload patched source
-        uses: actions/upload-artifact@v4
-        with:
-          name: apktool_out_base
-          path: apktool_out_base/
-          retention-days: 1
-
-  build:
-    needs: prepare
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    strategy:
-      matrix:
-        include:
-          - variant: Normal
-            package: banner.hub
-            label: "BannerHub"
-          - variant: Normal(GHL)
-            package: gamehub.lite
-            label: "BannerHub"
-          - variant: PuBG
-            package: com.tencent.ig
-            label: "BannerHub PuBG"
-          - variant: AnTuTu
-            package: com.antutu.ABenchMark
-            label: "BannerHub AnTuTu"
-          - variant: alt-AnTuTu
-            package: com.antutu.benchmark.full
-            label: "BannerHub AnTuTu"
-          - variant: PuBG-CrossFire
-            package: com.tencent.tmgp.cf
-            label: "BannerHub PuBG CrossFire"
-          - variant: Ludashi
-            package: com.ludashi.aibench
-            label: "BannerHub Ludashi"
-          - variant: Genshin
-            package: com.mihoyo.genshinimpact
-            label: "BannerHub Genshin"
-          - variant: Original
-            package: com.xiaoji.egggame
-            label: "BannerHub Original"
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install apktool
+      - name: Patch package name (amazon branch — isolated from stable)
         run: |
-          APKTOOL_VER=2.9.3
-          mkdir -p $HOME/bin
-          wget -q "https://github.com/iBotPeaches/Apktool/releases/download/v${APKTOOL_VER}/apktool_${APKTOOL_VER}.jar" -O $HOME/bin/apktool.jar
-          wget -q "https://raw.githubusercontent.com/iBotPeaches/Apktool/master/scripts/linux/apktool" -O $HOME/bin/apktool
-          chmod +x $HOME/bin/apktool
-          echo "$HOME/bin" >> $GITHUB_PATH
+          sed -i "s/gamehub\.lite/banner.hub/g" apktool_out/AndroidManifest.xml
 
-      - name: Download patched source
-        uses: actions/download-artifact@v4
-        with:
-          name: apktool_out_base
-          path: apktool_out
-
-      - name: Patch package name and label
+      - name: Rebuild and Sign
         run: |
-          PKG="${{ matrix.package }}"
-          LABEL="${{ matrix.label }}"
-          if [ "$PKG" != "gamehub.lite" ]; then
-            # Replace all occurrences of gamehub.lite in the manifest (package, sharedUserId, authorities, permissions, etc.)
-            sed -i "s/gamehub\.lite/$PKG/g" apktool_out/AndroidManifest.xml
-          fi
-          sed -i "s/android:label=\"GameHub Revanced\"/android:label=\"$LABEL\"/" apktool_out/AndroidManifest.xml
+          SHORT_SHA="${GITHUB_SHA::7}"
+          echo "Building Amazon-integration build @ ${SHORT_SHA}..."
 
-      - name: Rebuild APK
-        run: |
+          # Rebuild
           java -jar $HOME/bin/apktool.jar b apktool_out -o rebuilt-unsigned.apk
 
           # Inject original classes12.dex (skipped smali reassembly due to dex index limit)
-          zip rebuilt-unsigned.apk apktool_out/classes12.dex --junk-paths
+          zip rebuilt-unsigned.apk classes12.dex
 
-      - name: Compile and inject GOG extension dex
-        run: |
+          # Compile and inject GOG extension dex as classes18.dex
           ANDROID_JAR=$(ls $ANDROID_SDK_ROOT/platforms/android-*/android.jar 2>/dev/null | sort -V | tail -1)
           mkdir -p ext_classes
           javac -source 8 -target 8 -cp "$ANDROID_JAR" -d ext_classes extension/*.java
           BUILD_TOOLS=$(ls $ANDROID_SDK_ROOT/build-tools | sort -V | tail -1)
           mkdir -p ext_dex
-          $ANDROID_SDK_ROOT/build-tools/$BUILD_TOOLS/d8 \
-            --release --min-api 26 --output ext_dex \
-            $(find ext_classes -name "*.class")
-          # Inject as classes18.dex (slots 1-17 already used by base APK + smali_classes16)
+          $ANDROID_SDK_ROOT/build-tools/$BUILD_TOOLS/d8 --release --min-api 26 --output ext_dex $(find ext_classes -name "*.class")
           cp ext_dex/classes.dex classes18.dex
           zip -j rebuilt-unsigned.apk classes18.dex
 
-      - name: Zipalign
-        run: |
-          BUILD_TOOLS=$(ls ${ANDROID_SDK_ROOT}/build-tools | tail -1)
-          ${ANDROID_SDK_ROOT}/build-tools/${BUILD_TOOLS}/zipalign -f -v 4 rebuilt-unsigned.apk rebuilt-aligned.apk
+          # Align
+          ${ANDROID_SDK_ROOT}/build-tools/$(ls ${ANDROID_SDK_ROOT}/build-tools | tail -1)/zipalign -f -v 4 rebuilt-unsigned.apk rebuilt-aligned.apk
 
-      - name: Sign
-        id: sign
-        run: |
-          APK_NAME="BannerHub-${GITHUB_REF_NAME}-${{ matrix.variant }}.apk"
-          BUILD_TOOLS=$(ls ${ANDROID_SDK_ROOT}/build-tools | tail -1)
-          ${ANDROID_SDK_ROOT}/build-tools/${BUILD_TOOLS}/apksigner sign \
+          # Sign
+          APK_NAME="BannerHub-amazon-${SHORT_SHA}.apk"
+          ${ANDROID_SDK_ROOT}/build-tools/$(ls ${ANDROID_SDK_ROOT}/build-tools | tail -1)/apksigner sign \
             --key testkey.pk8 \
             --cert testkey.x509.pem \
             --v1-signing-enabled true \
@@ -274,41 +199,13 @@ jobs:
             --v3-signing-enabled true \
             --out "$APK_NAME" \
             rebuilt-aligned.apk
-          echo "Completed: $APK_NAME ($(du -sh "$APK_NAME" | cut -f1))"
-          echo "apk_name=$APK_NAME" >> "$GITHUB_OUTPUT"
 
-      - name: Upload APK artifact
+          echo "APK_NAME=$APK_NAME" >> $GITHUB_ENV
+          echo "Done: $APK_NAME ($(du -sh "$APK_NAME" | cut -f1))"
+
+      - name: Upload APK as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.sign.outputs.apk_name }}
-          path: ${{ steps.sign.outputs.apk_name }}
-          retention-days: 1
-
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Get tag name
-        id: tag
-        run: |
-          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
-            echo "name=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-          else
-            echo "name=manual-$(date +%Y%m%d-%H%M%S)" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Download all APK artifacts
-        uses: actions/download-artifact@v4
-        with:
-          pattern: BannerHub-*.apk
-          merge-multiple: true
-
-      - name: Create release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.tag.outputs.name }}
-          name: Bannerhub ${{ steps.tag.outputs.name }}
-          prerelease: ${{ contains(steps.tag.outputs.name, '-') }}
-          files: BannerHub-*.apk
+          name: BannerHub-amazon-${{ github.sha }}
+          path: ${{ env.APK_NAME }}
+          retention-days: 30

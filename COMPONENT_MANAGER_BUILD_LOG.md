@@ -3969,3 +3969,101 @@ Online: API provides the list so this went unnoticed. Offline: API fails → fal
 
 **Commit:** `8e0160aa9`  |  **Tag:** v2.7.6-pre
 **CI:** ✅ run 23697679345
+
+---
+
+## Entry 123 — amazon-integration Phase 1 — Amazon auth skeleton (2026-03-29)
+
+**Root cause / motivation:** Begin Amazon Games integration on the `amazon-integration` branch. Phase 1 establishes the auth layer: PKCE device registration, credential persistence, and the entry-point Activity reachable via side menu.
+
+**What was added:**
+- `AmazonPKCEGenerator`: device serial (UUID hex uppercase), clientId (hex UTF-8 of `serial#A2UMVHOX7UP4V7`), code verifier (32 SecureRandom bytes Base64 URL_SAFE/NO_PAD/NO_WRAP), code challenge (SHA-256 S256, same Base64), sha256Upper (uppercase hex for hardwareHash)
+- `AmazonCredentialStore`: JSON file at `filesDir/amazon/credentials.json`; fields: access_token, refresh_token, device_serial, client_id, expires_at (epoch ms); getValidAccessToken() auto-refreshes 5min before expiry
+- `AmazonAuthClient`: POST https://api.amazon.com/auth/register (PKCE exchange, parses `response.success.tokens.bearer`), POST https://api.amazon.com/auth/token (refresh, reuses old refresh_token), POST https://api.amazon.com/auth/deregister (non-fatal logout)
+- `AmazonLoginActivity`: WebView loads Amazon sign-in with code_challenge; intercepts redirect to `https://www.amazon.com/?openid.assoc_handle=amzn_sonic_games_launcher`; AtomicBoolean prevents double-fire; background Thread calls registerDevice; saves creds + finish()
+- `AmazonMainActivity`: entry point (side menu ID=11/0xb); login card (Amazon orange #FF9900) / logged-in card; sign out deregisters + clears; opens AmazonGamesActivity
+- `AmazonGamesActivity`: stub placeholder (Phase 2 replaces with library list)
+- `HomeLeftMenuDialog.smali`: `:pswitch_11` → AmazonMainActivity; Amazon menu item ID=0xb; packed-switch extended with `:pswitch_11`
+- `AndroidManifest.xml`: AmazonMainActivity, AmazonLoginActivity, AmazonGamesActivity registered
+
+**Files changed:**
+- `extension/AmazonPKCEGenerator.java` (new)
+- `extension/AmazonCredentialStore.java` (new)
+- `extension/AmazonAuthClient.java` (new)
+- `extension/AmazonLoginActivity.java` (new)
+- `extension/AmazonMainActivity.java` (new)
+- `extension/AmazonGamesActivity.java` (new, stub)
+- `patches/smali_classes5/com/xj/landscape/launcher/ui/menu/HomeLeftMenuDialog.smali`
+- `patches/AndroidManifest.xml`
+
+**Methods changed:**
+- `HomeLeftMenuDialog` pswitch handler: added `:pswitch_11` block
+- `HomeLeftMenuDialog` menu builder: added Amazon menu item (id=0xb)
+- `HomeLeftMenuDialog` packed-switch: extended from 0xa to 0xb
+
+**Commit:** (pending)  |  **Branch:** amazon-integration
+**CI:** pending first build
+
+---
+
+## Entry 124 — amazon-integration Phase 2 — Library sync + game cards (2026-03-29)
+
+**Root cause / motivation:** Phase 2 implements the library sync (GetEntitlements API) and the game list UI. Users can now log in and see their Amazon library.
+
+**What was added:**
+- `AmazonGame`: POJO data class; shortId() strips "amzn1.adg.product." prefix for display
+- `AmazonApiClient`: POST GetEntitlements (paginated, dedup by productId, hardwareHash = sha256Upper(serial)); POST GetGameDownload (uses entitlementId); POST GetLiveVersionIds; GET SDK channel spec; appendPath helper (splits at '?' to preserve query params); postGaming adds X-Amz-Target + x-amzn-token + Content-Encoding: amz-1.0; getBytes for manifest.proto download
+- `AmazonGamesActivity` (full): header with back/refresh buttons; indeterminate ProgressBar; ScrollView with collapsible cards; top row: 60×60 cover art (async HTTP load) + title/developer/installed indicator + expand arrow; expand section: publisher, product ID, Install/Launch stubs; SharedPreferences cache (bh_amazon_prefs, amazon_library_cache); install state preserved from cache on re-sync; token auto-refresh via AmazonCredentialStore.getValidAccessToken()
+
+**Files changed:**
+- `extension/AmazonGame.java` (new)
+- `extension/AmazonApiClient.java` (new)
+- `extension/AmazonGamesActivity.java` (replaced Phase 1 stub)
+
+**Commit:** (pending)  |  **Branch:** amazon-integration
+**CI:** pending
+
+---
+
+## Entry 125 — amazon-integration Phase 3 — Manifest parser + download pipeline (2026-03-29)
+
+**Root cause / motivation:** Phase 3 implements the actual game download: protobuf manifest parsing and parallel file-by-hash download.
+
+**What was added:**
+- `AmazonManifest`: parse binary format (4-byte big-endian headerSize, ManifestHeader protobuf for compression, LZMA/XZ body); minimal ProtoReader (varint/length-delimited/skip); XZInputStream detection via 0xFD 0x37 magic; ManifestFile.hashHex() uses `b & 0xFF` for correct unsigned encoding; ManifestFile.unixPath() converts backslashes; ParsedManifest computes allFiles + totalInstallSize
+- `AmazonDownloadManager`: ExecutorService(6) batches; downloadFileWithRetry (3 attempts, exponential backoff); resume check destFile.length()==file.size; file URL = appendPath(baseUrl, "files/"+hashHex); User-Agent "nile/0.1 Amazon"; SHA-256 verify (Arrays.equals); write to .tmp then rename; progress AtomicLong + lastEmit compareAndSet (emit every 512KB); cancellation checked between batches + in read loop; IN_PROGRESS_MARKER at start / COMPLETE_MARKER on success; manifest cached at filesDir/manifests/amazon/
+- `AmazonGamesActivity` updated: Install → startInstall() → background thread; progress on button text; install state + installPath persisted to bh_amazon_prefs cache; Uninstall → confirmUninstall() → AlertDialog → deleteDir recursive; showGames() refreshes cards after install/uninstall
+
+**Files changed:**
+- `extension/AmazonManifest.java` (new)
+- `extension/AmazonDownloadManager.java` (new)
+- `extension/AmazonGamesActivity.java` (install/uninstall wired up)
+
+**Commit:** (pending)  |  **Branch:** amazon-integration
+**CI:** pending
+
+---
+
+## Entry 126 — amazon-integration Phase 4+5+6 — Launch, SDK, Polish (2026-03-29)
+
+**Phase 4 — Launch:**
+- `AmazonLaunchHelper`: fuel.json parser (Main.Command, WorkingSubdirOverride, Args from JSONArray); exe scoring heuristic (Java port of ExecutableSelectionUtils.kt — UE shipping +300, UE Binaries/ +250, root-level +200, name fuzzy match +100, negative keywords -150, generic -200, tiebreak by size); `buildFuelEnv()` 5 FuelPump env vars (FUEL_DIR, AMAZON_GAMES_SDK_PATH, AMAZON_GAMES_FUEL_ENTITLEMENT_ID, AMAZON_GAMES_FUEL_PRODUCT_SKU, AMAZON_GAMES_FUEL_DISPLAY_NAME=Player)
+- `LandscapeLauncherMainActivity.smali`: Amazon pending launch check mirroring GOG pattern — reads `pending_amazon_exe` from `bh_amazon_prefs` → calls `B3(exePath)` → clears pref
+- `AmazonGamesActivity`: Launch button → `launchGame()` → background thread → `ensureSdkFiles()` → `buildLaunchSpec()` → stores `pending_amazon_exe` → finish()
+
+**Phase 5 — SDK:**
+- `AmazonSdkManager`: GET SDK channel spec (LAUNCHER_CHANNEL_ID); manifest.proto pipeline (same as game); filter `"Amazon Games Services"` files, skip `._*` macOS forks; `FuelSDK_x64.dll` → `Legacy/`; `AmazonGamesSDK_*` → `AmazonGamesSDK/`; cache at `filesDir/amazon_sdk/` + `.sdk_version` sentinel; `isSdkCached()` = VERSION_FILE exists + hasAnyFile in Amazon Games Services/; `deploySdkToPrefix()` idempotent copy (skip if dest exists + size matches); `ensureSdkFiles()` called from install AND launch
+
+**Phase 6 — Polish:**
+- Update check: `checkForUpdates()` in sync thread — `GetLiveVersionIds` per installed game; if `liveVersion != versionId` → marks `versionId += "_UPDATE_AVAILABLE"` → card shows "✓ Installed — Update Available" in orange
+- Launch: `ensureSdkFiles()` called in background thread before building launch spec
+- Uninstall: confirmation dialog + recursive deleteDir + bh_amazon_prefs cache update (Phase 3, now confirmed complete)
+
+**Files changed:**
+- `extension/AmazonLaunchHelper.java` (Phase 4, new)
+- `patches/smali_classes11/.../LandscapeLauncherMainActivity.smali` (Phase 4)
+- `extension/AmazonSdkManager.java` (Phase 5, new)
+- `extension/AmazonGamesActivity.java` (all phases — install/launch/uninstall/update-check)
+
+**Commits:** Phase 4 `edc4fbeca`, Phase 5 `024d6f199`  |  **Branch:** amazon-integration
+**CI Phase 4:** ✅ run 23707604129  |  **CI Phase 5:** ✅ run 23707686644

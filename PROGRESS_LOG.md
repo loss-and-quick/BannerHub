@@ -4,6 +4,15 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [ci] — amazon-integration branch — artifact-only workflow added (2026-03-29)
+**Branch:** `amazon-integration`  |  **Commit:** `aa7413f35`
+**CI:** run 23705798906 (in progress)
+**What changed:** Added build-amazon.yml — triggers on push to amazon-integration; builds BannerHub-amazon-{SHA}.apk; uploads as Actions artifact (30-day retention); no release created.
+#### Files touched
+- `.github/workflows/build-amazon.yml`
+
+---
+
 ## [fix] — v2.7.6-pre — offline component picker fix (2026-03-29)
 **Branch:** `main`  |  **Tag:** v2.7.6-pre
 **Commit:** `8e0160aa9`  |  **CI:** ✅ run 23697679345 (Quick — Normal only)
@@ -2625,3 +2634,78 @@ ART 14 blocks cross-dex private field access. `DialogSettingListItemEntity` is i
 - All isExternalAPI() call sites unchanged
 #### Files touched
 - `patches/smali_classes6/app/revanced/extension/gamehub/prefs/GameHubPrefs.smali`
+
+### [feat] — amazon-integration branch — Phase 1: Amazon auth skeleton (2026-03-29)
+**Commit:** (pending)  |  **Branch:** amazon-integration
+#### What changed
+- Amazon Games integration Phase 1: PKCE auth flow, credential storage, WebView login, main entry point
+- AmazonPKCEGenerator.java: device serial (UUID), clientId (hex of serial#DEVICE_TYPE), code verifier (32 random bytes), code challenge (SHA-256 S256), sha256Upper for hardwareHash
+- AmazonCredentialStore.java: persist credentials to filesDir/amazon/credentials.json, load/save/clear, isLoggedIn(), getValidAccessToken() with auto-refresh 5min before expiry
+- AmazonAuthClient.java: registerDevice (PKCE exchange → bearer tokens), refreshAccessToken (reuses refresh token), deregisterDevice (non-fatal), postJson/getRequest helpers
+- AmazonLoginActivity.java: PKCE WebView login, 3-hook redirect capture (shouldOverrideUrlLoading×2 + onPageStarted), AtomicBoolean double-fire guard, background thread for registerDevice, saves credentials on success
+- AmazonMainActivity.java: entry point (ID=11), login card / logged-in card toggle, sign out (deregister + clear), launches AmazonGamesActivity
+- AmazonGamesActivity.java: Phase 1 stub (placeholder screen)
+- HomeLeftMenuDialog.smali: added pswitch_11 (AmazonMainActivity), Amazon menu item ID=0xb, extended packed-switch to include :pswitch_11
+- AndroidManifest.xml: registered AmazonMainActivity, AmazonLoginActivity, AmazonGamesActivity
+#### Files touched
+- `extension/AmazonPKCEGenerator.java` (new)
+- `extension/AmazonCredentialStore.java` (new)
+- `extension/AmazonAuthClient.java` (new)
+- `extension/AmazonLoginActivity.java` (new)
+- `extension/AmazonMainActivity.java` (new)
+- `extension/AmazonGamesActivity.java` (new)
+- `patches/smali_classes5/.../HomeLeftMenuDialog.smali`
+- `patches/AndroidManifest.xml`
+**Commit:** `75c8ede78`  |  **CI:** ✅ run 23707207001 — artifact: BannerHub-amazon-75c8ede
+
+### [feat] — amazon-integration branch — Phase 2: Library sync + game cards (2026-03-29)
+**Commit:** (pending)  |  **Branch:** amazon-integration
+#### What changed
+- AmazonGame.java: data class (productId, entitlementId, title, artUrl, heroUrl, developer, publisher, productSku, isInstalled, installPath, versionId, downloadSize, installSize)
+- AmazonApiClient.java: GetEntitlements (paginated, dedup by productId), GetGameDownload, GetLiveVersionIds, getSdkChannelSpec, appendPath helper, postGaming (amz-1.0 headers), getBytes
+- AmazonGamesActivity.java (full): library list with collapsible cards, cover art async load, cache in bh_amazon_prefs SP, Install/Launch stubs, token auto-refresh
+#### Files touched
+- `extension/AmazonGame.java` (new)
+- `extension/AmazonApiClient.java` (new)
+- `extension/AmazonGamesActivity.java` (replaced stub with full impl)
+
+### [feat] — amazon-integration branch — Phase 3: Manifest parser + download pipeline (2026-03-29)
+**Commit:** (pending)  |  **Branch:** amazon-integration
+#### What changed
+- AmazonManifest.java: binary protobuf manifest parser (4-byte big-endian headerSize + ManifestHeader + LZMA/XZ body); minimal ProtoReader varint decoder; extracts packages/files/hashes; uses org.tukaani.xz (XZInputStream + LZMAInputStream)
+- AmazonDownloadManager.java: 6-parallel file downloads with 3-retry backoff (1s/2s/4s); SHA-256 verify; resume support (skip file if destFile.length()==file.size); progress callback every 512KB; cancellation check per batch + in read loop; IN_PROGRESS/COMPLETE markers; manifest cache at filesDir/manifests/amazon/
+- AmazonGamesActivity.java: Install button wired to real AmazonDownloadManager.install(); progress shown on button ("Installing… N%"); Uninstall with confirmation dialog + recursive delete; install state persisted to bh_amazon_prefs cache
+#### Files touched
+- `extension/AmazonManifest.java` (new)
+- `extension/AmazonDownloadManager.java` (new)
+- `extension/AmazonGamesActivity.java` (install + uninstall wired)
+
+### [feat] — amazon-integration branch — Phase 4: Launch pipeline (2026-03-29)
+**Commit:** (pending)  |  **Branch:** amazon-integration
+#### What changed
+- AmazonLaunchHelper.java: fuel.json parser (Main.Command/WorkingSubdirOverride/Args), exe scoring heuristic (Java port of ExecutableSelectionUtils.kt: UE shipping +300, UE Binaries/ +250, root-level +200, name match +100, negative keywords -150, generic -200, tiebreak by file size), build "winhandler.exe \"A:\\path.exe\" [args]" command, buildFuelEnv() 5 env vars
+- LandscapeLauncherMainActivity.smali: Amazon pending launch check mirrors GOG pattern; reads pending_amazon_exe from bh_amazon_prefs → calls B3(exePath)
+- AmazonGamesActivity.java: Launch button wired to launchGame() → AmazonLaunchHelper.buildLaunchSpec() → stores pending_amazon_exe → finish()
+#### Files touched
+- `extension/AmazonLaunchHelper.java` (new)
+- `patches/smali_classes11/.../LandscapeLauncherMainActivity.smali`
+- `extension/AmazonGamesActivity.java` (Launch wired)
+
+### [feat] — amazon-integration branch — Phase 5: SDK DLL manager (2026-03-29)
+**Commit:** (pending)  |  **Branch:** amazon-integration
+#### What changed
+- AmazonSdkManager.java: GET SDK channel spec → downloadUrl; parse manifest.proto (same pipeline as game); filter "Amazon Games Services" files; FuelSDK_x64.dll → Legacy/; AmazonGamesSDK_* → AmazonGamesSDK/; cache at filesDir/amazon_sdk/ + .sdk_version sentinel; deploySdkToPrefix() idempotent copy to Wine prefix ProgramData; isSdkCached() checks VERSION_FILE + hasAnyFile in Amazon Games Services/
+- AmazonGamesActivity.java: call ensureSdkFiles() after successful game install
+#### Files touched
+- `extension/AmazonSdkManager.java` (new)
+- `extension/AmazonGamesActivity.java` (ensureSdkFiles after install)
+
+### [feat] — amazon-integration branch — Phase 6: Polish + update check (2026-03-29)
+**Commit:** (pending)  |  **Branch:** amazon-integration
+#### What changed
+- checkForUpdates(): GetLiveVersionIds per installed game in sync thread; marks versionId+_UPDATE_AVAILABLE; card shows "Update Available" in orange
+- launchGame(): now runs on background thread, calls ensureSdkFiles before building launch spec
+- Update Available indicator on installed game cards
+#### Files touched
+- `extension/AmazonGamesActivity.java`
+- `COMPONENT_MANAGER_BUILD_LOG.md`
