@@ -768,6 +768,15 @@
     :try_start
     invoke-static {}, Lcom/xj/winemu/EmuComponents;->e()Lcom/xj/winemu/EmuComponents;
     move-result-object v0
+    if-nez v0, :have_emu
+    # EmuComponents not yet initialized (WinEmuServiceImpl hasn't run) — init lazily
+    invoke-static {}, Lcom/blankj/utilcode/util/Utils;->a()Landroid/app/Application;
+    move-result-object v7
+    sget-object v8, Lcom/xj/winemu/EmuComponents;->c:Lcom/xj/winemu/EmuComponents$Companion;
+    invoke-virtual {v8, v7}, Lcom/xj/winemu/EmuComponents$Companion;->b(Landroid/content/Context;)V
+    invoke-static {}, Lcom/xj/winemu/EmuComponents;->e()Lcom/xj/winemu/EmuComponents;
+    move-result-object v0
+    :have_emu
     if-eqz v0, :done
 
     iget-object v1, v0, Lcom/xj/winemu/EmuComponents;->a:Ljava/util/HashMap;
