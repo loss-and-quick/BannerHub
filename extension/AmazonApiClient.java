@@ -108,7 +108,7 @@ public class AmazonApiClient {
                 dbg("  POST body=" + body.toString());
 
                 String resp = postGaming(ENTITLEMENTS_URL,
-                        "com.amazonaws.agslauncher.AnimusEntitlementsService.GetEntitlements",
+                        "com.amazon.animusdistributionservice.entitlement.AnimusEntitlementsService.GetEntitlements",
                         accessToken, body.toString());
                 dbg("  resp null=" + (resp == null)
                         + " len=" + (resp != null ? resp.length() : 0));
@@ -220,7 +220,7 @@ public class AmazonApiClient {
             body.put("Operation", "GetGameDownload");
 
             String resp = postGaming(DISTRIBUTION_URL,
-                    "com.amazonaws.agslauncher.AnimusDistributionService.GetGameDownload",
+                    "com.amazon.animusdistributionservice.external.AnimusDistributionService.GetGameDownload",
                     accessToken, body.toString());
             if (resp == null) return null;
 
@@ -252,7 +252,7 @@ public class AmazonApiClient {
             body.put("Operation", "GetLiveVersionIds");
 
             String resp = postGaming(DISTRIBUTION_URL,
-                    "com.amazonaws.agslauncher.AnimusDistributionService.GetLiveVersionIds",
+                    "com.amazon.animusdistributionservice.external.AnimusDistributionService.GetLiveVersionIds",
                     accessToken, body.toString());
             if (resp == null) return null;
 
