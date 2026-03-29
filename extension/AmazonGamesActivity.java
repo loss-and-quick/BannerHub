@@ -24,6 +24,8 @@ import android.widget.Toast;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
@@ -139,8 +141,24 @@ public class AmazonGamesActivity extends Activity {
 
     // ── Library sync ──────────────────────────────────────────────────────────
 
+    private void clearDebugFile() {
+        try {
+            File ext = getExternalFilesDir(null);
+            if (ext == null) ext = getFilesDir();
+            File f = new File(ext, "bh_amazon_debug.txt");
+            try (FileWriter fw = new FileWriter(f, false)) {
+                fw.write("=== BannerHub Amazon Debug ===\n");
+                fw.write("timestamp=" + System.currentTimeMillis() + "\n");
+            }
+        } catch (Exception ignored) {}
+    }
+
     private void startSync(boolean forceRefresh) {
         if (!forceRefresh) return;
+
+        // Enable debug output to bh_amazon_debug.txt
+        clearDebugFile();
+        AmazonApiClient.sDebugCtx = this;
 
         uiHandler.post(() -> {
             setSyncText("Fetching Amazon library…");
@@ -148,8 +166,31 @@ public class AmazonGamesActivity extends Activity {
         });
 
         new Thread(() -> {
+            AmazonApiClient.dbg("startSync thread started");
+
+            // Check credentials file existence
+            java.io.File credsFile = new java.io.File(
+                    new java.io.File(getFilesDir(), "amazon"), "credentials.json");
+            AmazonApiClient.dbg("credentials file path=" + credsFile.getAbsolutePath());
+            AmazonApiClient.dbg("credentials file exists=" + credsFile.exists()
+                    + " size=" + (credsFile.exists() ? credsFile.length() : 0));
+
             AmazonCredentialStore.Credentials creds = AmazonCredentialStore.load(AmazonGamesActivity.this);
+            AmazonApiClient.dbg("creds loaded: null=" + (creds == null));
+            if (creds != null) {
+                AmazonApiClient.dbg("  creds.accessToken null=" + (creds.accessToken == null)
+                        + " len=" + (creds.accessToken != null ? creds.accessToken.length() : 0));
+                AmazonApiClient.dbg("  creds.refreshToken null=" + (creds.refreshToken == null)
+                        + " len=" + (creds.refreshToken != null ? creds.refreshToken.length() : 0));
+                AmazonApiClient.dbg("  creds.deviceSerial=" + creds.deviceSerial);
+                AmazonApiClient.dbg("  creds.clientId len=" + (creds.clientId != null ? creds.clientId.length() : 0));
+                AmazonApiClient.dbg("  creds.expiresAt=" + creds.expiresAt
+                        + " now=" + System.currentTimeMillis()
+                        + " expired=" + (creds.expiresAt > 0 && System.currentTimeMillis() > creds.expiresAt));
+            }
+
             if (creds == null || creds.accessToken == null) {
+                AmazonApiClient.dbg("ABORT: not logged in");
                 uiHandler.post(() -> {
                     loadingBar.setVisibility(View.GONE);
                     setSyncText("Not logged in");
@@ -161,8 +202,12 @@ public class AmazonGamesActivity extends Activity {
             }
 
             // Auto-refresh token if near expiry
+            AmazonApiClient.dbg("calling getValidAccessToken...");
             String token = AmazonCredentialStore.getValidAccessToken(AmazonGamesActivity.this);
+            AmazonApiClient.dbg("token null=" + (token == null)
+                    + " len=" + (token != null ? token.length() : 0));
             if (token == null) {
+                AmazonApiClient.dbg("ABORT: token refresh failed");
                 uiHandler.post(() -> {
                     loadingBar.setVisibility(View.GONE);
                     setSyncText("Token refresh failed");
@@ -171,7 +216,9 @@ public class AmazonGamesActivity extends Activity {
             }
 
             Log.d(TAG, "Fetching Amazon entitlements...");
+            AmazonApiClient.dbg("calling getEntitlements deviceSerial=" + creds.deviceSerial);
             List<AmazonGame> games = AmazonApiClient.getEntitlements(token, creds.deviceSerial);
+            AmazonApiClient.dbg("getEntitlements returned " + (games != null ? games.size() : "null") + " games");
 
             if (games == null || games.isEmpty()) {
                 uiHandler.post(() -> {

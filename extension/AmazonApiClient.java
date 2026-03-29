@@ -1,11 +1,14 @@
 package app.revanced.extension.gamehub;
 
+import android.content.Context;
 import android.util.Log;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -32,6 +35,22 @@ public class AmazonApiClient {
 
     private static final String TAG = "BH_AMAZON";
 
+    /** Set this before calling getEntitlements() to enable debug file output. */
+    public static Context sDebugCtx;
+
+    public static synchronized void dbg(String msg) {
+        Log.d(TAG, "[DBG] " + msg);
+        if (sDebugCtx == null) return;
+        try {
+            File ext = sDebugCtx.getExternalFilesDir(null);
+            if (ext == null) ext = sDebugCtx.getFilesDir();
+            File f = new File(ext, "bh_amazon_debug.txt");
+            try (FileWriter fw = new FileWriter(f, true)) {
+                fw.write("[" + System.currentTimeMillis() + "] " + msg + "\n");
+            }
+        } catch (Exception ignored) {}
+    }
+
     private static final String ENTITLEMENTS_URL =
             "https://gaming.amazon.com/api/distribution/entitlements";
     private static final String DISTRIBUTION_URL =
@@ -53,9 +72,28 @@ public class AmazonApiClient {
     public static List<AmazonGame> getEntitlements(String accessToken, String deviceSerial) {
         Map<String, AmazonGame> seen = new HashMap<>();
         String nextToken = null;
-        String hardwareHash = AmazonPKCEGenerator.sha256Upper(deviceSerial);
 
+        dbg("getEntitlements called");
+        dbg("  deviceSerial null=" + (deviceSerial == null)
+                + " empty=" + (deviceSerial != null && deviceSerial.isEmpty())
+                + " len=" + (deviceSerial != null ? deviceSerial.length() : 0)
+                + " val=" + (deviceSerial != null ? deviceSerial : "NULL"));
+        dbg("  accessToken null=" + (accessToken == null)
+                + " len=" + (accessToken != null ? accessToken.length() : 0));
+
+        String hardwareHash;
+        try {
+            hardwareHash = AmazonPKCEGenerator.sha256Upper(deviceSerial);
+            dbg("  hardwareHash=" + hardwareHash);
+        } catch (Exception ex) {
+            dbg("  hardwareHash computation FAILED: " + ex);
+            return new ArrayList<>();
+        }
+
+        int page = 0;
         do {
+            page++;
+            dbg("  page=" + page + " nextToken=" + nextToken);
             try {
                 JSONObject body = new JSONObject();
                 body.put("Operation",       "GetEntitlements");
@@ -67,32 +105,66 @@ public class AmazonApiClient {
                 body.put("keyId",           KEY_ID);
                 body.put("hardwareHash",    hardwareHash);
 
+                dbg("  POST body=" + body.toString());
+
                 String resp = postGaming(ENTITLEMENTS_URL,
                         "com.amazonaws.agslauncher.AnimusEntitlementsService.GetEntitlements",
                         accessToken, body.toString());
-                if (resp == null) break;
+                dbg("  resp null=" + (resp == null)
+                        + " len=" + (resp != null ? resp.length() : 0));
+                if (resp != null) {
+                    // Dump first 3000 chars of response
+                    dbg("  RESP=" + resp.substring(0, Math.min(resp.length(), 3000)));
+                }
+                if (resp == null) {
+                    dbg("  ABORT: null response");
+                    break;
+                }
 
                 JSONObject json = new JSONObject(resp);
+                // Log all top-level keys to see actual structure
+                java.util.Iterator<String> keys = json.keys();
+                StringBuilder keyList = new StringBuilder("  json keys:");
+                while (keys.hasNext()) keyList.append(" ").append(keys.next());
+                dbg(keyList.toString());
+
                 JSONArray entitlements = json.optJSONArray("entitlements");
-                if (entitlements == null) break;
+                dbg("  entitlements array null=" + (entitlements == null)
+                        + (entitlements != null ? " len=" + entitlements.length() : ""));
+
+                if (entitlements == null) {
+                    // Try alternate field names the real API might use
+                    JSONArray alt1 = json.optJSONArray("Entitlements");
+                    JSONArray alt2 = json.optJSONArray("items");
+                    JSONArray alt3 = json.optJSONArray("products");
+                    dbg("  alt Entitlements=" + alt1 + " items=" + alt2 + " products=" + alt3);
+                    break;
+                }
 
                 for (int i = 0; i < entitlements.length(); i++) {
                     JSONObject e = entitlements.getJSONObject(i);
+                    if (i == 0) dbg("  first entitlement keys: " + e.toString().substring(0, Math.min(e.toString().length(), 500)));
                     AmazonGame game = parseEntitlement(e);
                     if (game != null && !game.productId.isEmpty()) {
+                        dbg("  parsed game: " + game.title + " pid=" + game.productId);
                         seen.put(game.productId, game);
+                    } else {
+                        dbg("  parseEntitlement returned null or empty productId for index=" + i);
                     }
                 }
 
                 nextToken = json.optString("nextToken", null);
                 if (nextToken != null && nextToken.isEmpty()) nextToken = null;
+                dbg("  after page=" + page + " seen=" + seen.size() + " nextToken=" + nextToken);
 
             } catch (Exception ex) {
                 Log.e(TAG, "getEntitlements page failed", ex);
+                dbg("  EXCEPTION on page=" + page + ": " + ex);
                 break;
             }
         } while (nextToken != null);
 
+        dbg("getEntitlements done: total=" + seen.size() + " game(s)");
         return new ArrayList<>(seen.values());
     }
 
@@ -252,8 +324,11 @@ public class AmazonApiClient {
             String resp = readStream(is);
             conn.disconnect();
 
+            dbg("postGaming HTTP " + code + " url=" + urlStr
+                    + " respLen=" + resp.length());
             if (code < 200 || code >= 300) {
                 Log.e(TAG, "HTTP " + code + " from " + urlStr + ": " + resp);
+                dbg("postGaming ERROR body=" + resp.substring(0, Math.min(resp.length(), 1000)));
                 return null;
             }
             return resp;
