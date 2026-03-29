@@ -372,9 +372,7 @@ public class AmazonGamesActivity extends Activity {
             launchBtn.setBackgroundColor(0xFFFF9900);
             launchBtn.setTextColor(0xFF000000);
             launchBtn.setTextSize(13f);
-            launchBtn.setOnClickListener(v ->
-                    Toast.makeText(this,
-                            "Launch coming in Phase 4: " + game.title, Toast.LENGTH_SHORT).show());
+            launchBtn.setOnClickListener(v -> launchGame(game));
             btnRow.addView(launchBtn, new LinearLayout.LayoutParams(-2, dp(40)));
 
             // Uninstall button
@@ -451,6 +449,34 @@ public class AmazonGamesActivity extends Activity {
                 });
             }
         }).start();
+    }
+
+    private void launchGame(AmazonGame game) {
+        if (!game.isInstalled || game.installPath.isEmpty()) {
+            Toast.makeText(this, "Game not installed", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        AmazonLaunchHelper.LaunchSpec spec = AmazonLaunchHelper.buildLaunchSpec(
+                game.installPath, game.title, "");
+        if (spec == null) {
+            Toast.makeText(this, "Could not find exe for: " + game.title, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Store fuel env vars in prefs so the smali launch hook can read them
+        getSharedPreferences("bh_amazon_prefs", 0).edit()
+                .putString("pending_fuel_env_" + game.productId,
+                        android.text.TextUtils.join("|",
+                                AmazonLaunchHelper.buildFuelEnv(game)))
+                .apply();
+
+        // Trigger B3 via the same pending-exe mechanism as GOG
+        getSharedPreferences("bh_amazon_prefs", 0).edit()
+                .putString("pending_amazon_exe", spec.command)
+                .apply();
+
+        finish(); // return to LandscapeLauncherMainActivity → onResume picks up pending_amazon_exe
     }
 
     private void confirmUninstall(AmazonGame game) {

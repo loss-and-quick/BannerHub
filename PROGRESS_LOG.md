@@ -2679,3 +2679,14 @@ ART 14 blocks cross-dex private field access. `DialogSettingListItemEntity` is i
 - `extension/AmazonManifest.java` (new)
 - `extension/AmazonDownloadManager.java` (new)
 - `extension/AmazonGamesActivity.java` (install + uninstall wired)
+
+### [feat] — amazon-integration branch — Phase 4: Launch pipeline (2026-03-29)
+**Commit:** (pending)  |  **Branch:** amazon-integration
+#### What changed
+- AmazonLaunchHelper.java: fuel.json parser (Main.Command/WorkingSubdirOverride/Args), exe scoring heuristic (Java port of ExecutableSelectionUtils.kt: UE shipping +300, UE Binaries/ +250, root-level +200, name match +100, negative keywords -150, generic -200, tiebreak by file size), build "winhandler.exe \"A:\\path.exe\" [args]" command, buildFuelEnv() 5 env vars
+- LandscapeLauncherMainActivity.smali: Amazon pending launch check mirrors GOG pattern; reads pending_amazon_exe from bh_amazon_prefs → calls B3(exePath)
+- AmazonGamesActivity.java: Launch button wired to launchGame() → AmazonLaunchHelper.buildLaunchSpec() → stores pending_amazon_exe → finish()
+#### Files touched
+- `extension/AmazonLaunchHelper.java` (new)
+- `patches/smali_classes11/.../LandscapeLauncherMainActivity.smali`
+- `extension/AmazonGamesActivity.java` (Launch wired)
