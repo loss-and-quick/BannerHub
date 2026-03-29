@@ -197,7 +197,7 @@ public class AmazonLaunchHelper {
         return false;
     }
 
-    private static int scoreExe(File f, String gameNameLower) {
+    static int scoreExe(File f, String gameNameLower) {
         int score = 50; // base
         String path = f.getAbsolutePath().replace('\\', '/').toLowerCase();
         if (UE_SHIPPING.matcher(path).matches())        score += 300;
@@ -242,7 +242,7 @@ public class AmazonLaunchHelper {
         return best;
     }
 
-    private static void collectExe(File dir, List<File> out) {
+    static void collectExe(File dir, List<File> out) {
         File[] entries = dir.listFiles();
         if (entries == null) return;
         for (File f : entries) {

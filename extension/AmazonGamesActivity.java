@@ -530,39 +530,66 @@ public class AmazonGamesActivity extends Activity {
             return;
         }
 
+        // Scan install dir for executables on a background thread (may be many files)
         new Thread(() -> {
-            String token = AmazonCredentialStore.getValidAccessToken(this);
-            if (token == null) {
-                uiHandler.post(() -> Toast.makeText(this, "Login required", Toast.LENGTH_SHORT).show());
-                return;
-            }
+            File installDir = new File(game.installPath);
+            List<File> exeFiles = new ArrayList<>();
+            AmazonLaunchHelper.collectExe(installDir, exeFiles);
 
-            // Ensure SDK DLLs are cached before launch (idempotent)
-            AmazonSdkManager.ensureSdkFiles(this, token);
-
-            AmazonLaunchHelper.LaunchSpec spec = AmazonLaunchHelper.buildLaunchSpec(
-                    game.installPath, game.title, "");
-            if (spec == null) {
+            if (exeFiles.isEmpty()) {
                 uiHandler.post(() -> Toast.makeText(this,
-                        "Could not find exe for: " + game.title, Toast.LENGTH_SHORT).show());
+                        "No executable found in install directory", Toast.LENGTH_LONG).show());
                 return;
             }
 
-            // Store fuel env vars in prefs for future reference
-            getSharedPreferences("bh_amazon_prefs", 0).edit()
-                    .putString("pending_fuel_env_" + game.productId,
-                            android.text.TextUtils.join("|",
-                                    AmazonLaunchHelper.buildFuelEnv(game)))
-                    .apply();
+            // Sort by score descending so the best candidate is first in the picker
+            final String lowerTitle = game.title.toLowerCase();
+            Collections.sort(exeFiles, (a, b) ->
+                    AmazonLaunchHelper.scoreExe(b, lowerTitle)
+                    - AmazonLaunchHelper.scoreExe(a, lowerTitle));
 
-            // Trigger B3 via the same pending-exe mechanism as GOG
-            getSharedPreferences("bh_amazon_prefs", 0).edit()
-                    .putString("pending_amazon_exe", spec.command)
-                    .apply();
+            if (exeFiles.size() == 1) {
+                uiHandler.post(() -> pendingLaunchExe(exeFiles.get(0).getAbsolutePath()));
+                return;
+            }
 
-            // finishAffinity closes GamesActivity + MainActivity so LandscapeLauncherMainActivity.onResume fires
-            uiHandler.post(() -> finishAffinity());
+            // Multiple exes — show picker on UI thread
+            String base = game.installPath.endsWith("/")
+                    ? game.installPath : game.installPath + "/";
+            String[] labels = new String[exeFiles.size()];
+            for (int i = 0; i < exeFiles.size(); i++) {
+                String abs = exeFiles.get(i).getAbsolutePath();
+                labels[i] = abs.startsWith(base) ? abs.substring(base.length()) : abs;
+            }
+
+            final List<File> finalList = exeFiles;
+            uiHandler.post(() ->
+                new android.app.AlertDialog.Builder(this)
+                    .setTitle("Select executable")
+                    .setItems(labels, (d, which) ->
+                        pendingLaunchExe(finalList.get(which).getAbsolutePath()))
+                    .setNegativeButton("Cancel", null)
+                    .show()
+            );
         }).start();
+    }
+
+    /**
+     * Stores the absolute Linux path as pending_amazon_exe then navigates back to
+     * LandscapeLauncherMainActivity using FLAG_ACTIVITY_CLEAR_TOP so onResume() fires
+     * on the existing instance (same as how GOG launch works).
+     */
+    private void pendingLaunchExe(String absPath) {
+        getSharedPreferences("bh_amazon_prefs", 0).edit()
+                .putString("pending_amazon_exe", absPath)
+                .apply();
+        // Bring LandscapeLauncherMainActivity back to front; clears Amazon activities from stack
+        android.content.Intent intent = new android.content.Intent();
+        intent.setClassName(getPackageName(),
+                "com.xj.landscape.launcher.ui.main.LandscapeLauncherMainActivity");
+        intent.addFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP
+                | android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        startActivity(intent);
     }
 
     private void confirmUninstall(AmazonGame game) {
