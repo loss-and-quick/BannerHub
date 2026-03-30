@@ -86,10 +86,7 @@ public class AmazonLoginActivity extends Activity {
     // ── Redirect detection ────────────────────────────────────────────────────
 
     static boolean isAmazonRedirect(String url) {
-        return (url.startsWith("https://www.amazon.com/")
-             || url.startsWith("https://amazon.com/")
-             || url.startsWith("https://gaming.amazon.com/"))
-            && url.contains("openid.assoc_handle=amzn_sonic_games_launcher");
+        return url.contains("openid.oa2.authorization_code=");
     }
 
     private static String extractAuthCode(String url) {
