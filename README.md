@@ -1,6 +1,6 @@
 # BannerHub
 
-**GameHub 5.3.5 ReVanced** — extended with a full Component Manager, in-app component downloader, GOG Games library (side menu), in-game performance toggles, RTS touch controls, VRAM unlock, per-game CPU core affinity, root access management, offline Steam launch, and more. Built entirely with apktool smali patching — no source code, no external library injection.
+**GameHub 5.3.5 ReVanced** — extended with GOG Games, Amazon Games, and Epic Games Store library tabs, a full Component Manager, in-app component downloader, Winlator HUD overlay, in-game performance toggles, RTS touch controls, VRAM unlock, per-game CPU core affinity, root access management, offline Steam launch, Japanese locale, and more. Built entirely with apktool smali patching — no source code, no external library injection.
 
 ## AI Disclaimer
 
@@ -28,6 +28,7 @@ Before any stable release is published, all changes are manually debugged and te
   - [Component Manager](#component-manager)
   - [In-App Component Downloader](#in-app-component-downloader)
   - [BCI Launcher Button](#bci-launcher-button)
+  - [Winlator HUD Overlay](#winlator-hud-overlay)
   - [Performance Sidebar Toggles](#performance-sidebar-toggles)
   - [RTS Touch Controls](#rts-touch-controls)
   - [VRAM Limit Unlock](#vram-limit-unlock)
@@ -36,6 +37,7 @@ Before any stable release is published, all changes are manually debugged and te
   - [Offline Steam Launch](#offline-steam-launch)
   - [Settings: Advanced Tab](#settings-advanced-tab)
   - [Component Descriptions in Game Settings](#component-descriptions-in-game-settings)
+  - [Japanese Locale](#japanese-locale)
   - [UI Tweaks](#ui-tweaks)
 - [How It Works](#how-it-works)
 - [FAQ](#faq)
@@ -82,18 +84,13 @@ For the complete technical implementation breakdown, see [GOG_IMPLEMENTATION.md]
 
 - **OAuth2 login** — a WebView opens GOG's standard OAuth2 authorization page. After you log in, BannerHub captures the authorization code from the redirect URL and exchanges it for an access token + refresh token. Both tokens are stored in the `bh_gog_prefs` SharedPreferences file.
 - **Auto token refresh** — before every API call, BannerHub checks the token expiry timestamp. If the token has expired (or will expire within the margin), it silently issues a refresh request using the stored refresh token. You never need to log in again unless you explicitly log out.
-- **Login persistence** — your session survives app restarts and device reboots. The token is only cleared if you uninstall or use the Uninstall button.
+- **Login persistence** — your session survives app restarts and device reboots.
 
 #### Library
 
-- **Library sync** — on login or manual refresh, BannerHub fetches your full GOG library using the authenticated account API. Both Generation 1 (pre-Galaxy era) and Generation 2 (Galaxy) games are included.
-- **Metadata per game** — each library entry includes: title, developer name, description (from the product page), cover image URL, download size, and whether it is a Gen 1 or Gen 2 game.
-- **Game cards** — your library is displayed as a scrollable card list. Each card shows:
-  - Cover art thumbnail (loaded asynchronously)
-  - Game title and developer
-  - Gen 1 / Gen 2 badge (orange / light blue)
-  - Download size
-  - Install / progress / Add button depending on install state
+- **Library sync** — on login or manual refresh, BannerHub fetches your full GOG library. Both Generation 1 (pre-Galaxy era) and Generation 2 (Galaxy) games are included.
+- **Metadata per game** — title, developer, description, cover image, download size, Gen 1 / Gen 2 badge.
+- **Game cards** — scrollable list and grid view with cover art, title, developer, install state, Install / progress / Add / Launch button.
 
 #### Download Pipeline
 
@@ -105,7 +102,7 @@ BannerHub supports both GOG's current and legacy download systems:
 2. Reads the depot manifest URL from the build record
 3. Downloads and parses the depot manifest to get the full file list with CDN paths
 4. Downloads each file individually, writing to `filesDir/gog_games/{title}/`
-5. Per-file download progress is shown in real time (filename + percentage)
+5. Per-file progress shown in real time — filename + percentage + download speed (MB/s)
 
 **Generation 1 (pre-Galaxy legacy games):**
 
@@ -114,31 +111,27 @@ BannerHub supports both GOG's current and legacy download systems:
 3. Downloads each file using `Range` HTTP requests (byte-range resumable download)
 4. Assembles files into the install directory
 
-**Installer fallback (old pre-Galaxy games with no content-system builds):**
-
-Some very old GOG titles pre-date the content-system entirely and return `total_count: 0` for both Gen 1 and Gen 2 builds. For these, BannerHub falls back to the legacy installer download:
+**Installer fallback (very old pre-Galaxy games with no content-system builds):**
 
 1. Calls `api.gog.com/products/{id}?expand=downloads`
 2. Reads the `downlink` or `manualUrl` from the downloads object
-3. Follows redirects to the final CDN URL
-4. Downloads the Windows installer `.exe` directly
+3. Downloads the Windows installer `.exe` directly
 
 #### Install Flow
 
-- Tapping **Install** on a card opens a confirmation dialog showing the download size and available storage — nothing downloads until you confirm.
-- A `ProgressBar` + status text replaces the Install button during download, showing the current step (Fetching build info → Fetching manifest → Getting CDN link → Downloading files X% → Assembling → Finishing up → Complete).
-- A red **Cancel** button appears during the download. Tapping it stops the download thread and deletes all partial files from the install directory, then resets the card to its pre-install state.
-- After install, BannerHub scans the install directory for qualifying executables (excluding redist/setup/unins/crash/helper/dotnet/vcredist/directx paths). If exactly one is found it is selected automatically. If two or more are found, a picker dialog lets you choose the correct one before the Add button appears.
-- On completion, the progress bar is hidden and an **Add** button appears. Tapping **Add** opens GameHub's `EditImportedGameInfoDialog`, pre-populated with the game's executable path, so you can register it with the launcher in one tap.
-- A green **"Installed"** checkmark appears on the card immediately when the download finishes — no app restart needed.
+- Tapping **Install** opens a confirmation dialog showing download size and available storage — nothing downloads until you confirm.
+- A `ProgressBar` + status text replaces the Install button during download. A red **Cancel** button appears; tapping it stops the download and cleans up partial files.
+- After install, BannerHub scans for qualifying executables (excluding redist/setup/unins/crash/helper paths). One found → auto-selected. Two or more → exe picker dialog.
+- On completion an **Add Game** button appears. Tapping it opens GameHub's `EditImportedGameInfoDialog` pre-populated with the executable path.
+- A green ✓ **Installed** checkmark appears on the card immediately — no app restart needed.
 
 #### Post-Install
 
-- **Persistent install state** — on every app open, BannerHub reads `bh_gog_prefs` for each game card. Cards for already-installed games show the checkmark and Add button automatically, without re-downloading anything.
-- **Launch** — the Add button reads the stored executable path from prefs and passes it directly to GameHub's `EditImportedGameInfoDialog`, where you can verify the path and launch the game.
-- **Set .exe** — the game detail dialog shows the current launch executable filename and a **Set .exe…** button. Tapping it re-scans the install directory and shows the exe picker, letting you correct a wrong selection at any time. The new path is saved immediately to prefs and the label in the dialog updates live.
-- **Copy to Downloads** — the game detail dialog includes a **Copy to Downloads** button. This recursively copies the entire install directory from `filesDir/gog_games/{dirName}/` to `Downloads/{dirName}/` so the files are accessible from any file manager without root.
-- **Uninstall** — the game detail dialog includes an **Uninstall** button. This recursively deletes the install directory, removes all associated prefs keys (`gog_dir_`, `gog_exe_`, `gog_cover_`, `gog_gen_`), and resets the card to its default state. A library re-sync runs automatically after uninstall to rebuild the card list.
+- **Persistent install state** — `bh_gog_prefs` is read on every app open; already-installed cards show checkmark and Add button automatically.
+- **Launch** — Add Game button passes the stored executable path to `EditImportedGameInfoDialog`.
+- **Set .exe** — detail dialog shows current executable and a **Set .exe…** button to re-scan and re-pick at any time.
+- **Copy to Downloads** — recursively copies `filesDir/gog_games/{dirName}/` to `Downloads/{dirName}/`.
+- **Uninstall** — recursively deletes install directory, removes all prefs keys, resets card. Both header ✓ and expanded ✓ disappear immediately.
 
 ---
 
@@ -152,29 +145,29 @@ For the complete technical implementation breakdown, see [AMAZON_IMPLEMENTATION.
 
 #### Authentication
 
-- **PKCE OAuth2 login** — a WebView opens Amazon's standard sign-in page. BannerHub intercepts the authorization code from the redirect URL (including after OTP / 2FA steps), exchanges it for bearer tokens via Amazon's device registration API, and stores the credentials in `bh_amazon_prefs`.
-- **Auto token refresh** — tokens are silently refreshed before expiry. You never need to log in again unless you uninstall.
+- **PKCE OAuth2 login** — a WebView opens Amazon's standard sign-in page. BannerHub intercepts the authorization code directly from the redirect URL — the detection checks for `openid.oa2.authorization_code=` in any redirect URL, so it works correctly through OTP / 2FA intermediate pages without hanging. Tokens are stored in `bh_amazon_prefs`.
+- **Auto token refresh** — silently refreshed before expiry. You never need to log in again unless you uninstall.
 
 #### Library
 
-- **Library sync** — fetches your full Amazon Games entitlements list. Each entry includes title, product SKU, entitlement ID, and cover art.
-- **Game cards** — displayed as a scrollable list with cover art, title, install state, and Install / progress / Launch button.
+- **Library sync** — fetches your full Amazon Games entitlements list via `GetEntitlements`. Each entry includes title, product SKU, entitlement ID, and cover art.
+- **Game cards** — scrollable list and grid view with cover art, title, install state, Install / progress / Launch button.
 
 #### Download Pipeline
 
 1. Calls `GetGameDownload` to retrieve the CDN download URL and version ID
 2. Downloads `manifest.proto` — a protobuf manifest listing every file with its CDN hash path, size, and SHA-256 checksum
-3. Downloads files in **6 parallel threads** — each file is fetched via its hash path on the CDN, verified against SHA-256, then renamed to its final path
+3. Downloads files in **6 parallel threads** — each file fetched via its hash path, SHA-256 verified, renamed to final path
 4. Progress shows current filename and download speed (MB/s)
-5. Resumable — already-complete files are skipped on retry
+5. Resumable — already-complete files (matching size) are skipped on retry
 
 #### Post-Install
 
-- **Launch** — reads `fuel.json` from the install directory to determine the game executable and required FuelPump environment variables, then launches via GameHub's `EditImportedGameInfoDialog`
+- **Launch** — reads `fuel.json` from the install directory to determine the executable and required FuelPump environment variables, then launches via GameHub's `EditImportedGameInfoDialog`
 - **SDK DLLs** — `FuelSDK_x64.dll` and `AmazonGamesSDK_*` DLLs are deployed to the install directory at launch time
-- **Set .exe** — the detail dialog lets you override the detected executable at any time
-- **Update checker** — compares the installed version against the current CDN version and marks cards with an update badge when a newer version is available
-- **Uninstall** — removes the install directory and all stored prefs; both card checkmarks disappear immediately
+- **Set .exe** — detail dialog lets you override the detected executable at any time
+- **Update checker** — compares installed version against current CDN version; marks cards with an update badge when newer version is available
+- **Uninstall** — removes install directory and all prefs; both header ✓ and expanded ✓ disappear immediately
 
 ---
 
@@ -188,27 +181,27 @@ For the complete technical implementation breakdown, see [EPIC_IMPLEMENTATION.md
 
 #### Authentication
 
-- **OAuth2 login** — a WebView opens Epic's login page. After sign-in, BannerHub reads the `authorizationCode` from Epic's redirect JSON response via JavaScript, exchanges it for tokens using the Legendary client credentials, and stores them in `bh_epic_prefs`.
-- **Auto token refresh** — tokens are silently refreshed before expiry.
+- **OAuth2 login** — a WebView opens Epic's login page. After sign-in, BannerHub reads the `authorizationCode` from Epic's JSON redirect response body via `evaluateJavascript`, exchanges it for tokens using the Legendary client credentials, and stores them in `bh_epic_prefs`.
+- **Auto token refresh** — silently refreshed before expiry.
 
 #### Library
 
-- **Library sync** — fetches your owned games from Epic's library API, enriches each entry with catalog metadata (title, developer, description, cover art, DLC detection, CanRunOffline flag).
-- **Game cards** — displayed as a scrollable list and grid view with cover art, title, developer, and install state.
+- **Library sync** — fetches owned games from Epic's library API, enriches each entry with catalog metadata: title, developer, description, cover art, DLC detection, CanRunOffline flag.
+- **Game cards** — scrollable list and grid view with cover art, title, developer, and install state.
 
 #### Download Pipeline
 
-1. Fetches the manifest API JSON to get the list of manifest files hosted on Epic's CDN
-2. Downloads the binary or JSON manifest — parses the full file list, chunk map, and per-chunk SHA-1 hashes
-3. Downloads chunks in **6 parallel threads** from Fastly or Akamai CDN (public, no auth token required on chunks)
-4. Assembles each game file from its chunks in order, verifying SHA-1 per chunk
+1. Fetches the manifest API JSON to locate manifest files on Epic's CDN
+2. Downloads the binary or JSON manifest — parses full file list, chunk map, per-chunk SHA-1 hashes
+3. Downloads chunks in **6 parallel threads** from Fastly or Akamai CDN (public — no auth token required on chunks)
+4. Assembles each game file from its ordered chunks, SHA-1 verified per chunk
 5. Progress shows current filename and download speed (MB/s)
 
 #### Post-Install
 
-- **Launch** — sets `pending_epic_exe` in SharedPreferences → picked up by the main launcher activity → opens GameHub's `EditImportedGameInfoDialog`
+- **Launch** — sets `pending_epic_exe` in SharedPreferences → picked up by the main launcher activity → opens `EditImportedGameInfoDialog`
 - **Set .exe** — override the detected executable at any time
-- **Uninstall** — removes install directory and prefs; both card checkmarks disappear immediately
+- **Uninstall** — removes install directory and prefs; both header ✓ and expanded ✓ disappear immediately
 
 ---
 
@@ -235,7 +228,7 @@ Each installed component is displayed as a compact card with:
 | **Add New Component** | Tap **"+ Add New"** in the bottom bar | Injects a WCP or ZIP as a brand new component slot. It immediately appears in GameHub's DXVK/VKD3D/Box64/FEXCore/GPU Driver selection menus and persists across restarts |
 | **Backup** | Swipe RIGHT on a card | Copies the component folder to `Downloads/BannerHub/{name}/` |
 | **Remove** | Swipe LEFT on a card | Unregisters the component from GameHub's in-memory map, deletes the folder on disk, and clears its downloaded indicator in the online repo browser |
-| **Remove All** | Tap "Remove All" | Removes only BannerHub-managed components (those injected or downloaded via the Component Manager). The confirmation dialog shows the exact count. Stock GameHub components are never touched |
+| **Remove All** | Tap "Remove All" | Removes only BannerHub-managed components. The confirmation dialog shows the exact count. Stock GameHub components are never touched |
 
 #### Format Support
 
@@ -243,11 +236,9 @@ Each installed component is displayed as a compact card with:
 |--------|---------|-----------|
 | ZIP (PK magic) | Turnip, adrenotools GPU drivers | Flat extraction — `meta.json` + `.so` files land directly in the component root |
 | Zstd-compressed tar (`.wcp`) | DXVK, VKD3D, Box64 | Preserves `system32/` + `syswow64/` internal structure |
-| XZ-compressed tar (`.wcp`) | FEXCore nightlies | Flat extraction to component root — FEXCore does not use a `system32/` layout |
+| XZ-compressed tar (`.wcp`) | FEXCore nightlies | Flat extraction to component root |
 
 BannerHub uses GameHub's own bundled libraries (`commons-compress`, `zstd-jni`, `tukaani xz`) for extraction — no external dependencies are injected, so there are no class loader conflicts.
-
-Before every extraction, the component's destination folder is fully cleared so partial or previous installs cannot corrupt the new one. Extraction always runs on a background thread.
 
 ---
 
@@ -259,9 +250,9 @@ Inside the Component Manager, tap **Download** at the bottom of the screen to op
 
 Three-level navigation: **Repo** → **Category** → **Asset list**
 
-- **Repo list** — all built-in sources are shown as selectable entries
-- **Category list** — after selecting a repo, choose from DXVK, VKD3D, Box64, FEXCore, or GPU Driver
-- **Asset list** — shows all available assets for that type in the chosen repo, with file size where available. Assets already installed via BannerHub show a checkmark; the mark clears when the component is removed
+- **Repo list** — all built-in sources shown as selectable entries
+- **Category list** — choose from DXVK, VKD3D, Box64, FEXCore, or GPU Driver
+- **Asset list** — shows all available assets with file size where available. Assets already installed via BannerHub show a checkmark; the mark clears when the component is removed
 
 Tapping any asset downloads it to the cache directory and injects it as a new component automatically, with a progress screen showing "Downloading: `<filename>`" during the fetch.
 
@@ -286,68 +277,60 @@ BCI is a companion app that provides SAF-based component management without root
 
 ---
 
+### Winlator HUD Overlay
+
+An in-game heads-up display that shows real-time performance metrics while a game is running. Accessible from the in-game **Performance sidebar**.
+
+#### Metrics Displayed
+
+- **FPS** — current frames per second
+- **Frame time** — milliseconds per frame
+- **Resolution** — current render resolution
+
+#### Configuration
+
+- **Opacity slider** — adjusts the transparency of the entire HUD overlay from fully opaque to nearly invisible
+- **Text outline** — a black shadow/outline is automatically applied to all HUD text when opacity drops below 30%, ensuring readability against any background color
+- **Position** — choose from multiple screen corners/positions
+- **Orientation** — horizontal or vertical layout
+
+All position, orientation, and opacity settings are persisted in SharedPreferences and restored automatically the next time the Performance sidebar is opened.
+
+---
+
 ### Performance Sidebar Toggles
 
 Located in the in-game **Performance sidebar tab**, above the Dual Battery Mode toggle. Both toggles persist their state in `bh_prefs` SharedPreferences and are re-applied automatically every time the Performance sidebar is opened.
-
-Both toggles require root and are greyed out on non-rooted devices. Root access is checked once when you grant it in **Settings → Advanced**. The toggles read that stored result — there is no root permission popup every time the sidebar opens.
 
 > **WARNING — USE AT YOUR OWN RISK**
 >
 > These toggles override your device's thermal management. Forcing the CPU and GPU to run at maximum frequency continuously generates significantly more heat than normal operation. Sustained high temperatures can cause permanent damage to your device's processor, battery, and other components. Device manufacturers do not support or warrant against damage caused by overriding performance governors. By using these toggles you accept full responsibility for any damage, data loss, throttling, unexpected shutdowns, or reduced component lifespan that results. **Do not leave these enabled unattended. Monitor your device temperature. Disable them immediately if your device becomes uncomfortably hot.**
 
-Both toggles require root. Without root, both are greyed out at 50% opacity and have no click listener — tapping them does nothing.
+Both toggles require root. Without root, both are greyed out at 50% opacity and non-interactive. Root access is checked once when you grant it in **Settings → Advanced** — there is no root popup every time the sidebar opens.
 
 #### Sustained Performance Mode
 
-**Requires root.**
+Sets all CPU cores to the `performance` frequency governor via `su`, eliminating all downclocking while the toggle is on. On disable, `schedutil` is restored.
 
-| | Without root | With root |
-|---|---|---|
-| **Behavior** | Greyed out, non-interactive | Sets all CPU cores to `performance` governor via `su` |
-| **Disable** | N/A | Reverts all CPU cores to `schedutil` governor |
-
-The CPU frequency governor controls how the kernel selects a clock speed for each core. The `performance` governor always selects the maximum available frequency regardless of load, eliminating all downclocking while the toggle is on. On disable, `schedutil` is restored — a load-tracking governor that scales frequency dynamically.
-
-Shell commands issued (with `su`):
-```
+```sh
 # Enable
 for f in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do echo performance > "$f"; done
-
 # Disable
 for f in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do echo schedutil > "$f"; done
 ```
 
 #### Max Adreno Clocks
 
-**Requires root.**
-
-| | Without root | With root |
-|---|---|---|
-| **Behavior** | Greyed out, non-interactive | Locks GPU clock floor = GPU clock ceiling |
-| **Disable** | N/A | Removes the floor — DVFS returns to normal |
-
-**What it does (root only):**
-
-Qualcomm Adreno GPUs are managed by the **KGSL** (Kernel Graphics Support Layer) kernel driver. The driver exposes a devfreq interface at `/sys/class/kgsl/kgsl-3d0/devfreq/` that controls dynamic voltage and frequency scaling (DVFS) for the GPU.
-
-BannerHub sets the DVFS **minimum frequency** equal to the current **maximum frequency**, so the GPU has no lower clock level to fall back to:
+Locks the Qualcomm Adreno GPU clock floor equal to the ceiling via the KGSL devfreq sysfs interface, so the GPU cannot downclock under any load condition short of a kernel thermal emergency.
 
 ```sh
-# Enable — read max_freq and write it to min_freq
+# Enable — set min_freq = max_freq
 cat /sys/class/kgsl/kgsl-3d0/devfreq/max_freq > /sys/class/kgsl/kgsl-3d0/devfreq/min_freq
-
-# Disable — remove the floor (0 = no minimum constraint)
+# Disable — remove floor
 echo 0 > /sys/class/kgsl/kgsl-3d0/devfreq/min_freq
 ```
 
-This is a **hard kernel-level lock** on the GPU clock floor. Writing to `/sys/class/kgsl/` is a privileged operation — it requires root. This is different from the KGSL ioctl power-constraint approach used by some emulators (e.g. Eden), which is accessible to unprivileged apps but is a hint the driver can override under thermal pressure. BannerHub's sysfs approach sets the floor at the driver level directly — the GPU physically cannot clock below max unless the kernel thermal governor intervenes at an emergency level.
-
-**Why this matters for gaming:**
-
-GPU DVFS is designed for general-use workloads where the GPU idles between frames. In a continuously-rendered 3D game, the DVFS governor can lag behind sudden load spikes — the clock dips, the frame takes longer, you see a stutter. Locking `min_freq = max_freq` eliminates that reaction lag entirely. The tradeoff is increased heat and battery draw since the GPU never idles.
-
-**Use both toggles together** for maximum sustained CPU + GPU performance (requires root on both).
+**Use both toggles together** for maximum sustained CPU + GPU performance (root required).
 
 ---
 
@@ -368,9 +351,7 @@ Enable via the **Controls tab** in the in-game sidebar. Adds a full gesture over
 | Two-finger pan | Camera pan (direction configurable) |
 | Pinch to zoom | Mouse wheel scroll up/down (configurable) |
 
-#### Gesture Settings
-
-Tap the **gear icon** in the Controls tab to open the gesture settings dialog. From here you can configure the two-finger pan behavior and the pinch-to-zoom scroll direction.
+Tap the **gear icon** in the Controls tab to configure pan direction and pinch-to-zoom scroll direction.
 
 ---
 
@@ -378,15 +359,11 @@ Tap the **gear icon** in the Controls tab to open the gesture settings dialog. F
 
 PC game settings → **VRAM Limit** now includes **6 GB, 8 GB, 12 GB, and 16 GB** options in addition to the original GameHub range of 512 MB through 4 GB.
 
-This is useful for games or translation layers (DXVK, VKD3D) that check reported VRAM at startup and limit texture quality or refuse to run if the value is too low for their built-in presets.
-
 ---
 
 ### Per-Game CPU Core Affinity
 
-PC game settings → **Core Count** has been replaced with a multi-select dialog that lets you choose exactly which CPU cores the game process is pinned to.
-
-#### Core Labels
+PC game settings → **Core Count** is replaced with a multi-select dialog to choose exactly which CPU cores the game process is pinned to.
 
 | Core(s) | Label |
 |---------|-------|
@@ -394,51 +371,47 @@ PC game settings → **Core Count** has been replaced with a multi-select dialog
 | Core 4–6 | Performance |
 | Core 7 | Prime |
 
-Labels reflect the typical cluster naming on Snapdragon SoCs. The exact physical frequency of each core depends on your device.
-
-#### Behavior
-
 - **Apply** — saves the selected core bitmask and updates the settings row label immediately
 - **No Limit** — clears affinity, the game process can use any core
-- **Cancel** — discards all changes
 - Selecting all 8 cores is equivalent to No Limit
-- Selecting zero cores shows a warning toast and does not save
-
-This is useful for reserving your high-frequency Performance / Prime cores for the game process and keeping background system load on the Efficiency cores, or vice versa for thermal management.
 
 ---
 
 ### PC Game Settings: Offline Mode
 
-Opening PC game settings while offline (no network, or airplane mode) no longer blocks the settings menus with a spinner or error screen. Container and component lists fall back to empty data, and all settings rows remain fully accessible and editable without a network connection.
+Opening PC game settings while offline no longer blocks with a spinner or error. Container and component lists fall back to empty data, and all settings rows remain fully accessible and editable without a network connection.
 
 ---
 
 ### Offline Steam Launch
 
-When the Steam auto-login request fails at cold start and no network is available, BannerHub detects the condition and skips the Steam login screen entirely. The launch pipeline proceeds using the locally cached Steam configuration. This allows you to continue playing your installed Steam library without an internet connection.
+When Steam auto-login fails at cold start with no network, BannerHub detects the condition, skips the Steam login screen, and proceeds using the locally cached Steam configuration. You can continue playing your installed Steam library offline.
 
 ---
 
 ### Settings: Advanced Tab
 
-The Advanced tab (Settings → Advanced) consolidates several toggles and system-level controls:
-
 | Setting | What it does |
 |---------|-------------|
-| **EmuReady API** | Toggle EmuReady compatibility checks. Defaults to off on fresh installs to avoid unnecessary network calls |
-| **CPU Usage Display** | Show/hide the CPU usage overlay during gameplay |
-| **Performance Metrics** | Show/hide the full performance metrics overlay |
-| **Sustained Performance Mode** | Toggle for the Sustained Perf feature (same as the sidebar toggle — kept here for convenience outside of a running game) |
-| **Grant Root Access** | Opens a 5-point warning dialog explaining what root access is used for. On confirmation, runs `su -c id` on a background thread and stores the result in `bh_prefs`. The Performance sidebar reads this pref to decide whether to enable or grey out the root-dependent toggles — there is no unsolicited root popup every time you open the Performance tab |
+| **EmuReady API** | Toggle EmuReady compatibility checks |
+| **CPU Usage Display** | Show/hide CPU usage overlay during gameplay |
+| **Performance Metrics** | Show/hide full performance metrics overlay |
+| **Sustained Performance Mode** | Same toggle as the Performance sidebar — available here for convenience outside a running game |
+| **Grant Root Access** | Opens a warning dialog, then runs `su -c id` on a background thread and stores the result. Performance sidebar reads this pref to enable or grey out the root-dependent toggles — no unsolicited root popup on sidebar open |
 
 ---
 
 ### Component Descriptions in Game Settings
 
-When selecting a component in per-game settings (DXVK, VKD3D, Box64, FEXCore, or GPU Driver picker), components that were installed via BannerHub now show their **description text** below the component name.
+When selecting a component in per-game settings (DXVK, VKD3D, Box64, FEXCore, or GPU Driver picker), components installed via BannerHub show their **description text** below the component name. The description is read from `profile.json` (WCP files) or `meta.json` (ZIP / adrenotools) at inject time and stored alongside the component.
 
-The description is read from `profile.json`'s `"description"` field (WCP files) or `meta.json`'s `"description"` field (ZIP / adrenotools driver packs) at inject time and stored alongside the component. This lets you see version notes, changelog text, or compatibility info directly in the picker without having to look it up externally.
+---
+
+### Japanese Locale
+
+BannerHub includes a complete **3,468-string Japanese translation** covering every screen in the app. When your Android system language is set to Japanese, the app displays fully in Japanese. English users are unaffected — Android's locale fallback uses the default English strings automatically.
+
+*Translation contributed by [reindex-ot](https://github.com/reindex-ot) via Crowdin (GameHub's official translation source).*
 
 ---
 
@@ -466,7 +439,7 @@ All new BannerHub code lives in `smali_classes16/`. Existing GameHub smali files
 
 **Q: Does BannerHub require root?**
 
-Most features work without root. The only features that require root are the two Performance sidebar toggles (Sustained Performance Mode and Max Adreno Clocks) — both are greyed out and non-interactive on non-rooted devices. All other features — the GOG tab, Component Manager, downloader, RTS controls, VRAM unlock, core affinity, offline modes, and settings — work on any non-rooted Android device.
+Most features work without root. The only features that require root are the two Performance sidebar toggles (Sustained Performance Mode and Max Adreno Clocks) — both are greyed out and non-interactive on non-rooted devices. All other features — the GOG, Amazon, and Epic Games tabs, Component Manager, component downloader, Winlator HUD, RTS controls, VRAM unlock, core affinity, offline modes, and settings — work on any non-rooted Android device.
 
 **Q: Will this replace my existing GameHub install?**
 
@@ -474,19 +447,23 @@ Only if you choose a matching package APK. The **Normal APK** (`banner.hub`) ins
 
 **Q: Can I use BCI (BannersComponentInjector) with BannerHub?**
 
-Yes. BCI grants SAF (Storage Access Framework) access to any GameHub package, including `banner.hub`. The BCI launcher button in BannerHub's toolbar opens BCI directly. Components injected via BCI are visible in BannerHub's Component Manager and vice versa.
+Yes. BCI grants SAF access to any GameHub package, including `banner.hub`. The BCI launcher button in BannerHub's toolbar opens BCI directly. Components injected via BCI are visible in BannerHub's Component Manager and vice versa.
 
 **Q: Why does the Max Adreno Clocks toggle require root while some other apps can do it without root?**
 
-BannerHub uses a direct sysfs write to `/sys/class/kgsl/kgsl-3d0/devfreq/min_freq` which is a privileged operation. Some emulators use the KGSL ioctl interface (`/dev/kgsl-3d0`) instead, which is accessible to unprivileged apps — but that interface issues a performance hint that the driver scheduler can still override under thermal pressure. The sysfs approach is a harder lock that the GPU cannot override short of a kernel thermal emergency, at the cost of requiring root.
+BannerHub uses a direct sysfs write to `/sys/class/kgsl/kgsl-3d0/devfreq/min_freq` which is a privileged operation. Some emulators use the KGSL ioctl interface instead, which is accessible to unprivileged apps — but that interface issues a performance hint the driver can still override under thermal pressure. The sysfs approach is a harder lock, at the cost of requiring root.
 
 **Q: My GOG game says "Generation 1" — will it still download?**
 
-Yes. BannerHub supports Gen 1 downloads via the legacy byte-range download pipeline. If your game is so old that it has no content-system builds at all (pre-Galaxy era titles), the installer fallback will download the Windows `.exe` installer directly.
+Yes. BannerHub supports Gen 1 downloads via the legacy byte-range download pipeline. If your game is so old that it has no content-system builds at all, the installer fallback will download the Windows `.exe` installer directly.
 
-**Q: Where are GOG games installed?**
+**Q: Where are GOG / Amazon / Epic games installed?**
 
-Inside the app's private storage: `Android/data/<package>/files/gog_games/<dirName>/`. The **Copy to Downloads** button in the game detail dialog copies the files to `Downloads/<dirName>/` if you need to access them from a file manager.
+Inside the app's private storage: `Android/data/<package>/files/gog_games/<name>/`, `amazon_games/<name>/`, or `epic_games/<name>/` respectively. GOG games have a **Copy to Downloads** button in the detail dialog to copy files to `Downloads/<name>/` for access from any file manager.
+
+**Q: Does Amazon login work with two-factor authentication (OTP)?**
+
+Yes. BannerHub detects the authorization code directly in the redirect URL regardless of which intermediate pages Amazon routes through during OTP/2FA, so login completes correctly with or without 2FA enabled on your account.
 
 ---
 
@@ -495,6 +472,7 @@ Inside the app's private storage: `Android/data/<package>/files/gog_games/<dirNa
 - **GOG Games integration** — [The GameNative Team](https://github.com/utkarshdalal/GameNative). The GOG API pipeline, authentication flow, download architecture, and library sync in BannerHub are based on their research and implementation.
 - **Amazon Games integration** — [The GameNative Team](https://github.com/utkarshdalal/GameNative). The Amazon Games API pipeline, PKCE authentication flow, manifest.proto download architecture, exe scoring heuristic, FuelPump environment variables, and SDK DLL deployment in BannerHub are based on their research and implementation.
 - **Epic Games Store integration** — [The GameNative Team](https://github.com/utkarshdalal/GameNative). The Epic Games Store API pipeline, OAuth2 authentication flow, chunked manifest download architecture, CDN selection logic, and chunk assembly in BannerHub are based on their research and implementation.
+- **Japanese translations** — [reindex-ot](https://github.com/reindex-ot) via Crowdin
 - **RTS Touch Controls** — [@Nightwalker743](https://github.com/Nightwalker743)
 - **GameHub ReVanced patches** — [@playday3008](https://github.com/playday3008/gamehub-patches)
 - **Component sources** — [Arihany WCPHub](https://github.com/Arihany/WinlatorWCPHub), [The412Banner Nightlies](https://github.com/The412Banner/Nightlies), Kimchi, StevenMXZ, MaxesTechReview, Whitebelyash
