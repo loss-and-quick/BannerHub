@@ -2791,3 +2791,11 @@ manifest download, install, launch, SDK cache + update checker.
 - `patches/smali_classes16/.../BhExeLaunchListener.smali` (new)
 - `patches/smali_classes16/.../BhInitLaunchRunnable.smali` (new)
 - `patches/smali_classes16/.../BhBrowseToRunnable.smali` (new)
+
+### v2.8.1-pre (fix2) — Launch binary fix + dosdevices default (2026-03-30)
+**Commit:** `4afada69a`  |  **Tag:** v2.8.1-pre (retagged)  |  **CI:** ✅ run 23757835250
+#### What changed
+- findWineBinary(): read WINELOADER env var first (Wine always sets this) — was failing silently because binary isn't named wine64/wine
+- Fallback scan now tries: wine64, wine, wineloader, wine64-preloader
+- launchExe() now takes Context and shows error Toast if binary not found
+- BhInitLaunchRunnable: opens at WINEPREFIX/dosdevices (c:, d:, z: drive letters) instead of WINEPREFIX root
