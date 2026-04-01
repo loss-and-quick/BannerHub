@@ -83,7 +83,7 @@ public class AmazonGamesActivity extends Activity {
         List<AmazonGame> cached = loadCachedGames();
         if (cached != null && !cached.isEmpty()) {
             showGames(cached);
-            setSync(cached.size() + " game(s) — cached  •  tap ↺ to refresh");
+            int cn = cached.size(); setSync(cn + (cn == 1 ? " game" : " games") + " — cached  •  tap ↺ to refresh");
         }
         startSync(cached == null || cached.isEmpty());
     }
@@ -255,7 +255,7 @@ public class AmazonGamesActivity extends Activity {
             final List<AmazonGame> finalGames = games;
             uiHandler.post(() -> {
                 showGames(finalGames);
-                setSync(finalGames.size() + " game(s) — tap a card to install");
+                int fn = finalGames.size(); setSync(fn + (fn == 1 ? " game" : " games") + " — tap a card to install");
                 enableRefresh();
             });
         } catch (Exception e) {
@@ -285,7 +285,19 @@ public class AmazonGamesActivity extends Activity {
         final List<AmazonGame> result = filtered;
         uiHandler.post(() -> {
             gameListLayout.removeAllViews();
-            if ("grid".equals(viewMode)) {
+            if (result.isEmpty()) {
+                gameListLayout.setPadding(dp(8), dp(8), dp(8), dp(8));
+                TextView emptyTV = new TextView(AmazonGamesActivity.this);
+                String q2 = query == null ? "" : query.trim();
+                emptyTV.setText(q2.isEmpty() ? "Your Amazon library is empty"
+                                             : "No results for \u201c" + q2 + "\u201d");
+                emptyTV.setTextColor(0xFF666666);
+                emptyTV.setTextSize(14f);
+                emptyTV.setGravity(Gravity.CENTER);
+                LinearLayout.LayoutParams emLp = new LinearLayout.LayoutParams(-1, -2);
+                emLp.topMargin = dp(32);
+                gameListLayout.addView(emptyTV, emLp);
+            } else if ("grid".equals(viewMode)) {
                 gameListLayout.setPadding(dp(4), dp(4), dp(4), dp(4));
                 addGamesAsGrid(result, 105, dp(3), dp(6));
             } else if ("poster".equals(viewMode)) {
@@ -375,7 +387,25 @@ public class AmazonGamesActivity extends Activity {
         titleRow.addView(collapsedCheckTV, new LinearLayout.LayoutParams(-2, -2));
 
         titleRow.addView(new View(this), new LinearLayout.LayoutParams(0, 0, 1f));
-        topRow.addView(titleRow, new LinearLayout.LayoutParams(0, -2, 1f));
+
+        // ── Subtitle (developer · publisher) shown while collapsed ─────────────
+        LinearLayout infoCol = new LinearLayout(this);
+        infoCol.setOrientation(LinearLayout.VERTICAL);
+        infoCol.setGravity(Gravity.CENTER_VERTICAL);
+        infoCol.addView(titleRow, new LinearLayout.LayoutParams(-1, -2));
+        if (!game.developer.isEmpty() || !game.publisher.isEmpty()) {
+            String sub = game.developer.isEmpty() ? game.publisher
+                       : game.publisher.isEmpty()  ? game.developer
+                       : game.developer + "  ·  " + game.publisher;
+            TextView subTV = new TextView(this);
+            subTV.setText(sub);
+            subTV.setTextColor(0xFF888888);
+            subTV.setTextSize(11f);
+            subTV.setMaxLines(1);
+            subTV.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            infoCol.addView(subTV, new LinearLayout.LayoutParams(-1, -2));
+        }
+        topRow.addView(infoCol, new LinearLayout.LayoutParams(0, -2, 1f));
 
         TextView arrowTV = new TextView(this);
         arrowTV.setText("▼");
@@ -420,6 +450,8 @@ public class AmazonGamesActivity extends Activity {
         progressBar.setMax(100);
         progressBar.setProgress(0);
         progressBar.setVisibility(View.GONE);
+        progressBar.getProgressDrawable().setColorFilter(COLOR_ACCENT,
+                android.graphics.PorterDuff.Mode.SRC_IN);
         LinearLayout.LayoutParams pbLp = new LinearLayout.LayoutParams(-1, dp(6));
         pbLp.topMargin = dp(6);
         expandSection.addView(progressBar, pbLp);
@@ -1122,7 +1154,18 @@ public class AmazonGamesActivity extends Activity {
     // ── Utilities ─────────────────────────────────────────────────────────────
 
     private void setSync(String msg) {
-        uiHandler.post(() -> { if (syncText != null) syncText.setText(msg); });
+        uiHandler.post(() -> {
+            if (syncText == null) return;
+            syncText.setText(msg);
+            if (msg.startsWith("Error") || msg.startsWith("Not logged in")
+                    || msg.startsWith("Token refresh") || msg.startsWith("No games")) {
+                syncText.setTextColor(0xFFFF6B6B);
+            } else if (msg.contains("game") && (msg.contains("tap") || msg.contains("cached"))) {
+                syncText.setTextColor(0xFF81C784);
+            } else {
+                syncText.setTextColor(0xFFCCCCCC);
+            }
+        });
     }
 
     private static String viewModeIcon(String mode) {

@@ -86,7 +86,7 @@ public class GogGamesActivity extends Activity {
         List<GogGame> cached = loadCachedGames();
         if (cached != null && !cached.isEmpty()) {
             showGames(cached);
-            setSync(cached.size() + " game(s) — cached  •  tap ↺ to refresh");
+            int cn = cached.size(); setSync(cn + (cn == 1 ? " game" : " games") + " — cached  •  tap ↺ to refresh");
         }
         startSync(cached == null || cached.isEmpty());
     }
@@ -268,7 +268,7 @@ public class GogGamesActivity extends Activity {
                     setSync("No compatible games found");
                 } else {
                     showGames(finalGames);
-                    setSync(finalGames.size() + " game(s) — tap a card to install");
+                    int fn = finalGames.size(); setSync(fn + (fn == 1 ? " game" : " games") + " — tap a card to install");
                 }
                 enableRefresh();
             });
@@ -361,7 +361,19 @@ public class GogGamesActivity extends Activity {
         final List<GogGame> result = filtered;
         uiHandler.post(() -> {
             gameListLayout.removeAllViews();
-            if ("grid".equals(viewMode)) {
+            if (result.isEmpty()) {
+                gameListLayout.setPadding(dp(8), dp(8), dp(8), dp(8));
+                TextView emptyTV = new TextView(GogGamesActivity.this);
+                String q2 = query == null ? "" : query.trim();
+                emptyTV.setText(q2.isEmpty() ? "Your GOG library is empty"
+                                             : "No results for "" + q2 + """);
+                emptyTV.setTextColor(0xFF666666);
+                emptyTV.setTextSize(14f);
+                emptyTV.setGravity(Gravity.CENTER);
+                LinearLayout.LayoutParams emLp = new LinearLayout.LayoutParams(-1, -2);
+                emLp.topMargin = dp(32);
+                gameListLayout.addView(emptyTV, emLp);
+            } else if ("grid".equals(viewMode)) {
                 gameListLayout.setPadding(dp(4), dp(4), dp(4), dp(4));
                 addGamesAsGrid(result);
             } else if ("poster".equals(viewMode)) {
@@ -478,7 +490,25 @@ public class GogGamesActivity extends Activity {
         View titleSpacer = new View(this);
         titleRow.addView(titleSpacer, new LinearLayout.LayoutParams(0, 0, 1f));
 
-        topRow.addView(titleRow, new LinearLayout.LayoutParams(0, -2, 1f));
+        // ── Subtitle (developer · genre) shown while collapsed ────────────────
+        LinearLayout infoCol = new LinearLayout(this);
+        infoCol.setOrientation(LinearLayout.VERTICAL);
+        infoCol.setGravity(Gravity.CENTER_VERTICAL);
+        infoCol.addView(titleRow, new LinearLayout.LayoutParams(-1, -2));
+        if (!game.developer.isEmpty() || !game.category.isEmpty()) {
+            String sub = game.developer.isEmpty() ? game.category
+                       : game.category.isEmpty()  ? game.developer
+                       : game.developer + "  ·  " + game.category;
+            TextView subTV = new TextView(this);
+            subTV.setText(sub);
+            subTV.setTextColor(0xFF888888);
+            subTV.setTextSize(11f);
+            subTV.setMaxLines(1);
+            subTV.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            infoCol.addView(subTV, new LinearLayout.LayoutParams(-1, -2));
+        }
+
+        topRow.addView(infoCol, new LinearLayout.LayoutParams(0, -2, 1f));
 
         TextView arrowTV = new TextView(this);
         arrowTV.setText("▼");
@@ -521,6 +551,8 @@ public class GogGamesActivity extends Activity {
         progressBar.setMax(100);
         progressBar.setProgress(0);
         progressBar.setVisibility(View.GONE);
+        progressBar.getProgressDrawable().setColorFilter(0xFFFF9800,
+                android.graphics.PorterDuff.Mode.SRC_IN);
         LinearLayout.LayoutParams pbLp = new LinearLayout.LayoutParams(-1, dp(6));
         pbLp.topMargin = dp(6);
         expandSection.addView(progressBar, pbLp);
@@ -1218,7 +1250,17 @@ public class GogGamesActivity extends Activity {
     // ── Utilities ─────────────────────────────────────────────────────────────
 
     private void setSync(String msg) {
-        uiHandler.post(() -> syncText.setText(msg));
+        uiHandler.post(() -> {
+            syncText.setText(msg);
+            if (msg.startsWith("Error") || msg.startsWith("Session expired")
+                    || msg.startsWith("Failed") || msg.startsWith("Not logged in")) {
+                syncText.setTextColor(0xFFFF6B6B);
+            } else if (msg.contains("game") && (msg.contains("tap") || msg.contains("cached"))) {
+                syncText.setTextColor(0xFF81C784);
+            } else {
+                syncText.setTextColor(0xFFCCCCCC);
+            }
+        });
     }
 
     /** Shows a pre-install confirmation dialog with game size (async-fetched) and available storage. */
