@@ -1085,7 +1085,9 @@ public class EpicGamesActivity extends Activity {
                 g.version       = j.optString("version",       "");
                 g.isInstalled   = j.optBoolean("isInstalled",  false);
                 g.installPath   = j.optString("installPath",   "");
-                g.installSize   = j.optLong("installSize",     0L);
+                long cachedSize = j.optLong("installSize", 0L);
+                // Sanity-check: discard absurd cached values (> 1 TB = corrupt/stale cache)
+                g.installSize   = (cachedSize > 1_099_511_627_776L) ? 0L : cachedSize;
                 g.canRunOffline = j.optBoolean("canRunOffline", true);
                 games.add(g);
             }
