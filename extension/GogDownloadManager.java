@@ -335,6 +335,9 @@ public final class GogDownloadManager {
             final AtomicLong    speedBps     = new AtomicLong(0);
             final AtomicBoolean anyFailed    = new AtomicBoolean(false);
             final String        fCdnBase     = cdnBase;
+            final java.util.concurrent.ConcurrentLinkedQueue<String> fileLog2 =
+                    new java.util.concurrent.ConcurrentLinkedQueue<>();
+            dbg.append("gen2 parallel download: ").append(total).append(" files, 8 threads\n");
 
             ExecutorService pool = Executors.newFixedThreadPool(8);
             List<Future<Void>> futures = new ArrayList<>();
@@ -394,12 +397,14 @@ public final class GogDownloadManager {
                                     + (speedStr.isEmpty() ? "" : "  " + speedStr), pct);
                             return null;
                         }
+                        fileLog2.add("RETRY attempt=" + attempt + " file=" + df.relativePath);
                         tmpFile.delete();
                         if (attempt < 3) {
                             try { Thread.sleep(1000L << (attempt - 1)); }
                             catch (InterruptedException ie) { Thread.currentThread().interrupt(); return null; }
                         }
                     }
+                    fileLog2.add("FAIL file=" + df.relativePath);
                     Log.e(TAG, "Gen2 file failed after 3 attempts: " + df.relativePath);
                     anyFailed.set(true);
                     return null;
@@ -412,8 +417,10 @@ public final class GogDownloadManager {
                 pool.shutdownNow();
                 return "parallel download error: " + e;
             }
+            for (String line : fileLog2) dbg.append(line).append("\n");
             if (cancelled.get()) return "cancelled";
             if (anyFailed.get()) return "one or more chunks failed to download";
+            dbg.append("gen2 download complete: ").append(doneCount.get()).append(" files OK\n");
 
             // Write manifest marker
             String manifestMarker = "{\"gameId\":\"" + game.gameId
@@ -537,6 +544,9 @@ public final class GogDownloadManager {
             final AtomicLong    lastSpeedBG1    = new AtomicLong(0);
             final AtomicLong    speedBpsG1      = new AtomicLong(0);
             final AtomicBoolean anyFailedG1     = new AtomicBoolean(false);
+            final java.util.concurrent.ConcurrentLinkedQueue<String> fileLog1 =
+                    new java.util.concurrent.ConcurrentLinkedQueue<>();
+            dbg.append("gen1 parallel download: ").append(totalG1).append(" files, 8 threads\n");
 
             ExecutorService poolG1 = Executors.newFixedThreadPool(8);
             List<Future<Void>> futuresG1 = new ArrayList<>();
@@ -576,11 +586,13 @@ public final class GogDownloadManager {
                                     + (speedStr.isEmpty() ? "" : "  " + speedStr), pct);
                             return null;
                         }
+                        fileLog1.add("RETRY attempt=" + attempt + " file=" + gf.path);
                         if (attempt < 3) {
                             try { Thread.sleep(1000L << (attempt - 1)); }
                             catch (InterruptedException ie) { Thread.currentThread().interrupt(); return null; }
                         }
                     }
+                    fileLog1.add("FAIL file=" + gf.path);
                     Log.e(TAG, "Gen1 file failed after 3 attempts: " + gf.path);
                     anyFailedG1.set(true);
                     return null;
@@ -593,8 +605,10 @@ public final class GogDownloadManager {
                 poolG1.shutdownNow();
                 return "gen1 parallel error: " + e;
             }
+            for (String line : fileLog1) dbg.append(line).append("\n");
             if (cancelled.get()) return "cancelled";
             if (anyFailedG1.get()) return "one or more gen1 files failed to download";
+            dbg.append("gen1 download complete: ").append(doneG1.get()).append(" files OK\n");
 
             cb.onProgress("Install complete!", 100);
 

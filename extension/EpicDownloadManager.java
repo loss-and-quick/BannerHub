@@ -161,37 +161,54 @@ public class EpicDownloadManager {
      * @return true on success
      */
     public static boolean install(
+            android.content.Context ctx,
             String manifestApiJson,
             String accessToken,
             String installDirPath,
             ProgressCallback progressCallback) {
+        StringBuilder dbg = new StringBuilder();
+        dbg.append("=== BH Epic Debug ===\n");
+        dbg.append("installDirPath=").append(installDirPath).append("\n");
         try {
             progress(progressCallback, "Parsing CDN URLs...", 0);
 
             List<CdnUrl> cdnUrls = parseCdnUrls(manifestApiJson);
             if (cdnUrls.isEmpty()) {
+                dbg.append("ERROR: No CDN URLs in manifest API response\n");
+                writeDebug(ctx, dbg);
                 Log.e(TAG, "No CDN URLs in manifest API response");
                 return false;
             }
             for (CdnUrl c : cdnUrls) {
+                dbg.append("CDN: ").append(c.baseUrl)
+                   .append("  cloudDir=").append(c.cloudDir)
+                   .append("  auth=").append(c.authParams.isEmpty() ? "(none)" : "YES").append("\n");
                 Log.i(TAG, "  CDN: " + c.baseUrl + "  auth: " + (c.authParams.isEmpty() ? "(none)" : "YES"));
             }
 
             progress(progressCallback, "Downloading manifest...", 0);
             byte[] manifestBytes = downloadManifest(manifestApiJson, cdnUrls);
             if (manifestBytes == null) {
+                dbg.append("ERROR: Manifest binary download failed\n");
+                writeDebug(ctx, dbg);
                 Log.e(TAG, "Manifest binary download failed");
                 return false;
             }
+            dbg.append("manifestBytes=").append(manifestBytes.length).append("\n");
             Log.i(TAG, "Manifest bytes: " + manifestBytes.length);
 
             progress(progressCallback, "Parsing manifest...", 0);
             EpicManifest.ParsedManifest manifest = parseManifest(manifestBytes);
             if (manifest == null) {
+                dbg.append("ERROR: Manifest parse failed\n");
+                writeDebug(ctx, dbg);
                 Log.e(TAG, "Manifest parse failed");
                 return false;
             }
             manifest.cdnUrls = cdnUrls;
+            dbg.append("chunkDir=").append(manifest.chunkDir)
+               .append(" chunks=").append(manifest.uniqueChunks.size())
+               .append(" files=").append(manifest.files.size()).append("\n");
             Log.i(TAG, "Manifest: chunkDir=" + manifest.chunkDir
                     + " chunks=" + manifest.uniqueChunks.size()
                     + " files=" + manifest.files.size());
@@ -212,8 +229,13 @@ public class EpicDownloadManager {
             final AtomicLong lastSpeedMs       = new AtomicLong(System.currentTimeMillis());
             final AtomicLong lastSpeedBytes    = new AtomicLong(0);
             final AtomicLong currentSpeedBps   = new AtomicLong(0);
+            final java.util.concurrent.ConcurrentLinkedQueue<String> chunkLog =
+                    new java.util.concurrent.ConcurrentLinkedQueue<>();
 
-            // Download unique chunks — 6 parallel threads
+            dbg.append("totalDownloadBytes=").append(totalBytes)
+               .append(String.format(" (%.1f MB)\n", totalBytes / 1048576.0));
+
+            // Download unique chunks — 8 parallel threads
             ExecutorService pool = Executors.newFixedThreadPool(8);
             for (ChunkInfo chunk : manifest.uniqueChunks) {
                 final ChunkInfo fc = chunk;
@@ -222,6 +244,7 @@ public class EpicDownloadManager {
                     if (!cachedFile.exists()) {
                         if (!downloadChunkStreaming(fc, manifest.chunkDir, cdnUrls, cachedFile)) {
                             Log.e(TAG, "Chunk download failed: " + fc.guidStr());
+                            chunkLog.add("FAIL chunk=" + fc.guidStr());
                             failCount.incrementAndGet();
                             return;
                         }
@@ -230,7 +253,6 @@ public class EpicDownloadManager {
                     int  cnt  = completedCount.incrementAndGet();
                     int  pct  = (int)(done * 80L / fTotalBytes);
 
-                    // Speed: one thread updates every 500ms via CAS
                     long nowMs     = System.currentTimeMillis();
                     long prevMs    = lastSpeedMs.get();
                     long timeDelta = nowMs - prevMs;
@@ -252,17 +274,26 @@ public class EpicDownloadManager {
                 pool.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
+                dbg.append("ERROR: chunk pool interrupted\n");
+                writeDebug(ctx, dbg);
                 return false;
             }
 
+            // Drain per-chunk failures into dbg
+            for (String line : chunkLog) dbg.append(line).append("\n");
+
             if (failCount.get() > 0) {
+                dbg.append("ERROR: ").append(failCount.get()).append(" chunks failed\n");
+                writeDebug(ctx, dbg);
                 Log.e(TAG, failCount.get() + " chunks failed to download");
                 return false;
             }
+            dbg.append("chunksOK=").append(completedCount.get()).append("\n");
 
             // Assemble files — show each filename as it is written
             int totalFiles = manifest.files.size();
             int doneFiles  = 0;
+            dbg.append("assembling ").append(totalFiles).append(" files\n");
             for (FileInfo file : manifest.files) {
                 String relPath = file.filename.replace("\\", "/");
                 File outFile   = new File(installDir, relPath);
@@ -279,6 +310,9 @@ public class EpicDownloadManager {
                     for (ChunkPart part : file.parts) {
                         File cachedChunk = new File(chunkCacheDir, part.guidStr());
                         if (!cachedChunk.exists()) {
+                            dbg.append("ERROR: missing chunk ").append(part.guidStr())
+                               .append(" for ").append(relPath).append("\n");
+                            writeDebug(ctx, dbg);
                             Log.e(TAG, "Missing cached chunk " + part.guidStr() + " for " + relPath);
                             return false;
                         }
@@ -291,12 +325,30 @@ public class EpicDownloadManager {
             }
 
             deleteDir(chunkCacheDir);
+            dbg.append("INSTALL COMPLETE: ").append(installDirPath).append("\n");
+            writeDebug(ctx, dbg);
             Log.i(TAG, "Epic install complete: " + installDirPath);
             return true;
 
         } catch (Exception e) {
+            dbg.append("EXCEPTION: ").append(e).append("\n");
+            writeDebug(ctx, dbg);
             Log.e(TAG, "Epic install failed", e);
             return false;
+        }
+    }
+
+    private static void writeDebug(android.content.Context ctx, StringBuilder dbg) {
+        try {
+            java.io.File dir = ctx.getExternalFilesDir(null);
+            if (dir == null) dir = ctx.getFilesDir();
+            java.io.File f = new java.io.File(dir, "bh_epic_debug.txt");
+            try (FileOutputStream fos = new FileOutputStream(f)) {
+                fos.write(dbg.toString().getBytes("UTF-8"));
+            }
+            Log.i(TAG, "Debug written to: " + f.getAbsolutePath());
+        } catch (Exception e) {
+            Log.e(TAG, "writeDebug failed", e);
         }
     }
 

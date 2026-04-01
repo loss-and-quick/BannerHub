@@ -792,6 +792,7 @@ public class EpicGamesActivity extends Activity {
                 // Run download pipeline
                 final String finalToken = token;
                 boolean ok = EpicDownloadManager.install(
+                        EpicGamesActivity.this,
                         manifestJson,
                         finalToken,
                         installDir.getAbsolutePath(),
