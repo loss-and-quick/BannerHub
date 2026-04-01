@@ -42,7 +42,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class AmazonDownloadManager {
 
     private static final String TAG                   = "BH_AMAZON";
-    private static final int    MAX_PARALLEL          = 6;
+    private static final int    MAX_PARALLEL          = 8;
     private static final int    MAX_RETRIES           = 3;
     private static final long   PROGRESS_INTERVAL     = 512L * 1024L;  // 512 KB
     private static final String DOWNLOAD_USER_AGENT   = "nile/0.1 Amazon";

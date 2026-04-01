@@ -213,7 +213,7 @@ public class EpicDownloadManager {
             final AtomicLong currentSpeedBps   = new AtomicLong(0);
 
             // Download unique chunks — 6 parallel threads
-            ExecutorService pool = Executors.newFixedThreadPool(6);
+            ExecutorService pool = Executors.newFixedThreadPool(8);
             for (ChunkInfo chunk : manifest.uniqueChunks) {
                 final ChunkInfo fc = chunk;
                 pool.submit(() -> {

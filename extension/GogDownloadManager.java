@@ -336,7 +336,7 @@ public final class GogDownloadManager {
             final AtomicBoolean anyFailed    = new AtomicBoolean(false);
             final String        fCdnBase     = cdnBase;
 
-            ExecutorService pool = Executors.newFixedThreadPool(6);
+            ExecutorService pool = Executors.newFixedThreadPool(8);
             List<Future<Void>> futures = new ArrayList<>();
             for (DepotFile df : files) {
                 futures.add(pool.submit((Callable<Void>) () -> {
@@ -505,28 +505,50 @@ public final class GogDownloadManager {
             installPath.mkdirs();
             installDirRef.set(installPath);
 
-            int total = files.size(), done = 0;
-            long speedWindowStartG1 = System.currentTimeMillis();
-            long speedWindowBytesG1 = 0;
-            long speedBpsG1 = 0;
+            final int totalG1                   = files.size();
+            final AtomicInteger doneG1          = new AtomicInteger(0);
+            final AtomicLong    totalBytesG1    = new AtomicLong(0);
+            final AtomicLong    lastSpeedMsG1   = new AtomicLong(System.currentTimeMillis());
+            final AtomicLong    lastSpeedBG1    = new AtomicLong(0);
+            final AtomicLong    speedBpsG1      = new AtomicLong(0);
+            final AtomicBoolean anyFailedG1     = new AtomicBoolean(false);
+
+            ExecutorService poolG1 = Executors.newFixedThreadPool(8);
+            List<Future<Void>> futuresG1 = new ArrayList<>();
             for (Gen1File gf : files) {
-                if (cancelled.get()) return "cancelled";
-                int pct = 15 + (int) ((done / (float) total) * 80);
-                String speedStrG1 = formatSpeed(speedBpsG1);
-                cb.onProgress("Downloading: " + gf.path
-                        + (speedStrG1.isEmpty() ? "" : "  " + speedStrG1), pct);
-                File outFile = new File(installPath, gf.path);
-                outFile.getParentFile().mkdirs();
-                downloadRange(gf.url, gf.offset, gf.size, outFile);
-                done++;
-                speedWindowBytesG1 += gf.size;
-                long elapsedG1 = System.currentTimeMillis() - speedWindowStartG1;
-                if (elapsedG1 >= 1000) {
-                    speedBpsG1 = speedWindowBytesG1 * 1000L / elapsedG1;
-                    speedWindowStartG1 = System.currentTimeMillis();
-                    speedWindowBytesG1 = 0;
-                }
+                futuresG1.add(poolG1.submit((Callable<Void>) () -> {
+                    if (cancelled.get() || anyFailedG1.get()) return null;
+                    File outFile = new File(installPath, gf.path);
+                    outFile.getParentFile().mkdirs();
+                    boolean ok = downloadRange(gf.url, gf.offset, gf.size, outFile);
+                    if (!ok) { anyFailedG1.set(true); return null; }
+                    int done   = doneG1.incrementAndGet();
+                    long tb    = totalBytesG1.addAndGet(gf.size);
+                    int pct    = 15 + (int) ((done / (float) totalG1) * 80);
+                    long nowMs = System.currentTimeMillis();
+                    long prevMs = lastSpeedMsG1.get();
+                    if (nowMs - prevMs >= 500 && lastSpeedMsG1.compareAndSet(prevMs, nowMs)) {
+                        long prevB = lastSpeedBG1.getAndSet(tb);
+                        long dt = nowMs - prevMs;
+                        if (dt > 0) speedBpsG1.set((tb - prevB) * 1000L / dt);
+                    }
+                    String speedStr = formatSpeed(speedBpsG1.get());
+                    String name = gf.path.contains("/")
+                            ? gf.path.substring(gf.path.lastIndexOf('/') + 1) : gf.path;
+                    cb.onProgress("Downloading: " + name
+                            + (speedStr.isEmpty() ? "" : "  " + speedStr), pct);
+                    return null;
+                }));
             }
+            poolG1.shutdown();
+            try {
+                for (Future<Void> f : futuresG1) f.get();
+            } catch (Exception e) {
+                poolG1.shutdownNow();
+                return "gen1 parallel error: " + e;
+            }
+            if (cancelled.get()) return "cancelled";
+            if (anyFailedG1.get()) return "one or more gen1 files failed to download";
 
             cb.onProgress("Install complete!", 100);
 
@@ -805,7 +827,7 @@ public final class GogDownloadManager {
     }
 
     /** Downloads a byte range from {@code url} and writes it to {@code out}. */
-    private static void downloadRange(String url, long offset, long size, File out) {
+    private static boolean downloadRange(String url, long offset, long size, File out) {
         try {
             HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
             conn.setConnectTimeout(TIMEOUT);
@@ -813,13 +835,15 @@ public final class GogDownloadManager {
             conn.setRequestProperty("Range", "bytes=" + offset + "-" + (offset + size - 1));
             try (InputStream is = conn.getInputStream();
                  FileOutputStream fos = new FileOutputStream(out)) {
-                byte[] buf = new byte[32768];
+                byte[] buf = new byte[131072];
                 int n;
                 while ((n = is.read(buf)) != -1) fos.write(buf, 0, n);
             }
             conn.disconnect();
+            return true;
         } catch (Exception e) {
             Log.w(TAG, "downloadRange failed: " + url, e);
+            return false;
         }
     }
 
