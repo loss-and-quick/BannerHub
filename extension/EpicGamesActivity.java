@@ -24,6 +24,7 @@ import android.util.Log;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
@@ -351,6 +352,11 @@ public class EpicGamesActivity extends Activity {
         cardBg.setCornerRadius(dp(6));
         card.setBackground(cardBg);
         card.setFocusable(true);
+        card.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
+        card.setOnFocusChangeListener((v, hasFocus) -> {
+            cardBg.setColor(hasFocus ? 0xFF1B1F2A : COLOR_CARD_BG);
+            cardBg.setStroke(hasFocus ? dp(3) : 0, hasFocus ? 0xFFFFD700 : 0x00000000);
+        });
         LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(-1, -2);
         cardLp.bottomMargin = dp(8);
 
@@ -623,6 +629,11 @@ public class EpicGamesActivity extends Activity {
         tile.setBackground(tileBg);
         tile.setClipToOutline(true);
         tile.setFocusable(true);
+        tile.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
+        tile.setOnFocusChangeListener((v, hasFocus) -> {
+            tileBg.setColor(hasFocus ? 0xFF1E2330 : 0xFF141820);
+            tileBg.setStroke(hasFocus ? dp(3) : 0, hasFocus ? 0xFFFFD700 : 0x00000000);
+        });
 
         FrameLayout artFrame = new FrameLayout(this);
 
