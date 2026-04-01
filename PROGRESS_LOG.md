@@ -4,7 +4,17 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
-## [feat] — v2.8.2-pre5 — Debug files for Epic + Amazon; GOG parallel logging (2026-04-01)
+## [feat] — v2.8.2-pre5 — Controller focus highlight: gold border + bg tint on GOG/Epic/Amazon cards (2026-04-01)
+**Branch:** `main`  |  **Tag:** v2.8.2-pre5 (retagged)
+**Commit:** `84e4c4920`  |  **CI:** queued
+**What changed:**
+- Root cause fix: FOCUS_BLOCK_DESCENDANTS on all 6 card/tile roots (3 stores × list + grid/poster) — child buttons were stealing D-pad focus so onFocusChangeListener never fired on card root
+- Focused state: 3dp gold (#FFD700) stroke + slightly lighter background tint
+- Unfocused state: no stroke, original background color
+
+---
+
+## [feat] — v2.8.2-pre5 (prev) — Debug files for Epic + Amazon; GOG parallel logging (2026-04-01)
 **Branch:** `main`  |  **Tag:** v2.8.2-pre5
 **Commit:** `353a97e98`  |  **CI:** queued
 **What changed:**
@@ -2838,3 +2848,32 @@ manifest download, install, launch, SDK cache + update checker.
 - Fallback scan now tries: wine64, wine, wineloader, wine64-preloader
 - launchExe() now takes Context and shows error Toast if binary not found
 - BhInitLaunchRunnable: opens at WINEPREFIX/dosdevices (c:, d:, z: drive letters) instead of WINEPREFIX root
+
+### [fix] — v2.8.2-pre6 — Epic install size sanity check (2026-04-01)
+**Commit:** `7b0b3e207`  |  **Tag:** v2.8.2-pre6
+#### What changed
+- EpicGamesActivity.loadCachedGames(): after optLong("installSize"), discard any value > 1 TB (1_099_511_627_776 bytes) and reset to 0
+- Fixes Dreamscaper (and any other game) showing e.g. "7516192768.00 GB" due to a stale/corrupt long in bh_epic_prefs
+#### Files touched
+- extension/EpicGamesActivity.java
+
+### [polish] — v2.8.2-pre7 — UI polish: all 3 store screens (2026-04-01)
+**Commit:** `f110010ec`  |  **Tag:** v2.8.2-pre7
+#### What changed
+- Developer/genre subtitle in collapsed list cards (GOG/Epic/Amazon)
+- Empty state message when library empty or search returns 0 results
+- setSync() color-coding: errors=red, success=green, loading=gray
+- Progress bar tinted to store accent color via PorterDuff.SRC_IN
+- "game(s)" → proper singular/plural in sync messages
+#### Files touched
+- extension/GogGamesActivity.java
+- extension/EpicGamesActivity.java
+- extension/AmazonGamesActivity.java
+
+### [fix] — v2.8.2-pre8 — compile fix for GogGamesActivity curly quotes (2026-04-01)
+**Commit:** `193f3aa75`  |  **Tag:** v2.8.2-pre8
+#### What changed
+- Replaced literal " and " Unicode curly quote chars with \u201c/\u201d escape sequences
+- Same pattern Epic/Amazon already used; GOG was missed causing javac ')' expected error
+#### Files touched
+- extension/GogGamesActivity.java
