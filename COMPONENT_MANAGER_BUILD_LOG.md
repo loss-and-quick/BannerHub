@@ -30,6 +30,32 @@ Each entry covers one logical change unit (commit or closely related set of comm
 
 ---
 
+## Entry 102 — feat: Controller focus highlight for GOG/Epic/Amazon cards (v2.8.2-pre9, main)
+**Date:** 2026-04-01
+**Branch:** main  |  **Tag:** v2.8.2-pre9  |  **Commit:** `84e4c4920`
+
+### Root cause analysis
+`onFocusChangeListener` on card/tile roots never fired with `hasFocus=true` because child `Button` views inside each card were focusable by default. When D-pad navigated to a card, Android's focus engine passed focus to the first focusable descendant (the `actionBtn` button) instead of the card root — so the card's stroke/highlight code never ran. The user could press A (onClick still worked via touch dispatch) but had no visual indicator.
+
+### Changes
+- **3 files × 2 view modes = 6 locations patched**
+- Added `card.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS)` — focus now lands on the card/tile root, not children
+- Upgraded `onFocusChangeListener`: 3dp gold (#FFD700) stroke + slightly lighter background tint on focus; both cleared on blur
+- Added `import android.view.ViewGroup` to all three files
+
+#### Files modified
+| File | Change |
+|------|--------|
+| `extension/GogGamesActivity.java` | Import + list card + poster tile |
+| `extension/EpicGamesActivity.java` | Import + list card + grid tile |
+| `extension/AmazonGamesActivity.java` | Import + list card + grid tile |
+
+### CI
+- **Workflow:** Build APK (Quick — Normal only)
+- **Run:** 23874934728  |  **Result:** ✅ success
+
+---
+
 ## Entry 101 — feat: Task #6 Gen 2 GOG download pipeline (v2.7.0-beta30, gog-beta)
 **Date:** 2026-03-21
 **Branch:** gog-beta  |  **Tag:** v2.7.0-beta30
