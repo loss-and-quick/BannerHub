@@ -219,7 +219,7 @@ public class EpicDownloadManager {
                 pool.submit(() -> {
                     File cachedFile = new File(chunkCacheDir, fc.guidStr());
                     if (!cachedFile.exists()) {
-                        if (!downloadChunk(fc, manifest.chunkDir, cdnUrls, cachedFile)) {
+                        if (!downloadChunkStreaming(fc, manifest.chunkDir, cdnUrls, cachedFile)) {
                             Log.e(TAG, "Chunk download failed: " + fc.guidStr());
                             failCount.incrementAndGet();
                             return;
@@ -761,9 +761,12 @@ public class EpicDownloadManager {
                 Log.w(TAG, "HTTP " + code + " for " + urlStr);
                 return null;
             }
+            int contentLength = conn.getContentLength();
+            ByteArrayOutputStream out = contentLength > 0
+                    ? new ByteArrayOutputStream(contentLength)
+                    : new ByteArrayOutputStream();
             InputStream in = conn.getInputStream();
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            byte[] buf = new byte[8192];
+            byte[] buf = new byte[131072];
             int n;
             while ((n = in.read(buf)) != -1) out.write(buf, 0, n);
             in.close();
@@ -773,6 +776,114 @@ public class EpicDownloadManager {
             return null;
         } finally {
             if (conn != null) conn.disconnect();
+        }
+    }
+
+    /**
+     * Streams a chunk directly from CDN to outFile without holding the full
+     * compressed + decompressed data in memory simultaneously.
+     * Reads HTTP stream → parses chunk header → inflates/copies payload → writes to file.
+     */
+    private static boolean downloadChunkStreaming(ChunkInfo chunk, String chunkDir,
+                                                   List<CdnUrl> cdnUrls, File outFile) {
+        String chunkPath = chunk.getPath(chunkDir);
+        for (CdnUrl cdn : cdnUrls) {
+            String url = cdn.baseUrl + cdn.cloudDir + "/" + chunkPath;
+            HttpURLConnection conn = null;
+            try {
+                conn = (HttpURLConnection) new URL(url).openConnection();
+                conn.setConnectTimeout(30000);
+                conn.setReadTimeout(60000);
+                conn.setRequestProperty("User-Agent", UA);
+                if (conn.getResponseCode() != 200) { conn.disconnect(); continue; }
+
+                try (InputStream in = conn.getInputStream();
+                     FileOutputStream fos = new FileOutputStream(outFile)) {
+
+                    // Read first 41 bytes: magic(4)+headerVersion(4)+headerSize(4)+
+                    //   compressedSize(4)+GUID(16)+hash(8)+storedAs(1)
+                    byte[] hdrBuf = new byte[41];
+                    readFully(in, hdrBuf);
+                    ByteBuffer hdr = ByteBuffer.wrap(hdrBuf).order(ByteOrder.LITTLE_ENDIAN);
+                    int magic = hdr.getInt();
+                    if (magic != 0xB1FE3AA2) {
+                        Log.w(TAG, "Bad chunk magic (streaming): 0x" + Integer.toHexString(magic));
+                        continue;
+                    }
+                    hdr.getInt(); // headerVersion
+                    int headerSize     = hdr.getInt();
+                    int compressedSize = hdr.getInt();
+                    hdr.position(hdr.position() + 24); // skip GUID(16) + hash(8)
+                    int storedAs = hdr.get() & 0xFF;
+
+                    // Skip any extra header bytes beyond the 41 we already read
+                    if (headerSize > 41) skipFully(in, headerSize - 41);
+
+                    // Stream payload → file
+                    byte[] iobuf = new byte[131072];
+                    if ((storedAs & 1) != 0) {
+                        // zlib-compressed payload
+                        Inflater inflater = new Inflater();
+                        byte[] obuf = new byte[131072];
+                        int remaining = compressedSize;
+                        try {
+                            while (remaining > 0 && !inflater.finished()) {
+                                if (inflater.needsInput()) {
+                                    int toRead = Math.min(iobuf.length, remaining);
+                                    int n = in.read(iobuf, 0, toRead);
+                                    if (n <= 0) break;
+                                    remaining -= n;
+                                    inflater.setInput(iobuf, 0, n);
+                                }
+                                int out = inflater.inflate(obuf);
+                                if (out > 0) fos.write(obuf, 0, out);
+                            }
+                            // drain any remaining output
+                            int out;
+                            while ((out = inflater.inflate(obuf)) > 0) fos.write(obuf, 0, out);
+                        } finally {
+                            inflater.end();
+                        }
+                    } else {
+                        // stored as-is
+                        int remaining = compressedSize;
+                        while (remaining > 0) {
+                            int toRead = Math.min(iobuf.length, remaining);
+                            int n = in.read(iobuf, 0, toRead);
+                            if (n <= 0) break;
+                            fos.write(iobuf, 0, n);
+                            remaining -= n;
+                        }
+                    }
+                }
+                conn.disconnect();
+                return true;
+            } catch (Exception e) {
+                Log.w(TAG, "CDN " + cdn.baseUrl + " streaming failed for "
+                        + chunk.guidStr() + ": " + e.getMessage());
+                if (conn != null) conn.disconnect();
+            }
+        }
+        Log.e(TAG, "All CDNs failed (streaming) for chunk " + chunk.guidStr());
+        return false;
+    }
+
+    private static void readFully(InputStream in, byte[] buf) throws IOException {
+        int offset = 0;
+        while (offset < buf.length) {
+            int n = in.read(buf, offset, buf.length - offset);
+            if (n < 0) throw new IOException("Stream ended after " + offset + "/" + buf.length + " bytes");
+            offset += n;
+        }
+    }
+
+    private static void skipFully(InputStream in, int count) throws IOException {
+        byte[] skip = new byte[Math.min(count, 4096)];
+        int remaining = count;
+        while (remaining > 0) {
+            int n = in.read(skip, 0, Math.min(skip.length, remaining));
+            if (n < 0) throw new IOException("Stream ended during skip");
+            remaining -= n;
         }
     }
 

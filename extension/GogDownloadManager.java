@@ -342,41 +342,66 @@ public final class GogDownloadManager {
                 futures.add(pool.submit((Callable<Void>) () -> {
                     if (cancelled.get() || anyFailed.get()) return null;
                     File outFile = new File(installPath, df.relativePath);
+                    File tmpFile = new File(installPath, df.relativePath + ".bhtmp");
                     outFile.getParentFile().mkdirs();
-                    long fileBytes = 0;
-                    try (FileOutputStream fos = new FileOutputStream(outFile)) {
-                        for (DepotFile.ChunkRef chunk : df.chunks) {
-                            if (cancelled.get() || anyFailed.get()) return null;
-                            String chunkUrl = fCdnBase + "/" + buildCdnPath(chunk.hash);
-                            byte[] chunkRaw = fetchBytes(chunkUrl, null);
-                            if (chunkRaw == null) {
-                                Log.w(TAG, "Chunk download failed: " + chunk.hash);
-                                anyFailed.set(true);
-                                return null;
+
+                    // Resume: skip if already fully written
+                    if (outFile.exists() && outFile.length() > 0) {
+                        int done = doneCount.incrementAndGet();
+                        int pct  = 15 + (int) ((done / (float) total) * 80);
+                        cb.onProgress("Resuming…", pct);
+                        return null;
+                    }
+
+                    for (int attempt = 1; attempt <= 3; attempt++) {
+                        if (cancelled.get() || anyFailed.get()) return null;
+                        tmpFile.delete();
+                        long fileBytes = 0;
+                        boolean ok = false;
+                        try (FileOutputStream fos = new FileOutputStream(tmpFile)) {
+                            ok = true;
+                            for (DepotFile.ChunkRef chunk : df.chunks) {
+                                if (cancelled.get()) return null;
+                                String chunkUrl = fCdnBase + "/" + buildCdnPath(chunk.hash);
+                                byte[] chunkRaw = fetchBytes(chunkUrl, null);
+                                if (chunkRaw == null) { ok = false; break; }
+                                fileBytes += chunkRaw.length;
+                                byte[] inflated = inflateZlib(chunkRaw);
+                                if (inflated == null) inflated = chunkRaw;
+                                fos.write(inflated);
                             }
-                            fileBytes += chunkRaw.length;
-                            byte[] inflated = inflateZlib(chunkRaw);
-                            if (inflated == null) inflated = chunkRaw;
-                            fos.write(inflated);
+                        } catch (Exception e) {
+                            ok = false;
+                        }
+                        if (ok) {
+                            if (outFile.exists()) outFile.delete();
+                            tmpFile.renameTo(outFile);
+                            int done = doneCount.incrementAndGet();
+                            long tb  = totalBytes.addAndGet(fileBytes);
+                            int pct  = 15 + (int) ((done / (float) total) * 80);
+                            long nowMs  = System.currentTimeMillis();
+                            long prevMs = lastSpeedMs.get();
+                            if (nowMs - prevMs >= 500 && lastSpeedMs.compareAndSet(prevMs, nowMs)) {
+                                long prevB = lastSpeedB.getAndSet(tb);
+                                long dt = nowMs - prevMs;
+                                if (dt > 0) speedBps.set((tb - prevB) * 1000L / dt);
+                            }
+                            String speedStr = formatSpeed(speedBps.get());
+                            String name = df.relativePath.contains("/")
+                                    ? df.relativePath.substring(df.relativePath.lastIndexOf('/') + 1)
+                                    : df.relativePath;
+                            cb.onProgress("Downloading: " + name
+                                    + (speedStr.isEmpty() ? "" : "  " + speedStr), pct);
+                            return null;
+                        }
+                        tmpFile.delete();
+                        if (attempt < 3) {
+                            try { Thread.sleep(1000L << (attempt - 1)); }
+                            catch (InterruptedException ie) { Thread.currentThread().interrupt(); return null; }
                         }
                     }
-                    int done = doneCount.incrementAndGet();
-                    long tb  = totalBytes.addAndGet(fileBytes);
-                    int pct  = 15 + (int) ((done / (float) total) * 80);
-                    // Speed update (one thread wins CAS per 500ms)
-                    long nowMs = System.currentTimeMillis();
-                    long prevMs = lastSpeedMs.get();
-                    if (nowMs - prevMs >= 500 && lastSpeedMs.compareAndSet(prevMs, nowMs)) {
-                        long prevB = lastSpeedB.getAndSet(tb);
-                        long dt = nowMs - prevMs;
-                        if (dt > 0) speedBps.set((tb - prevB) * 1000L / dt);
-                    }
-                    String speedStr = formatSpeed(speedBps.get());
-                    String name = df.relativePath.contains("/")
-                            ? df.relativePath.substring(df.relativePath.lastIndexOf('/') + 1)
-                            : df.relativePath;
-                    cb.onProgress("Downloading: " + name
-                            + (speedStr.isEmpty() ? "" : "  " + speedStr), pct);
+                    Log.e(TAG, "Gen2 file failed after 3 attempts: " + df.relativePath);
+                    anyFailed.set(true);
                     return null;
                 }));
             }
@@ -520,23 +545,44 @@ public final class GogDownloadManager {
                     if (cancelled.get() || anyFailedG1.get()) return null;
                     File outFile = new File(installPath, gf.path);
                     outFile.getParentFile().mkdirs();
-                    boolean ok = downloadRange(gf.url, gf.offset, gf.size, outFile);
-                    if (!ok) { anyFailedG1.set(true); return null; }
-                    int done   = doneG1.incrementAndGet();
-                    long tb    = totalBytesG1.addAndGet(gf.size);
-                    int pct    = 15 + (int) ((done / (float) totalG1) * 80);
-                    long nowMs = System.currentTimeMillis();
-                    long prevMs = lastSpeedMsG1.get();
-                    if (nowMs - prevMs >= 500 && lastSpeedMsG1.compareAndSet(prevMs, nowMs)) {
-                        long prevB = lastSpeedBG1.getAndSet(tb);
-                        long dt = nowMs - prevMs;
-                        if (dt > 0) speedBpsG1.set((tb - prevB) * 1000L / dt);
+
+                    // Resume: skip if size already matches
+                    if (outFile.exists() && outFile.length() == gf.size) {
+                        int done = doneG1.incrementAndGet();
+                        int pct  = 15 + (int) ((done / (float) totalG1) * 80);
+                        cb.onProgress("Resuming…", pct);
+                        return null;
                     }
-                    String speedStr = formatSpeed(speedBpsG1.get());
-                    String name = gf.path.contains("/")
-                            ? gf.path.substring(gf.path.lastIndexOf('/') + 1) : gf.path;
-                    cb.onProgress("Downloading: " + name
-                            + (speedStr.isEmpty() ? "" : "  " + speedStr), pct);
+
+                    for (int attempt = 1; attempt <= 3; attempt++) {
+                        if (cancelled.get()) return null;
+                        outFile.delete();
+                        boolean ok = downloadRange(gf.url, gf.offset, gf.size, outFile);
+                        if (ok) {
+                            int done   = doneG1.incrementAndGet();
+                            long tb    = totalBytesG1.addAndGet(gf.size);
+                            int pct    = 15 + (int) ((done / (float) totalG1) * 80);
+                            long nowMs  = System.currentTimeMillis();
+                            long prevMs = lastSpeedMsG1.get();
+                            if (nowMs - prevMs >= 500 && lastSpeedMsG1.compareAndSet(prevMs, nowMs)) {
+                                long prevB = lastSpeedBG1.getAndSet(tb);
+                                long dt = nowMs - prevMs;
+                                if (dt > 0) speedBpsG1.set((tb - prevB) * 1000L / dt);
+                            }
+                            String speedStr = formatSpeed(speedBpsG1.get());
+                            String name = gf.path.contains("/")
+                                    ? gf.path.substring(gf.path.lastIndexOf('/') + 1) : gf.path;
+                            cb.onProgress("Downloading: " + name
+                                    + (speedStr.isEmpty() ? "" : "  " + speedStr), pct);
+                            return null;
+                        }
+                        if (attempt < 3) {
+                            try { Thread.sleep(1000L << (attempt - 1)); }
+                            catch (InterruptedException ie) { Thread.currentThread().interrupt(); return null; }
+                        }
+                    }
+                    Log.e(TAG, "Gen1 file failed after 3 attempts: " + gf.path);
+                    anyFailedG1.set(true);
                     return null;
                 }));
             }
@@ -878,8 +924,11 @@ public final class GogDownloadManager {
             conn.setRequestProperty("User-Agent", "GOG Galaxy");
             if (token != null) conn.setRequestProperty("Authorization", "Bearer " + token);
             if (conn.getResponseCode() != 200) { conn.disconnect(); return null; }
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            byte[] buf = new byte[4096];
+            int contentLength = conn.getContentLength();
+            ByteArrayOutputStream bos = contentLength > 0
+                    ? new ByteArrayOutputStream(contentLength)
+                    : new ByteArrayOutputStream();
+            byte[] buf = new byte[131072];
             try (InputStream is = conn.getInputStream()) {
                 int n;
                 while ((n = is.read(buf)) != -1) bos.write(buf, 0, n);
