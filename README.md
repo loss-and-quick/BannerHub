@@ -36,6 +36,8 @@ Before any stable release is published, all changes are manually debugged and te
   - [PC Game Settings: Offline Mode](#pc-game-settings-offline-mode)
   - [Offline Steam Launch](#offline-steam-launch)
   - [Settings: Advanced Tab](#settings-advanced-tab)
+  - [Controller Navigation](#controller-navigation)
+  - [Wine Task Manager](#wine-task-manager)
   - [Component Descriptions in Game Settings](#component-descriptions-in-game-settings)
   - [Japanese Locale](#japanese-locale)
   - [UI Tweaks](#ui-tweaks)
@@ -398,6 +400,41 @@ When Steam auto-login fails at cold start with no network, BannerHub detects the
 | **Performance Metrics** | Show/hide full performance metrics overlay |
 | **Sustained Performance Mode** | Same toggle as the Performance sidebar — available here for convenience outside a running game |
 | **Grant Root Access** | Opens a warning dialog, then runs `su -c id` on a background thread and stores the result. Performance sidebar reads this pref to enable or grey out the root-dependent toggles — no unsolicited root popup on sidebar open |
+
+---
+
+### Controller Navigation
+
+All three game store activities (GOG, Epic, Amazon) support full D-pad / gamepad controller navigation.
+
+- **Game cards (list view)** — navigate up/down with D-pad; focused card shows a **gold 3dp border** + slightly lighter background; press A to expand/collapse
+- **Game tiles (grid/poster view)** — navigate in all four directions; focused tile shows a gold border via a foreground overlay (works correctly with rounded-corner art clipping); press A to expand/select
+- **Header buttons** (back ←, view toggle, refresh ↺) — focusable with a gold 2dp border + lighter fill on focus; press A to activate
+
+Focus highlight uses gold (#FFD700) consistently across all stores and view modes.
+
+---
+
+### Wine Task Manager
+
+Accessible from the **in-game sidebar** (three-bar icon) while a game is running. Provides live monitoring and control of the Wine session without leaving the game.
+
+#### Tabs
+
+| Tab | What it shows |
+|-----|--------------|
+| **Container Info** | CPU cores (WINEMU_CPU_AFFINITY), RAM (/proc/meminfo), VRam (SharedPreferences), device model, Android version |
+| **Applications** | All `wine*` host processes with PID — tap any row to kill it |
+| **Processes** | All `.exe` guest processes with PID — tap any row to kill it |
+| **Launch** | WINEPREFIX file browser — navigate directories (yellow ▶), tap any `.exe / .msi / .bat / .cmd` file (white) to launch it via the Wine binary |
+
+All tabs auto-refresh every 3 seconds. The **Kill** button at the top terminates the selected process immediately.
+
+#### Launch Tab
+
+The Launch tab lets you run additional executables inside an already-running Wine session — useful for launchers, patchers, or tools that the game itself doesn't start. The browser starts at `dosdevices/` in the WINEPREFIX and drills down from there.
+
+A launch guard prevents Wine's "session complete" callback from tearing down the active game session when the secondary executable closes. The guard is released automatically 3 seconds after the secondary process exits.
 
 ---
 
