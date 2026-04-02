@@ -314,62 +314,9 @@
     invoke-direct {v4, v1}, Lcom/xj/winemu/sidebar/BhHudOpacityListener;-><init>(Landroid/content/Context;)V
     invoke-virtual {v3, v4}, Landroid/widget/SeekBar;->setOnSeekBarChangeListener(Landroid/widget/SeekBar$OnSeekBarChangeListener;)V
 
-    # ── Inject BhFrameRating into DecorView (once per WineActivity instance) ─
+    # ── Delegate all HUD visibility to BhHudInjector (handles both HUDs correctly) ──
     check-cast v1, Landroid/app/Activity;
-    invoke-virtual {v1}, Landroid/app/Activity;->getWindow()Landroid/view/Window;
-    move-result-object v8
-    invoke-virtual {v8}, Landroid/view/Window;->getDecorView()Landroid/view/View;
-    move-result-object v8
-    check-cast v8, Landroid/view/ViewGroup;
-
-    const-string v9, "bh_frame_rating"
-    invoke-virtual {v8, v9}, Landroid/view/View;->findViewWithTag(Ljava/lang/Object;)Landroid/view/View;
-    move-result-object v9
-
-    if-nez v9, :cond_fr_update_vis
-
-    # Create BhFrameRating with Activity context (needed for FPS reflection on WinUIBridge)
-    new-instance v9, Lcom/xj/winemu/sidebar/BhFrameRating;
-    invoke-direct {v9, v1}, Lcom/xj/winemu/sidebar/BhFrameRating;-><init>(Landroid/content/Context;)V
-
-    const-string v10, "bh_frame_rating"
-    invoke-virtual {v9, v10}, Landroid/view/View;->setTag(Ljava/lang/Object;)V
-
-    # FrameLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT, TOP|RIGHT = 0x35)
-    new-instance v10, Landroid/widget/FrameLayout$LayoutParams;
-    const/4 v11, -0x2
-    const/16 v12, 0x35
-    invoke-direct {v10, v11, v11, v12}, Landroid/widget/FrameLayout$LayoutParams;-><init>(III)V
-
-    # Initial visibility from pref
-    const-string v11, "winlator_hud"
-    const/4 v12, 0x0
-    invoke-interface {v2, v11, v12}, Landroid/content/SharedPreferences;->getBoolean(Ljava/lang/String;Z)Z
-    move-result v11
-    if-eqz v11, :fr_gone_init
-    const/4 v12, 0x0
-    goto :fr_set_vis_init
-    :fr_gone_init
-    const/16 v12, 0x8
-    :fr_set_vis_init
-    invoke-virtual {v9, v12}, Landroid/view/View;->setVisibility(I)V
-
-    invoke-virtual {v8, v9, v10}, Landroid/view/ViewGroup;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
-    goto :cond_done
-
-    # BhFrameRating already exists — sync visibility with current pref
-    :cond_fr_update_vis
-    const-string v10, "winlator_hud"
-    const/4 v11, 0x0
-    invoke-interface {v2, v10, v11}, Landroid/content/SharedPreferences;->getBoolean(Ljava/lang/String;Z)Z
-    move-result v10
-    if-eqz v10, :fr_gone_update
-    const/4 v11, 0x0
-    goto :fr_set_vis_update
-    :fr_gone_update
-    const/16 v11, 0x8
-    :fr_set_vis_update
-    invoke-virtual {v9, v11}, Landroid/view/View;->setVisibility(I)V
+    invoke-static {v1}, Lcom/xj/winemu/sidebar/BhHudInjector;->injectOrUpdate(Landroid/app/Activity;)V
 
     :cond_done
     return-void

@@ -435,6 +435,25 @@ public class BhDetailedHud extends LinearLayout implements Runnable {
     public void applyBackgroundOpacity(int opacity0to100) {
         int alpha = opacity0to100 * 255 / 100;
         setBackgroundColor(Color.argb(alpha, 0, 0, 0));
+        // Mirror BhFrameRating rules:
+        //   < 10% → tight shadow (simulates text outline when background is transparent)
+        //  10-29% → blurred shadow halo
+        //  ≥ 30%  → no shadow
+        float shadowRadius = opacity0to100 < 10 ? 3f : (opacity0to100 < 30 ? 4f : 0f);
+        int shadowColor = shadowRadius > 0 ? 0xFF000000 : 0;
+        for (TextView tv : allTextViews()) {
+            tv.setShadowLayer(shadowRadius, 0f, 0f, shadowColor);
+        }
+    }
+
+    /** Collects all non-null TextViews currently in the layout for batch styling. */
+    private TextView[] allTextViews() {
+        java.util.ArrayList<TextView> list = new java.util.ArrayList<>();
+        TextView[] fixed = { tvApi, tvTime, tvCpu, tvCpuTmp, tvGpu, tvGpuTmp, tvGpuMhz,
+                             tvBat, tvBatTmp, tvRam, tvSwap, tvFps };
+        for (TextView tv : fixed) if (tv != null) list.add(tv);
+        if (tvCores != null) for (TextView tv : tvCores) if (tv != null) list.add(tv);
+        return list.toArray(new TextView[0]);
     }
 
     // ── Update loop ───────────────────────────────────────────────────────
