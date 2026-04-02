@@ -223,6 +223,83 @@
 
     :cb_done
 
+    # ── "Konkr Style" CheckBox (below Extra Detailed) ────────────────────────
+    const-string v3, "bh_hud_konkr_cb"
+    invoke-virtual {v0, v3}, Landroid/view/View;->findViewWithTag(Ljava/lang/Object;)Landroid/view/View;
+    move-result-object v3
+
+    if-nez v3, :cond_konkr_cb_exists
+
+    # Create CheckBox(context)
+    new-instance v3, Landroid/widget/CheckBox;
+    invoke-direct {v3, v1}, Landroid/widget/CheckBox;-><init>(Landroid/content/Context;)V
+
+    const-string v4, "bh_hud_konkr_cb"
+    invoke-virtual {v3, v4}, Landroid/view/View;->setTag(Ljava/lang/Object;)V
+
+    const-string v4, "Konkr Style"
+    invoke-virtual {v3, v4}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
+
+    const v4, 0xFFFFFFFF
+    invoke-virtual {v3, v4}, Landroid/widget/TextView;->setTextColor(I)V
+
+    new-instance v4, Landroid/widget/LinearLayout$LayoutParams;
+    const/4 v5, -0x1
+    const/4 v6, -0x2
+    invoke-direct {v4, v5, v6}, Landroid/widget/LinearLayout$LayoutParams;-><init>(II)V
+
+    invoke-virtual {v1}, Landroid/content/Context;->getResources()Landroid/content/res/Resources;
+    move-result-object v5
+    invoke-virtual {v5}, Landroid/content/res/Resources;->getDisplayMetrics()Landroid/util/DisplayMetrics;
+    move-result-object v5
+    iget v5, v5, Landroid/util/DisplayMetrics;->density:F
+    const/4 v6, 0x4
+    int-to-float v6, v6
+    mul-float v5, v5, v6
+    float-to-int v5, v5
+    iput v5, v4, Landroid/widget/LinearLayout$LayoutParams;->topMargin:I
+
+    check-cast v0, Landroid/view/ViewGroup;
+    invoke-virtual {v0, v3, v4}, Landroid/view/ViewGroup;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
+
+    :cond_konkr_cb_exists
+    check-cast v3, Landroid/widget/CheckBox;
+
+    # Re-read winlator_hud pref
+    const-string v4, "winlator_hud"
+    const/4 v5, 0x0
+    invoke-interface {v2, v4, v5}, Landroid/content/SharedPreferences;->getBoolean(Ljava/lang/String;Z)Z
+    move-result v4
+
+    if-eqz v4, :konkr_cb_disable
+
+    # HUD is ON: enable checkbox, restore pref state, set listener
+    const/4 v5, 0x1
+    invoke-virtual {v3, v5}, Landroid/view/View;->setEnabled(Z)V
+    const v5, 0x3f800000
+    invoke-virtual {v3, v5}, Landroid/view/View;->setAlpha(F)V
+
+    const-string v5, "hud_konkr_style"
+    const/4 v6, 0x0
+    invoke-interface {v2, v5, v6}, Landroid/content/SharedPreferences;->getBoolean(Ljava/lang/String;Z)Z
+    move-result v5
+    invoke-virtual {v3, v5}, Landroid/widget/CompoundButton;->setChecked(Z)V
+
+    new-instance v5, Lcom/xj/winemu/sidebar/BhHudKonkrListener;
+    invoke-direct {v5, v1}, Lcom/xj/winemu/sidebar/BhHudKonkrListener;-><init>(Landroid/content/Context;)V
+    invoke-virtual {v3, v5}, Landroid/widget/CompoundButton;->setOnCheckedChangeListener(Landroid/widget/CompoundButton$OnCheckedChangeListener;)V
+
+    goto :konkr_cb_done
+
+    :konkr_cb_disable
+    const/4 v5, 0x0
+    invoke-virtual {v3, v5}, Landroid/widget/CompoundButton;->setChecked(Z)V
+    invoke-virtual {v3, v5}, Landroid/view/View;->setEnabled(Z)V
+    const v5, 0x3f000000
+    invoke-virtual {v3, v5}, Landroid/view/View;->setAlpha(F)V
+
+    :konkr_cb_done
+
     # ── HUD Opacity label ────────────────────────────────────────────────────
     const-string v3, "bh_hud_opacity_label"
     invoke-virtual {v0, v3}, Landroid/view/View;->findViewWithTag(Ljava/lang/Object;)Landroid/view/View;

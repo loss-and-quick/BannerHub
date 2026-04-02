@@ -1,11 +1,11 @@
-.class public final Lcom/xj/winemu/sidebar/BhHudExtraDetailListener;
+.class public final Lcom/xj/winemu/sidebar/BhHudKonkrListener;
 .super Ljava/lang/Object;
 .source "SourceFile"
 
-# OnCheckedChangeListener for the "Extra Detailed" checkbox.
-# When checked:   saves hud_extra_detail=true, hud_konkr_style=false,
-#                 unchecks the Konkr Style checkbox (bh_hud_konkr_cb) in the UI.
-# When unchecked: saves hud_extra_detail=false only.
+# OnCheckedChangeListener for the "Konkr Style" checkbox.
+# When checked:   saves hud_konkr_style=true, hud_extra_detail=false,
+#                 unchecks the Extra Detail checkbox (bh_hud_extra_cb) in the UI.
+# When unchecked: saves hud_konkr_style=false only.
 # Delegates all HUD visibility to BhHudInjector.injectOrUpdate().
 
 .implements Landroid/widget/CompoundButton$OnCheckedChangeListener;
@@ -15,7 +15,7 @@
 .method public constructor <init>(Landroid/content/Context;)V
     .locals 0
     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
-    iput-object p1, p0, Lcom/xj/winemu/sidebar/BhHudExtraDetailListener;->a:Landroid/content/Context;
+    iput-object p1, p0, Lcom/xj/winemu/sidebar/BhHudKonkrListener;->a:Landroid/content/Context;
     return-void
 .end method
 
@@ -24,7 +24,7 @@
     # p1 = CompoundButton (unused), p2 = isChecked
 
     # v0 = context
-    iget-object v0, p0, Lcom/xj/winemu/sidebar/BhHudExtraDetailListener;->a:Landroid/content/Context;
+    iget-object v0, p0, Lcom/xj/winemu/sidebar/BhHudKonkrListener;->a:Landroid/content/Context;
 
     # v1 = SharedPreferences
     const-string v1, "bh_prefs"
@@ -43,15 +43,15 @@
     invoke-interface {v1}, Landroid/content/SharedPreferences;->edit()Landroid/content/SharedPreferences$Editor;
     move-result-object v3
 
-    # Always save hud_extra_detail = isChecked
-    const-string v4, "hud_extra_detail"
+    # Always save hud_konkr_style = isChecked
+    const-string v4, "hud_konkr_style"
     invoke-interface {v3, v4, p2}, Landroid/content/SharedPreferences$Editor;->putBoolean(Ljava/lang/String;Z)Landroid/content/SharedPreferences$Editor;
     move-result-object v3
 
     if-eqz p2, :save_only
 
-    # Checked: also clear hud_konkr_style
-    const-string v4, "hud_konkr_style"
+    # Checked: also clear hud_extra_detail
+    const-string v4, "hud_extra_detail"
     const/4 v5, 0x0
     invoke-interface {v3, v4, v5}, Landroid/content/SharedPreferences$Editor;->putBoolean(Ljava/lang/String;Z)Landroid/content/SharedPreferences$Editor;
     move-result-object v3
@@ -59,7 +59,7 @@
     :save_only
     invoke-interface {v3}, Landroid/content/SharedPreferences$Editor;->apply()V
 
-    # If checked: uncheck Konkr Style checkbox in the view hierarchy
+    # If checked: uncheck Extra Detail checkbox in the view hierarchy
     if-eqz p2, :inject
 
     check-cast v0, Landroid/app/Activity;
@@ -69,7 +69,7 @@
     invoke-virtual {v4}, Landroid/view/Window;->getDecorView()Landroid/view/View;
     move-result-object v4
     if-eqz v4, :inject
-    const-string v5, "bh_hud_konkr_cb"
+    const-string v5, "bh_hud_extra_cb"
     invoke-virtual {v4, v5}, Landroid/view/View;->findViewWithTag(Ljava/lang/Object;)Landroid/view/View;
     move-result-object v5
     if-eqz v5, :inject
@@ -79,7 +79,7 @@
 
     :inject
     # Delegate all HUD visibility to BhHudInjector
-    iget-object v2, p0, Lcom/xj/winemu/sidebar/BhHudExtraDetailListener;->a:Landroid/content/Context;
+    iget-object v2, p0, Lcom/xj/winemu/sidebar/BhHudKonkrListener;->a:Landroid/content/Context;
     check-cast v2, Landroid/app/Activity;
     invoke-static {v2}, Lcom/xj/winemu/sidebar/BhHudInjector;->injectOrUpdate(Landroid/app/Activity;)V
 
