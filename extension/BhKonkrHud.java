@@ -873,7 +873,7 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
 
     private int readSkinTemp() {
         String[] types = {"skin", "tskin", "surface", "xo-therm", "xo_therm"};
-        for (int z = 0; z < 30; z++) {
+        for (int z = 0; z < 80; z++) {
             String type = readSysfsLine("/sys/class/thermal/thermal_zone" + z + "/type");
             if (type == null) continue;
             String tl = type.trim().toLowerCase();
