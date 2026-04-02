@@ -755,17 +755,17 @@ public class GogGamesActivity extends Activity {
         tile.setBackground(tileBg);
         tile.setClipToOutline(true);
 
-        // Wrapper handles focus border — no clipToOutline so stroke isn't clipped
+        // Wrapper handles focus border via foreground (drawn over tile, not hidden by it)
         FrameLayout focusWrapper = new FrameLayout(this);
-        GradientDrawable wrapperBg = new GradientDrawable();
-        wrapperBg.setColor(0x00000000);
-        wrapperBg.setCornerRadius(dp(5));
-        focusWrapper.setBackground(wrapperBg);
+        GradientDrawable focusBorder = new GradientDrawable();
+        focusBorder.setColor(0x00000000);
+        focusBorder.setCornerRadius(dp(5));
+        focusWrapper.setForeground(focusBorder);
         focusWrapper.setFocusable(true);
         focusWrapper.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
         focusWrapper.setOnFocusChangeListener((v, hasFocus) -> {
             tileBg.setColor(hasFocus ? 0xFF1D1D3A : 0xFF111122);
-            wrapperBg.setStroke(hasFocus ? dp(3) : 0, hasFocus ? 0xFFFFD700 : 0x00000000);
+            focusBorder.setStroke(hasFocus ? dp(3) : 0, hasFocus ? 0xFFFFD700 : 0x00000000);
         });
 
         // ── Art area (FrameLayout so badges/title can overlay) ─────────────────
