@@ -70,9 +70,7 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
     private TextView tvModeVal, tvFanVal, tvSknVal, tvPwrVal;
     private TextView tvRamVal, tvSwapVal, tvBatPct, tvTimeVal;
 
-    // BAT progress fill (weighted LP)
-    private LinearLayout batRow;
-    private LinearLayout.LayoutParams batFillLp, batSpaceLp;
+    // (no weighted BAT fill — BAT row uses solid blue background like RAM/SWAP)
 
     // Drag state
     private float dragLastX, dragLastY, dragStartX, dragStartY;
@@ -109,7 +107,6 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
         tvGpuPct = tvGpuTemp = tvGpuName = tvGpuFreq = tvGpuRes = null;
         tvModeVal = tvFanVal = tvSknVal = tvPwrVal = null;
         tvRamVal = tvSwapVal = tvBatPct = tvTimeVal = null;
-        batRow = null; batFillLp = null; batSpaceLp = null;
     }
 
     // ── VERTICAL layout ───────────────────────────────────────────────────────
@@ -249,28 +246,12 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
         return v;
     }
 
-    /** BAT row: [blue fill (weighted)] [spacer (weighted)] [pct value] */
+    /** BAT row: solid blue full-row (same pattern as RAM/SWAP) */
     private LinearLayout makeBatRowView() {
-        batRow = new LinearLayout(getContext());
-        batRow.setOrientation(HORIZONTAL);
-        batRow.setWeightSum(100f);
-        batRow.setClipChildren(false);
-
-        TextView batLabel = makeLabel("BAT", COL_WHITE);
-        batLabel.setBackgroundColor(BG_BAT);
-        batFillLp = new LinearLayout.LayoutParams(0, -2, 0f);
-        batFillLp.gravity = Gravity.CENTER_VERTICAL;
-        batRow.addView(batLabel, batFillLp);
-
-        View spacer = new View(getContext());
-        batSpaceLp = new LinearLayout.LayoutParams(0, -2, 100f);
-        batRow.addView(spacer, batSpaceLp);
-
-        LinearLayout.LayoutParams pLp = new LinearLayout.LayoutParams(-2, -2);
-        pLp.gravity = Gravity.CENTER_VERTICAL;
         tvBatPct = makeVal("--%", COL_WHITE);
-        batRow.addView(tvBatPct, pLp);
-        return batRow;
+        LinearLayout row = makeTwoColRow("BAT", COL_WHITE, 0, false, tvBatPct);
+        row.setBackgroundColor(BG_BAT);
+        return row;
     }
 
     // ── HORIZONTAL layout ─────────────────────────────────────────────────────
@@ -516,7 +497,7 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
         // Cap vertical mode width at 200dp so MATCH_PARENT rows don't snap to full screen width.
         // Horizontal mode uses natural width (the strip spans content columns).
         if (isVertical) {
-            widthMeasureSpec = MeasureSpec.makeMeasureSpec(dp(200), MeasureSpec.EXACTLY);
+            widthMeasureSpec = MeasureSpec.makeMeasureSpec(dp(120), MeasureSpec.EXACTLY);
         }
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
     }
@@ -759,14 +740,8 @@ public class BhKonkrHud extends LinearLayout implements Runnable {
                         if (tvSwapVal != null)
                             tvSwapVal.setText(String.format("%.1fG/%.0fG", swap[0], swap[1]));
 
-                        // BAT progress fill (vertical mode only)
+                        // BAT
                         if (tvBatPct != null) tvBatPct.setText(batPct + "%");
-                        if (batFillLp != null && batSpaceLp != null && batRow != null) {
-                            int pct = Math.max(0, Math.min(100, batPct));
-                            batFillLp.weight = pct;
-                            batSpaceLp.weight = 100 - pct;
-                            batRow.requestLayout();
-                        }
 
                         // TIME
                         if (tvTimeVal != null) tvTimeVal.setText(timeStr);
