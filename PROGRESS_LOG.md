@@ -4,6 +4,16 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [fix] — v2.8.3-pre — HUD toggle not showing + Extra Detail guard + opacity rebuild (2026-04-02)
+**Branch:** `main`  |  **Tag:** v2.8.3-pre (retagged)
+**Commit:** `b903a74c4`  |  **CI:** ✅
+**What changed:**
+- BhHudStyleSwitchListener: replaced manual BhFrameRating find/show with `injectOrUpdate(activity)` — fixes HUD not appearing when turned on (view never existed); also clears hud_extra_detail pref on HUD-off
+- BhHudExtraDetailListener: guard bails if `winlator_hud=false`; delegates to `injectOrUpdate()` instead of manual swap
+- BhDetailedHud.buildLayout(): re-applies `applyBackgroundOpacity()` after every rebuild so orientation-toggled TextViews get shadow rules
+
+---
+
 ## [fix] — v2.8.3-pre — BhDetailedHud column alignment + opacity slider (2026-04-02)
 **Branch:** `main`  |  **Tag:** v2.8.3-pre (retagged)
 **Commit:** `cbea54e68`  |  **CI:** ✅ run 23883928447
