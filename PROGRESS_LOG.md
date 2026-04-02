@@ -4,6 +4,19 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [stable] — v2.8.2 — Controller navigation, store UI polish, perf improvements (2026-04-02)
+**Branch:** `main`  |  **Tag:** v2.8.2
+**Commit:** `6a2c8d160`  |  **CI:** ✅ run 23879145996 (9 APKs)
+**What changed since v2.8.1:**
+- Controller focus highlight: gold border on all cards/tiles + header buttons (3 stores × 3 views)
+- Grid/poster A-button: focusWrapper forwards click/longClick to tile
+- Store UI polish: developer subtitle, empty state, sync color-coding, progress bar tint
+- Epic install size fix: discard cached values > 1 TB
+- 8 parallel threads, GOG retry+resume, Epic chunk streaming, 128KB buffers
+- Debug files for Epic/Amazon on download failure
+
+---
+
 ## [fix] — v2.8.2-pre — Grid/poster focus highlight clipped by setClipToOutline (2026-04-01)
 **Branch:** `main`  |  **Tag:** v2.8.2-pre (retagged)
 **Commit:** `70b981a24`  |  **CI:** ✅ run 23877451621
