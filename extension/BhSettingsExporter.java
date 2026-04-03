@@ -46,7 +46,6 @@ public class BhSettingsExporter {
 
     private static final String WORKER_BASE  =
             "https://bannerhub-configs-worker.the412banner.workers.dev";
-    private static final String AUTH_SECRET  = "gyNvMJCsUTT2ICR2FgLaHGCzVdqgWbDw";
 
     // ─── Export entry point ──────────────────────────────────────────────────
 
@@ -112,7 +111,6 @@ public class BhSettingsExporter {
                         body.put("game", safeName);
                         body.put("filename", fileName);
                         body.put("content", b64);
-                        body.put("secret", AUTH_SECRET);
 
                         HttpURLConnection conn = (HttpURLConnection)
                                 new URL(WORKER_BASE + "/upload").openConnection();
