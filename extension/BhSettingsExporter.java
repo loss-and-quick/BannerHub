@@ -85,8 +85,12 @@ public class BhSettingsExporter {
             String safeName     = gameName.replaceAll("[^a-zA-Z0-9_\\-]", "_");
             String manufacturer = Build.MANUFACTURER.replaceAll("[^a-zA-Z0-9_\\-]", "_");
             String deviceName   = Build.MODEL.replaceAll("[^a-zA-Z0-9_\\-]", "_");
+            String socModel     = (Build.VERSION.SDK_INT >= 31
+                    ? Build.SOC_MODEL
+                    : Build.HARDWARE)
+                    .replaceAll("[^a-zA-Z0-9_\\-]", "_");
             long   ts           = System.currentTimeMillis() / 1000;
-            String fileName     = safeName + "-" + manufacturer + "-" + deviceName + "-" + ts + ".json";
+            String fileName     = safeName + "-" + manufacturer + "-" + deviceName + "-" + socModel + "-" + ts + ".json";
 
             // Save locally
             File dir = new File(Environment.getExternalStorageDirectory(), EXPORT_DIR);
@@ -237,15 +241,18 @@ public class BhSettingsExporter {
                     return;
                 }
 
-                // Build display labels: "Device — Date"
+                // Build display labels: "Device [SOC] (Date)"
                 String[] labels = new String[arr.length()];
                 String[] dlUrls = new String[arr.length()];
                 String[] fnames = new String[arr.length()];
                 for (int i = 0; i < arr.length(); i++) {
                     JSONObject entry = arr.getJSONObject(i);
                     String device = entry.optString("device", "Unknown");
+                    String soc    = entry.optString("soc", "");
                     String date   = entry.optString("date", "");
-                    labels[i] = device + (date.isEmpty() ? "" : "  (" + date + ")");
+                    labels[i] = device
+                            + (soc.isEmpty() ? "" : " [" + soc + "]")
+                            + (date.isEmpty() ? "" : "  (" + date + ")");
                     dlUrls[i] = entry.optString("download_url", "");
                     fnames[i] = entry.optString("filename", "config.json");
                 }

@@ -4,6 +4,72 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [feat] — v2.8.8-pre1 — SOC type in community config filenames (2026-04-03)
+**Branch:** `main`  |  **Tag:** v2.8.8-pre1
+**Commit:** (pending)  |  **CI:** ⏳
+**What changed:**
+- Config filename now includes SOC: `GameName-Manufacturer-Model-SOC-Timestamp.json`
+  - Uses `Build.SOC_MODEL` on API 31+, falls back to `Build.HARDWARE` on older Android
+- Community list label updated: shows `Device [SOC] (date)` so users can pick by chip
+- Cloudflare Worker `/list` parses SOC from new format; backward-compat with old filenames (no SOC field)
+**Files touched:** extension/BhSettingsExporter.java, /tmp/bannerhub-configs-worker.js (worker redeployed)
+
+---
+
+## [stable] — v2.8.7 — Per-game Config Export/Import + Community Sharing (2026-04-03)
+**Branch:** `main`  |  **Tag:** v2.8.7
+**Commit:** `fb6ccebd1`  |  **CI:** ✅ run 23960050239 (9 APKs)
+**New since v2.8.6:**
+- Per-game Export Config (local + online share) / Import Config (device + community browse)
+- Component bundling in exports — auto-download missing on import
+- Deferred settings apply (after component choice)
+- Community Cloudflare Worker + bannerhub-game-configs GitHub repo
+- Fix: export crash (Application vs Activity context)
+- Fix: build.yml smali patch path apktool_out → apktool_out_base
+
+---
+
+## [fix] — v2.8.7-pre1 — Export dialog crash (Application vs Activity context) (2026-04-03)
+**Branch:** `main`  |  **Tag:** v2.8.7-pre1 (retagged)
+**Commit:** `548d45194`  |  **CI:** ✅ run 23959381932
+**What changed:**
+- Root cause: BhExportLambda used `Utils.a()` (Application context) — cannot show AlertDialog
+- Fix: store GameDetailSettingMenu in BhExportLambda, call `.z()` for FragmentActivity context
+- Updated both build-quick.yml and build.yml to pass v4 (GameDetailSettingMenu) to BhExportLambda ctor
+**Files touched:** patches/smali/.../BhExportLambda.smali, .github/workflows/build-quick.yml, build.yml
+
+---
+
+## [feat] — v2.8.7-pre1 — Community config sharing (online Export/Import) (2026-04-03)
+**Branch:** `main`  |  **Tag:** v2.8.7-pre1 (retagged)
+**Commit:** `8667894bd`  |  **CI:** ✅ run 23959056628
+**What changed:**
+- Export dialog: "Save Locally" vs "Save Locally + Share Online"
+  - Online upload to Cloudflare Worker → The412Banner/bannerhub-game-configs GitHub repo
+  - Filename includes Unix timestamp for uniqueness (no overwrites)
+- Import dialog: "My Device" vs "Browse Community"
+  - Browse Community: worker /list → sorted by date → tap to download+apply
+  - Missing component download + deferred apply still works for community configs
+- Worker deployed: `https://bannerhub-configs-worker.the412banner.workers.dev`
+**Files touched:** extension/BhSettingsExporter.java
+
+---
+
+## [fix] — v2.8.7-pre1 — Export/Import Config crash fix (coroutine register bug) (2026-04-03)
+**Branch:** `main`  |  **Tag:** v2.8.7-pre1 (retagged)
+**Commit:** `ddbde2eb7`  |  **CI:** ✅ run 23954703877
+**What changed:**
+- Root cause: W() (getPcGamesOptions) is a Kotlin coroutine. On resume, p1 is null —
+  Kotlin doesn't re-pass the original params. Previous injection used `move-object v2, p0`
+  which also overwrote v2 (the GameDetailEntity at that smali point, later clobbered by
+  StringBuilder before our injection runs at the XjLog anchor).
+- Fix: read entity via `iget-object v3, v5, ...->L$0:Ljava/lang/Object;` + `check-cast v3,
+  GameDetailEntity` at injection point (v5 = continuation, L$0 = GameDetailEntity, stable
+  across all code paths). Use `p0` (= this, always stable) in BhImportLambda ctor.
+- Fixed in both build-quick.yml and build.yml.
+
+---
+
 ## [stable] — v2.8.4 — Konkr HUD + orphaned container cleanup (2026-04-03)
 **Branch:** `main`  |  **Tag:** v2.8.4
 **Commit:** `4127e4ee7`  |  **CI:** ✅ run 23943875147 (9 APKs)

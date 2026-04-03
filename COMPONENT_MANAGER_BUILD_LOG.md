@@ -30,6 +30,32 @@ Each entry covers one logical change unit (commit or closely related set of comm
 
 ---
 
+## Entry 130 — feat: SOC type in community config filenames (v2.8.8-pre1, main)
+**Date:** 2026-04-03
+**Branch:** main  |  **Tag:** v2.8.8-pre1  |  **Commit:** (pending)
+
+### Root cause analysis
+Community config filenames were `GameName-Manufacturer-Model-Timestamp.json`. Users browsing the community list couldn't tell which configs were made on the same SOC family (e.g. Snapdragon 8 Gen 3 vs Snapdragon 8 Gen 2). Settings like VRAM limit, GPU tile size, and renderer backend can vary significantly between SOC generations, so SOC filtering is valuable.
+
+### Fix
+- Added SOC to filename: `GameName-Manufacturer-Model-SOC-Timestamp.json`
+- SOC value: `Build.SOC_MODEL` (API 31+, gives e.g. "SM8650") with `Build.HARDWARE` fallback for older Android
+- Community browse label updated to show `Device [SOC] (date)`
+- Cloudflare Worker `/list` parses SOC from new format; backward-compat with old format (no SOC returned for old files)
+
+### Files created / modified
+- `extension/BhSettingsExporter.java` — `doExport()`: SOC detection + filename; `showCommunityImportDialog()`: label includes soc field
+- `/tmp/bannerhub-configs-worker.js` — `handleList()`: parse SOC, return `soc` field, backward-compat check
+
+### Methods changed
+- `BhSettingsExporter.doExport()` — added `socModel` var from `Build.SOC_MODEL`/`Build.HARDWARE`; appended to filename
+- `BhSettingsExporter.showCommunityImportDialog()` — added `soc` from `entry.optString("soc","")`, appended to label
+
+### CI result
+- Workflow: build-quick.yml | Run: ⏳ | Result: pending
+
+---
+
 ## Entry 102 — feat: Controller focus highlight for GOG/Epic/Amazon cards (v2.8.2-pre9, main)
 **Date:** 2026-04-01
 **Branch:** main  |  **Tag:** v2.8.2-pre9  |  **Commit:** `84e4c4920`
