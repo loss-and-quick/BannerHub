@@ -1,6 +1,6 @@
 # BannerHub
 
-**GameHub 5.3.5 ReVanced** — extended with GOG Games, Amazon Games, and Epic Games Store library tabs, a full Component Manager, in-app component downloader, Winlator HUD overlay (Normal + Extra Detailed with CPU/GPU/RAM/SWAP/temp metrics), in-game performance toggles, RTS touch controls, VRAM unlock, per-game CPU core affinity, root access management, offline Steam launch, Japanese locale, and more. Built entirely with apktool smali patching — no source code, no external library injection.
+**GameHub 5.3.5 ReVanced** — extended with GOG Games, Amazon Games, and Epic Games Store library tabs, a full Component Manager, in-app component downloader, Winlator HUD overlay (Normal + Extra Detailed + Konkr style with CPU/GPU/RAM/SWAP/temp/per-core metrics), in-game performance toggles, RTS touch controls, VRAM unlock, per-game CPU core affinity, root access management, offline Steam launch, Japanese locale, and more. Built entirely with apktool smali patching — no source code, no external library injection.
 
 ## AI Disclaimer
 
@@ -28,7 +28,7 @@ Before any stable release is published, all changes are manually debugged and te
   - [Component Manager](#component-manager)
   - [In-App Component Downloader](#in-app-component-downloader)
   - [BCI Launcher Button](#bci-launcher-button)
-  - [Winlator HUD Overlay](#winlator-hud-overlay) (Normal + Extra Detailed)
+  - [Winlator HUD Overlay](#winlator-hud-overlay) (Normal + Extra Detailed + Konkr Style)
   - [Performance Sidebar Toggles](#performance-sidebar-toggles)
   - [RTS Touch Controls](#rts-touch-controls)
   - [VRAM Limit Unlock](#vram-limit-unlock)
@@ -284,7 +284,7 @@ BCI is a companion app that provides SAF-based component management without root
 
 An in-game heads-up display that shows real-time performance metrics while a game is running. Accessible from the in-game **Performance sidebar**.
 
-Two HUD modes are available:
+Three HUD modes are available (only one active at a time):
 
 #### Normal HUD
 
@@ -311,9 +311,28 @@ The *Extra Detailed* checkbox is automatically grayed out and disabled when the 
 
 The Extra Detail HUD is a continuation and extension of the **Winlator HUD by Stevenmxz**. The additional metrics and layout were inspired by the performance HUD built into my personal device — no credit is claimed from any external project.
 
+#### Konkr Style HUD
+
+A third HUD style, mutually exclusive with Extra Detailed. Enable via the **Konkr Style** checkbox in the Performance sidebar. Reproduces the layout of the Konkr strategy game's built-in HUD.
+
+**Vertical (default):** a 2-column table with:
+- FPS (large, top row)
+- CPU% + CPU temperature
+- Per-core MHz for cores C0–C7
+- GPU% + GPU temperature + GPU name + current clock + Wine container resolution
+- MODE / SKN / PWR readings
+- RAM — used / total GB (brown label background)
+- SWAP — used / total GB (gray label background)
+- BAT — battery % with a blue proportional fill bar
+- TIME — current time
+
+**Horizontal:** a compact multi-column strip — FPS block (current/min FPS + CPU temp), CPU 2×4 core grid, GPU block, thermal/power 2-column block, memory block with colored label backgrounds.
+
+Tap anywhere on the HUD to toggle between vertical and horizontal. Drag to reposition. The opacity slider applies to the Konkr HUD.
+
 > **Note:** Not all data collected and displayed will always be correct. Each device detects and reads data differently. Values are read directly from sysfs/proc and may vary in accuracy depending on your device, kernel, and thermal zone mapping.
 
-#### Configuration (both modes)
+#### Configuration (all modes)
 
 - **Opacity slider** — adjusts transparency of the active HUD overlay from fully opaque to nearly invisible
 - **Text shadow/halo** — a centered shadow is automatically applied to all HUD text when opacity drops below 30% (stronger at <10%), ensuring readability against any background
