@@ -4369,3 +4369,15 @@ Online: API provides the list so this went unnoticed. Offline: API fails → fal
 
 **Root cause / design:**
 - `Build.SOC_MODEL` returns "unknown" on many devices even on API 31+ (OEMs don't populate it). `Build.HARDWARE` returns "qcom" on Qualcomm — not useful. `gpu_model` sysfs gives the actual Adreno model string without root.
+
+---
+
+### Entry 054 — Apply to Game from community config browser (2026-04-04)
+**Commit:** `c4c20fb48`  |  **Tag:** v2.8.9-pre2  |  **CI:** ✅ run 23981547373
+
+**Files changed:**
+- `extension/BhGameConfigsActivity.java` — replaced "After downloading..." note with `actionBtn("Apply to Game...", 0xFF4A148C, ...)`. Added `applyConfigToGame(JSONObject config)`: downloads config to `BannerHub/configs/`, queries `ux_db` StarterGame table via `SQLiteDatabase.openDatabase(getDatabasePath("ux_db"))`, builds game name+id list sorted A–Z, shows AlertDialog picker, calls `BhSettingsExporter.applyConfig()` on selection. Added `Cursor`/`SQLiteDatabase` imports.
+- `extension/BhSettingsExporter.java` — `applyConfig()` visibility changed `private static` → `static` (package-private) to allow access from BhGameConfigsActivity in the same package.
+
+**Root cause / design:**
+- Previously configs could only be applied from within a game's own settings menu (required gameId context). Now the community browser can apply directly by querying GameHub's Room DB (`ux_db`, table `StarterGame`, columns `gameId`/`gameName`) to build the picker. DB name confirmed from JADX source: `GameSirUxDB$Companion$get$2.java` line 80.

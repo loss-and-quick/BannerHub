@@ -4,6 +4,18 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+### [pre] — v2.8.9-pre2 — Apply to Game from community config browser (2026-04-04)
+**Commit:** `c4c20fb48`  |  **Tag:** v2.8.9-pre2
+**CI:** ✅ run 23981547373 (artifact only)
+#### What changed
+- Config detail screen: "Apply to Game..." button replaces the old grey note
+- Downloads config JSON, queries `ux_db` → `StarterGame` for all installed games (A–Z), shows picker dialog
+- On selection: runs full `BhSettingsExporter.applyConfig()` logic (settings write + missing component download prompt)
+- `BhSettingsExporter.applyConfig()` made package-private to allow cross-class access within same package
+#### Files touched
+- extension/BhGameConfigsActivity.java
+- extension/BhSettingsExporter.java
+
 ### [pre] — v2.8.9-pre1 — SOC detection via gpu_model sysfs (2026-04-04)
 **Commit:** `9abbf8031`  |  **Tag:** v2.8.9-pre1
 **CI:** ✅ run 23981281809 (artifact only)
