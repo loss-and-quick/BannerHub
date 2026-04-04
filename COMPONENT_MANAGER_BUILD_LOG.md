@@ -30,6 +30,29 @@ Each entry covers one logical change unit (commit or closely related set of comm
 
 ---
 
+## Entry 134 — fix: Apply to Game picker scans shared_prefs instead of full ux_db (v2.8.9-pre3, main)
+**Date:** 2026-04-04
+**Branch:** main  |  **Tag:** v2.8.9-pre3  |  **Commit:** e0b5038ab
+
+### Root cause analysis
+Previous implementation queried `StarterGame` from `ux_db` which returns all games ever seen
+by GameHub, including games no longer installed. Game configs live in `pc_g_setting{gameId}`
+SharedPreferences files — only games with an SP file actually have a config to write into.
+
+### Changes
+- **[MOD]** `extension/BhGameConfigsActivity.java`:
+  - `applyConfigToGame()`: replaced full `ux_db StarterGame` query with `shared_prefs/` scan
+  - Scans `getApplicationInfo().dataDir/shared_prefs/pc_g_setting*.xml` for present gameIds
+  - Queries `ux_db StarterGame` with `IN (...)` clause limited to found IDs for name lookup
+  - Falls back to `"Game #id"` for SP files with no matching ux_db entry
+  - Re-sorts merged list alphabetically by name
+  - Toast changed: "No configured games found in GameHub"
+
+### CI
+- [CI⏳] run 23981926309 — queued
+
+---
+
 ## Entry 133 — feat: Game Configs — D-pad nav, count badge, filter, age indicator, verified badge, share, report (v2.8.8-pre1, main)
 **Date:** 2026-04-04
 **Branch:** main  |  **Tag:** v2.8.8-pre1 (retagged)  |  **Commit:** d9fe43f35

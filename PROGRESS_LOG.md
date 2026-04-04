@@ -4,6 +4,16 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+### [pre] — v2.8.9-pre3 — Apply to Game picker: shared_prefs scan instead of full ux_db (2026-04-04)
+**Commit:** `e0b5038ab`  |  **Tag:** v2.8.9-pre3
+**CI:** queued run 23981926309
+#### What changed
+- Apply to Game picker now scans `shared_prefs/pc_g_setting*.xml` to find games that actually have configs
+- Cross-references names from `ux_db` for only those IDs — games without a SP file are excluded
+- Falls back to "Game #id" label if a SP file exists but no ux_db name entry
+#### Files touched
+- extension/BhGameConfigsActivity.java
+
 ### [pre] — v2.8.9-pre2 — Apply to Game from community config browser (2026-04-04)
 **Commit:** `c4c20fb48`  |  **Tag:** v2.8.9-pre2
 **CI:** ✅ run 23981547373 (artifact only)
