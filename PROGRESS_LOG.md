@@ -4,6 +4,17 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [feat] — v2.8.8-pre1 — Game Configs: Steam cover art in games list (2026-04-04)
+**Branch:** `main`  |  **Tag:** v2.8.8-pre1
+**Commit:** TBD  |  **CI:** ⏳
+**What changed:**
+- Games list rows now show Steam header.jpg (160×90dp) for each game
+- Steam store search API (no key) → appid cached in SharedPreferences (bh_steam_covers) → header.jpg loaded async; ImageView tagged to avoid recycled-view mismatches
+- In-memory Bitmap cache (coverCache) prevents re-fetching on scroll
+**Files touched:** extension/BhGameConfigsActivity.java
+
+---
+
 ## [feat] — v2.8.8-pre1 — Game Configs side menu: browse, vote, comment (2026-04-03)
 **Branch:** `main`  |  **Tag:** v2.8.8-pre1
 **Commit:** TBD  |  **CI:** ⏳

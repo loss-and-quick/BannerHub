@@ -3,6 +3,8 @@ package app.revanced.extension.gamehub;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
@@ -15,6 +17,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.ScrollView;
@@ -33,7 +36,9 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * BhGameConfigsActivity — community game config browser.
@@ -53,9 +58,13 @@ import java.util.List;
 public class BhGameConfigsActivity extends Activity {
 
     // ── Constants ────────────────────────────────────────────────────────────
-    private static final String WORKER   = "https://bannerhub-configs-worker.the412banner.workers.dev";
-    private static final String VOTES_SP = "bh_config_votes";
+    private static final String WORKER     = "https://bannerhub-configs-worker.the412banner.workers.dev";
+    private static final String VOTES_SP   = "bh_config_votes";
+    private static final String COVERS_SP  = "bh_steam_covers";
     private static final String EXPORT_DIR = "BannerHub/configs";
+    // Steam store search (no API key required)
+    private static final String STEAM_SEARCH = "https://store.steampowered.com/api/storesearch/?l=english&cc=us&term=";
+    private static final String STEAM_HEADER = "https://cdn.akamai.steamstatic.com/steam/apps/%s/header.jpg";
 
     // ── Colors ───────────────────────────────────────────────────────────────
     private static final int BG       = 0xFF0D0D0D;
@@ -77,12 +86,15 @@ public class BhGameConfigsActivity extends Activity {
     private Button       voteBtn;
 
     // ── State ────────────────────────────────────────────────────────────────
-    private List<String>     allGames    = new ArrayList<>();
+    private List<String>     allGames      = new ArrayList<>();
     private List<String>     filteredGames = new ArrayList<>();
     private List<JSONObject> currentConfigs = new ArrayList<>();
-    private String  selectedGame;
+    private String     selectedGame;
     private JSONObject selectedConfig;
-    private int currentScreen = 1; // 1=games, 2=configs, 3=detail
+    private int        currentScreen = 1; // 1=games, 2=configs, 3=detail
+
+    // Cover art: in-memory Bitmap cache (game folder name → Bitmap)
+    private final Map<String, Bitmap> coverCache = new HashMap<>();
 
     private Handler ui = new Handler(Looper.getMainLooper());
 
@@ -192,27 +204,106 @@ public class BhGameConfigsActivity extends Activity {
     }
 
     private void refreshGamesList() {
-        String[] items = filteredGames.toArray(new String[0]);
+        final List<String> snapshot = new ArrayList<>(filteredGames);
         ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
-                android.R.layout.simple_list_item_1, items) {
+                android.R.layout.simple_list_item_1, snapshot) {
             @Override
             public View getView(int pos, View conv, android.view.ViewGroup parent) {
+                // Row: [cover ImageView 160×90dp] [game name text]
+                LinearLayout row = new LinearLayout(getContext());
+                row.setOrientation(LinearLayout.HORIZONTAL);
+                row.setGravity(Gravity.CENTER_VERTICAL);
+                row.setBackgroundColor(BG);
+                row.setPadding(0, dp(4), dp(16), dp(4));
+
+                // Cover art thumbnail
+                ImageView cover = new ImageView(getContext());
+                cover.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                cover.setBackgroundColor(SURFACE);
+                LinearLayout.LayoutParams imgLp = new LinearLayout.LayoutParams(dp(160), dp(90));
+                imgLp.rightMargin = dp(16);
+                row.addView(cover, imgLp);
+
+                // Game name
+                String game = getItem(pos);
                 TextView tv = new TextView(getContext());
-                String name = getItem(pos).replace("_", " ");
-                tv.setText(name);
+                tv.setText(game.replace("_", " "));
                 tv.setTextColor(WHITE);
                 tv.setTextSize(15f);
-                tv.setPadding(dp(20), dp(16), dp(20), dp(16));
-                tv.setBackgroundColor(BG);
-                return tv;
+                tv.setTypeface(null, Typeface.BOLD);
+                tv.setLayoutParams(new LinearLayout.LayoutParams(0, -2, 1f));
+                row.addView(tv);
+
+                // Tag ImageView with game name to avoid recycled-view mismatches
+                cover.setTag(game);
+                loadCover(game, cover);
+
+                return row;
             }
         };
         gamesListView.setAdapter(adapter);
         gamesListView.setOnItemClickListener((parent, view, pos, id) -> {
-            selectedGame = filteredGames.get(pos);
+            selectedGame = snapshot.get(pos);
             showScreen(2);
             fetchConfigs(selectedGame);
         });
+    }
+
+    // ── Cover art loading ─────────────────────────────────────────────────────
+
+    /**
+     * Loads Steam header art (460×215) into iv asynchronously.
+     * Lookup order: memory cache → SP (cached appid) → Steam search API → Steam CDN.
+     * Tags iv with the game name; skips setImage if the view was recycled.
+     */
+    private void loadCover(String game, ImageView iv) {
+        // Memory cache hit — set immediately
+        Bitmap cached = coverCache.get(game);
+        if (cached != null) {
+            iv.setImageBitmap(cached);
+            return;
+        }
+        iv.setImageBitmap(null);
+
+        new Thread(() -> {
+            try {
+                SharedPreferences sp = getSharedPreferences(COVERS_SP, 0);
+                String appId = sp.getString("appid:" + game, null);
+
+                // Step 1: look up Steam appid if not cached
+                if (appId == null) {
+                    String query = game.replace("_", " ");
+                    HttpURLConnection conn = openGet(STEAM_SEARCH + urlEncode(query));
+                    conn.setRequestProperty("User-Agent", "BannerHub/1.0");
+                    String body = readResponse(conn);
+                    JSONObject json = new JSONObject(body);
+                    JSONArray items = json.optJSONArray("items");
+                    if (items != null && items.length() > 0) {
+                        appId = String.valueOf(items.getJSONObject(0).getInt("id"));
+                        sp.edit().putString("appid:" + game, appId).apply();
+                    }
+                }
+                if (appId == null) return;
+
+                // Step 2: download header.jpg
+                String imgUrl = String.format(STEAM_HEADER, appId);
+                HttpURLConnection imgConn = openGet(imgUrl);
+                imgConn.setRequestProperty("User-Agent", "BannerHub/1.0");
+                InputStream in = imgConn.getInputStream();
+                Bitmap bmp = BitmapFactory.decodeStream(in);
+                in.close();
+
+                if (bmp != null) {
+                    coverCache.put(game, bmp);
+                    ui.post(() -> {
+                        // Only set if the ImageView hasn't been recycled to another game
+                        if (game.equals(iv.getTag())) iv.setImageBitmap(bmp);
+                    });
+                }
+            } catch (Exception ignored) {
+                // Silently fail — ImageView stays as dark placeholder
+            }
+        }).start();
     }
 
     // ── Screen 2: Configs ─────────────────────────────────────────────────────

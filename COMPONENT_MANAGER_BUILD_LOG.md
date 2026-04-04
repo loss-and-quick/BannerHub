@@ -30,6 +30,29 @@ Each entry covers one logical change unit (commit or closely related set of comm
 
 ---
 
+## Entry 132 — feat: Game Configs — Steam cover art in games list (v2.8.8-pre1, main)
+**Date:** 2026-04-04
+**Branch:** main  |  **Tag:** v2.8.8-pre1 (retagged)  |  **Commit:** TBD
+
+### Root cause analysis
+Games list showed only text — no visual indication of which game each entry was.
+
+### Changes
+- **[MOD]** `extension/BhGameConfigsActivity.java`:
+  - Added `Bitmap`, `BitmapFactory`, `ImageView`, `HashMap`, `Map` imports
+  - Added constants `COVERS_SP`, `STEAM_SEARCH`, `STEAM_HEADER`
+  - Added `coverCache: Map<String, Bitmap>` field for in-memory cache
+  - `refreshGamesList()` rewritten: custom adapter with `LinearLayout` row containing 160×90dp `ImageView` + bold `TextView`; ImageView tagged with game name for recycle safety
+  - Added `loadCover(String game, ImageView iv)`: memory cache check → SP cached appid → Steam storesearch API → header.jpg download → setImageBitmap on UI thread only if tag still matches
+
+### Methods added
+- `BhGameConfigsActivity.loadCover(String, ImageView)` — async Steam cover loader with two-level cache (memory + SP appid)
+
+### CI result
+- Workflow: build-quick.yml | Run: ⏳ | Result: pending
+
+---
+
 ## Entry 131 — feat: Game Configs side menu — browse, vote, comment (v2.8.8-pre1, main)
 **Date:** 2026-04-03
 **Branch:** main  |  **Tag:** v2.8.8-pre1  |  **Commit:** TBD
