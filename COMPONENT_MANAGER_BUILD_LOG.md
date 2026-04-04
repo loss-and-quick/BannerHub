@@ -4215,6 +4215,18 @@ Online: API provides the list so this went unnoticed. Offline: API fails → fal
 **CI Phase 4:** ✅ run 23707604129  |  **CI Phase 5:** ✅ run 23707686644
 
 ---
+## Entry 130 — stable: v2.8.8 — Game Configs browser (community share, My Uploads, D-pad, votes, downloads, descriptions) (2026-04-03)
+
+**Commits:** `e08dc7c8b`–`b2c789300` | **Tag:** v2.8.8
+**Root cause / motivation:** Full community Game Configs feature — users can browse, vote, download, and upload configs by game; uploaders can add descriptions; D-pad nav on all 4 screens.
+
+**Files touched:**
+- `extension/BhGameConfigsActivity.java` — 4-screen browser (games list, configs list, detail, My Uploads); D-pad gold outlines via StateListDrawable + setSelector; count badge; age indicator; verified SOC badge; share/report buttons; vote button; uploader description; fetchMeta flat-format fallback (finalSc/finalCc lambda fix)
+- `extension/BhSettingsExporter.java` — community import URL fix (construct from game_folder+filename); upload token generation + SP record storage
+- Cloudflare Worker `/tmp/bannerhub-configs-worker.js` — deployed: BootstrapPackagedGame filter; download count tracking; token-auth description; GET /desc + POST /describe routes; downloads field in /list
+
+**CI:** ✅ run 23969711793 — 9 APKs
+
 ## Entry 129 — feat: BhDetailedHud extra detail overlay (v2.8.3-pre, 2026-04-02)
 
 **Branch:** main | **Commit:** `5ab0566be` | **Tag:** v2.8.3-pre | **CI:** ✅ run 23882828021
