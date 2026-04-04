@@ -4277,6 +4277,137 @@ Online: API provides the list so this went unnoticed. Offline: API fails → fal
 
 **CI:** ✅ run 23969711793 — 9 APKs
 
+## Entry 138 — stable v2.8.9 + README update (2026-04-04)
+
+**Branch:** main | **Commit:** `fd0f81656` (README) | **Tag:** v2.8.9 | **CI:** ✅ run 23984847514 — 9 APKs
+
+**Files modified:**
+- `README.md` — added Community Game Configs section (4-screen browser, SOC filter chips, vote/comments, My Uploads); updated Per-Game Config Export/Import section (preview dialog, SOC mismatch warning); updated ToC
+
+**Stable release notes set via `gh release edit v2.8.9`.** All 5 pre-releases (pre4–pre8) deleted from GitHub after stable published.
+
+---
+
+## Entry 137 — feat: export preview + local import preview with SOC mismatch warning (v2.8.9-pre8, 2026-04-04)
+
+**Branch:** main | **Commit:** `037b6f5a6` | **Tag:** v2.8.9-pre8 | **CI:** ✅ run 23984663594
+
+**Files modified:**
+- `extension/BhSettingsExporter.java` — `showExportDialog()`, new `showLocalImportPreview()`, updated `showLocalImportDialog()`
+
+**Changes:**
+- `showExportDialog()`: reads SP key count + `buildComponentsArray()` length synchronously before showing dialog; displays Device/SOC/Settings/Components preview in `setMessage()`; replaced `.setItems()` with `.setPositiveButton()` + `.setNeutralButton()` for Save/Share/Cancel
+- `showLocalImportDialog()`: item click now calls `showLocalImportPreview()` instead of `applyConfig()` directly
+- `showLocalImportPreview()`: new method — parses config JSON, reads `meta` block (device/soc/settings_count/components_count), builds preview string, appends `⚠ SOC mismatch` block if `detectSoc(ctx)` differs from config's soc, shows AlertDialog with Apply/Cancel
+
+---
+
+## Entry 136 — feat: SOC filter chips on configs list screen (v2.8.9-pre7, 2026-04-04)
+
+**Branch:** main | **Commit:** `ad95beb43` | **Tag:** v2.8.9-pre7 | **CI:** ✅ run 23984467858
+
+**Files modified:**
+- `extension/BhGameConfigsActivity.java` — `buildConfigsScreen()`, new `buildSocChips()`, new `addSocChip()`, new `applyFilter()`, `fetchConfigs()`
+
+**New fields:** `allConfigs` (unfiltered source list), `selectedSocFilter` (active chip value, "" = All), `socFilterBar` (LinearLayout chip container)
+
+**New import:** `android.widget.HorizontalScrollView`
+
+**Changes:**
+- `buildConfigsScreen()`: added `HorizontalScrollView` + `socFilterBar` + divider above ListView
+- `buildSocChips()`: clears bar, collects unique soc values from `allConfigs` via `LinkedHashSet`, adds "All" chip first then one per SOC
+- `addSocChip(label, filterValue)`: creates a styled pill Button (rounded, accent fill when selected, grey outline otherwise); onClick sets `selectedSocFilter`, rebuilds chips, calls `applyFilter()`
+- `applyFilter()`: copies matching items from `allConfigs` → `currentConfigs` (empty filter = all), calls `refreshConfigsList()`
+- `fetchConfigs()`: now populates `allConfigs` instead of `currentConfigs` directly; resets `selectedSocFilter = ""`; calls `buildSocChips()` + `applyFilter()` on UI thread instead of `refreshConfigsList()`
+
+---
+
+## Entry 135 — chore: disable Apply to Game button (v2.8.9-pre7, 2026-04-04)
+
+**Branch:** main | **Commit:** `a356e1ab4` | **Tag:** v2.8.9-pre7 (retagged) | **CI:** ✅
+
+**Files modified:**
+- `extension/BhGameConfigsActivity.java` — `populateDetailScreen()` button creation
+
+**Change:** Apply to Game button set `setEnabled(false)` + `setAlpha(0.4f)` + null click listener. Grayed out pending reliable game name resolution for locally-added games.
+
+---
+
+## Entry 134 — fix: two-pass StarterGame lookup for Apply to Game picker (v2.8.9-pre6, 2026-04-04)
+
+**Branch:** main | **Commit:** `2cae1cc21` | **Tag:** v2.8.9-pre6 | **CI:** ✅ run 23984210142
+
+**Files modified:**
+- `extension/BhGameConfigsActivity.java` — `applyConfigToGame()` inner Runnable, added `resolveGameName()` static helper
+
+**Root cause:** For locally-added games, GameHub stores settings in `pc_g_setting{Room_id}.xml` using the Room PrimaryKey (`StarterGame.id`, auto-increment), NOT the server `gameId` field. Our query only searched `WHERE gameId IN (...)`, so locally-added games always returned 0 rows and fell back to "Game #id".
+
+**Fix:** Two-pass lookup:
+1. Pass 1: `WHERE gameId IN (...)` — matches server games
+2. Pass 2: for IDs still unmatched, `WHERE id IN (...)` — matches locally-added games
+
+Also extracted `resolveGameName(int id, String gameName, String filePath)` helper (null/empty gameName → last filePath segment → `"Game #id"`).
+
+---
+
+## Entry 133 — fix: read gpu_renderer from device_info SP for detectSoc() (v2.8.9-pre5, 2026-04-04)
+
+**Branch:** main | **Commit:** `6503f0ef3` | **Tag:** v2.8.9-pre5 | **CI:** ✅ run 23983920528
+
+**Files modified:**
+- `extension/BhSettingsExporter.java` — `detectSoc(Context)` (was `detectSoc()`)
+
+**Root cause:** `detectSoc()` was reading the raw kgsl sysfs node (`/sys/class/kgsl/kgsl-3d0/gpu_model`) as the primary GPU source. GameHub's own `GetGpuInfo` class already probes OpenGL on first launch and caches the renderer string in `device_info.xml` SP under key `gpu_renderer` — this is cleaner and more consistent with what GameHub itself uses.
+
+**Fix:** Changed `detectSoc()` to accept `Context`, added primary read of `ctx.getSharedPreferences("device_info", MODE_PRIVATE).getString("gpu_renderer", "")`. Fallback chain: kgsl sysfs → `Build.SOC_MODEL` → `Build.HARDWARE`. Both call sites updated to pass `ctx`.
+
+---
+
+## Entry 132 — fix: filePath fallback for game name in Apply to Game picker (v2.8.9-pre4, 2026-04-04)
+
+**Branch:** main | **Commit:** `7b43c4f7c` | **Tag:** v2.8.9-pre4 | **CI:** queued run 23983599649
+
+**Files modified:**
+- `extension/BhGameConfigsActivity.java` — `applyConfigToGame()` method
+
+**Root cause:** `gameName` in StarterGame can be null/empty for locally-added games, causing "Game #id" fallback even when a name is recoverable.
+
+**Fix:** Added `filePath` to the `db.query()` column list (`{"gameId","gameName","filePath"}`). When `gameName` is null or blank, extract last path segment of `filePath` (last `/`-delimited token) as display name. True orphans (deleted from GameHub library, SP file persists) still fall back to "Game #id".
+
+**Methods changed:**
+- `applyConfigToGame(JSONObject)` — inner Runnable: Cursor column list expanded, null/empty gameName check + filePath segment extraction added
+
+---
+
+## Entry 131 — fix: game configs worker KV write limit crash + JSON hardening (v2.8.9-pre3, 2026-04-04)
+
+**Branch:** main | **Commit:** `b839c7c1e` | **Tag:** v2.8.9-pre3 | **CI:** ✅ run 23982476410
+
+**Files modified:**
+- `extension/BhGameConfigsActivity.java` — `fetchGames()`, `fetchConfigs()`
+- `/tmp/bannerhub-configs-worker.js` (CF Worker, deployed)
+
+**Root cause:** CF Worker was exhausting the KV free-tier 1,000 writes/day limit during `handleGames()` (89 parallel KV reads + cache puts). Worker crashed with error 1101. App then crashed with `JSONArray` parse exception when worker returned `{"error":"..."}`.
+
+**Fix (worker):** `kvPut`/`kvDelete` helpers swallow quota errors silently. `handleGames` rewritten to fetch pre-built `games.json` from raw.githubusercontent.com (generated every 30 min by `update-games-json.yml` workflow) — eliminating all KV reads. CORS headers fixed (new Response + new Headers instead of mutating immutable headers). Top-level try-catch returns JSON error instead of CF 1101.
+
+**Fix (app):** `JSONTokener.nextValue()` + `instanceof JSONArray` check in `fetchGames()` and `fetchConfigs()` — extracts error message for Toast instead of crashing.
+
+---
+
+## Entry 130 — fix: shared_prefs scan for Apply to Game picker (v2.8.9-pre2, 2026-04-04)
+
+**Branch:** main | **Commit:** `e814eebdb` | **Tag:** v2.8.9-pre2 | **CI:** ✅ run 23982010393
+
+**Files modified:**
+- `extension/BhGameConfigsActivity.java` — `applyConfigToGame()`
+
+**Root cause:** Picker was doing a full `StarterGame` query, returning all games ever added to GameHub (including unrelated ones). Only games with a `pc_g_setting{gameId}.xml` SP file are actually configured.
+
+**Fix:** Scan `shared_prefs/` directory for files matching `pc_g_setting*.xml`, extract gameIds, then query `StarterGame WHERE gameId IN (...)` for only those IDs. Falls back to "Game #id" for orphaned SP files with no matching DB row.
+
+---
+
 ## Entry 129 — feat: BhDetailedHud extra detail overlay (v2.8.3-pre, 2026-04-02)
 
 **Branch:** main | **Commit:** `5ab0566be` | **Tag:** v2.8.3-pre | **CI:** ✅ run 23882828021
