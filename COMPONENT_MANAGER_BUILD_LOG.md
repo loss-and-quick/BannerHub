@@ -49,7 +49,8 @@ SharedPreferences files — only games with an SP file actually have a config to
   - Toast changed: "No configured games found in GameHub"
 
 ### CI
-- [CI⏳] run 23981926309 — queued
+- [CI❌] run 23981926309 — failed (variable `n` redeclared; loop var renamed to `fn`)
+- [CI✅] run 23982010393 — success (artifact only)
 
 ---
 
