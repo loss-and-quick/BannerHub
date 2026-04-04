@@ -82,7 +82,7 @@ public class BhSettingsExporter {
             // Meta block — parsed and shown in BhGameConfigsActivity detail view
             JSONObject meta = new JSONObject();
             meta.put("device",           Build.MANUFACTURER + " " + Build.MODEL);
-            meta.put("soc",              Build.VERSION.SDK_INT >= 31 && !Build.SOC_MODEL.equals("unknown") ? Build.SOC_MODEL : Build.HARDWARE);
+            meta.put("soc",              detectSoc());
             meta.put("bh_version",       "2.8.8");
             meta.put("settings_count",   settings.length());
             meta.put("components_count", components.length());
@@ -95,10 +95,7 @@ public class BhSettingsExporter {
             String safeName     = gameName.replaceAll("[^a-zA-Z0-9_\\-]", "_");
             String manufacturer = Build.MANUFACTURER.replaceAll("[^a-zA-Z0-9_\\-]", "_");
             String deviceName   = Build.MODEL.replaceAll("[^a-zA-Z0-9_\\-]", "_");
-            String socModel     = (Build.VERSION.SDK_INT >= 31 && !Build.SOC_MODEL.equals("unknown")
-                    ? Build.SOC_MODEL
-                    : Build.HARDWARE)
-                    .replaceAll("[^a-zA-Z0-9_\\-]", "_");
+            String socModel     = detectSoc().replaceAll("[^a-zA-Z0-9_\\-]", "_");
             long   ts           = System.currentTimeMillis() / 1000;
             String fileName     = safeName + "-" + manufacturer + "-" + deviceName + "-" + socModel + "-" + ts + ".json";
 
@@ -497,6 +494,20 @@ public class BhSettingsExporter {
         } catch (Exception e) {
             Toast.makeText(ctx, "Inject failed: " + name + " — " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
+    }
+
+    private static String detectSoc() {
+        try {
+            BufferedReader br = new BufferedReader(new FileReader("/sys/class/kgsl/kgsl-3d0/gpu_model"));
+            String line = br.readLine();
+            br.close();
+            if (line != null) {
+                line = line.trim();
+                if (!line.isEmpty()) return line;
+            }
+        } catch (Exception ignored) {}
+        if (Build.VERSION.SDK_INT >= 31 && !Build.SOC_MODEL.equals("unknown")) return Build.SOC_MODEL;
+        return Build.HARDWARE;
     }
 
     private static int typeNameToInt(String type) {
