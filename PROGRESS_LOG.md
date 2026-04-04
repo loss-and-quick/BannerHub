@@ -4,6 +4,20 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+## [stable] — v2.8.8 — Community Game Configs browser (2026-04-04)
+**Branch:** `main`  |  **Tag:** v2.8.8
+**Commit:** `b2c789300`  |  **CI:** ✅ run 23969711793 (9 APKs)
+**What changed:**
+- Stable release of the full Game Configs community browser feature
+- Fix: `sc`/`cc` variables in `fetchMeta()` made effectively final (`finalSc`/`finalCc`) — was causing CI failure at line 933
+- Fix: community import URL in `BhSettingsExporter.showCommunityImportDialog` — was using nonexistent `download_url` field; now constructs from `game_folder` + `filename`
+- Fix: `fetchMeta` flat-format fallback correctly counts root-level keys (minus `meta`/`components`) for configs that predate the `settings` wrapper key
+- Cloudflare Worker deployed (`bannerhub-configs-worker`): BootstrapPackagedGame system folder filtered from `/games`; download count tracking (`downloads:<sha>` KV, incremented on `/download`); `/describe` (POST, token-auth) and `/desc` (GET) endpoints; `/list` now returns `downloads` field per entry
+- Release description written with warning block, new features, full feature set, installation guide
+**Files touched:** extension/BhGameConfigsActivity.java, extension/BhSettingsExporter.java, COMPONENT_MANAGER_BUILD_LOG.md
+
+---
+
 ## [feat] — v2.8.8-pre1 — Game Configs: download count, My Uploads, uploader description (2026-04-04)
 **Branch:** `main`  |  **Tag:** v2.8.8-pre1
 **Commit:** `f5caaa410`  |  **CI:** ✅ run 23969283672
