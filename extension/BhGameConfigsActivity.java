@@ -42,6 +42,9 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -705,11 +708,9 @@ public class BhGameConfigsActivity extends Activity {
         if (!alreadyReported) reportBtn.setOnClickListener(v -> doReport(config, reportBtn));
         content.addView(reportBtn, marginParams(0, 0, 0, dp(8)));
 
-        TextView applyNote = new TextView(this);
-        applyNote.setText("After downloading, use Import Config from a game's settings to apply.");
-        applyNote.setTextColor(GREY);
-        applyNote.setTextSize(12f);
-        content.addView(applyNote, marginParams(0, 0, 0, dp(16)));
+        content.addView(
+            actionBtn("Apply to Game...", 0xFF4A148C, v -> applyConfigToGame(config)),
+            marginParams(0, 0, 0, dp(16)));
 
         // Divider
         View div = new View(this);
@@ -1120,6 +1121,69 @@ public class BhGameConfigsActivity extends Activity {
     }
 
     // ── Network: Download ─────────────────────────────────────────────────────
+
+    private void applyConfigToGame(JSONObject config) {
+        String game     = config.optString("game_folder", selectedGame);
+        String filename = config.optString("filename", "config.json");
+        String sha      = config.optString("sha", "");
+        Toast.makeText(this, "Fetching config...", Toast.LENGTH_SHORT).show();
+        new Thread(() -> {
+            try {
+                // Download config to local cache file
+                String dlUrl = WORKER + "/download?game=" + urlEncode(game)
+                        + "&file=" + urlEncode(filename)
+                        + (sha.isEmpty() ? "" : "&sha=" + urlEncode(sha));
+                HttpURLConnection conn = openGet(dlUrl);
+                InputStream in = conn.getInputStream();
+                File dir = new File(android.os.Environment.getExternalStorageDirectory(), EXPORT_DIR);
+                dir.mkdirs();
+                File localFile = new File(dir, filename);
+                FileOutputStream fos = new FileOutputStream(localFile);
+                byte[] buf = new byte[8192]; int n;
+                while ((n = in.read(buf)) != -1) fos.write(buf, 0, n);
+                in.close(); fos.close();
+
+                // Query installed games from ux_db
+                final List<Integer> gameIds   = new ArrayList<>();
+                final List<String>  gameNames = new ArrayList<>();
+                try {
+                    SQLiteDatabase db = SQLiteDatabase.openDatabase(
+                            getDatabasePath("ux_db").getAbsolutePath(), null,
+                            SQLiteDatabase.OPEN_READONLY);
+                    Cursor cur = db.query("StarterGame",
+                            new String[]{"gameId", "gameName"},
+                            null, null, null, null, "gameName ASC");
+                    while (cur.moveToNext()) {
+                        gameIds.add(cur.getInt(0));
+                        gameNames.add(cur.getString(1));
+                    }
+                    cur.close();
+                    db.close();
+                } catch (Exception ignored) {}
+
+                if (gameNames.isEmpty()) {
+                    ui.post(() -> Toast.makeText(this,
+                            "No installed games found in GameHub", Toast.LENGTH_SHORT).show());
+                    return;
+                }
+
+                final File finalFile = localFile;
+                ui.post(() -> new AlertDialog.Builder(this)
+                        .setTitle("Apply config to which game?")
+                        .setItems(gameNames.toArray(new String[0]), (d, which) ->
+                                BhSettingsExporter.applyConfig(
+                                        this,
+                                        gameIds.get(which),
+                                        gameNames.get(which),
+                                        finalFile))
+                        .setNegativeButton("Cancel", null)
+                        .show());
+            } catch (Exception e) {
+                ui.post(() -> Toast.makeText(this,
+                        "Failed: " + e.getMessage(), Toast.LENGTH_LONG).show());
+            }
+        }).start();
+    }
 
     private void downloadConfig(JSONObject config) {
         String game     = config.optString("game_folder", selectedGame);

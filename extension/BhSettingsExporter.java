@@ -337,7 +337,7 @@ public class BhSettingsExporter {
 
     // ─── Apply config ────────────────────────────────────────────────────────
 
-    private static void applyConfig(Context ctx, int gameId, String gameName, File configFile) {
+    static void applyConfig(Context ctx, int gameId, String gameName, File configFile) {
         try {
             char[] buf = new char[(int) configFile.length()];
             FileReader fr = new FileReader(configFile);
