@@ -99,6 +99,7 @@ public class BhGameConfigsActivity extends Activity {
     private EditText     searchBox;
     private ListView     gamesListView, configsListView, uploadsListView;
     private Button       myUploadsBtn;
+    private TextView     gamesTotalLabel;
     private LinearLayout socFilterBar;
 
     // Screen 3 dynamic views
@@ -317,6 +318,12 @@ public class BhGameConfigsActivity extends Activity {
         View searchDivider = new View(this);
         searchDivider.setBackgroundColor(DIVIDER);
 
+        gamesTotalLabel = new TextView(this);
+        gamesTotalLabel.setTextColor(GREY);
+        gamesTotalLabel.setTextSize(11f);
+        gamesTotalLabel.setPadding(dp(16), dp(6), dp(16), dp(4));
+        gamesTotalLabel.setVisibility(View.GONE);
+
         gamesListView = new ListView(this);
         gamesListView.setBackgroundColor(BG);
         gamesListView.setDivider(null);
@@ -326,6 +333,7 @@ public class BhGameConfigsActivity extends Activity {
 
         s.addView(searchBox, new LinearLayout.LayoutParams(-1, -2));
         s.addView(searchDivider, new LinearLayout.LayoutParams(-1, dp(1)));
+        s.addView(gamesTotalLabel, new LinearLayout.LayoutParams(-1, -2));
         s.addView(gamesListView, new LinearLayout.LayoutParams(-1, 0, 1f));
         return s;
     }
@@ -367,6 +375,14 @@ public class BhGameConfigsActivity extends Activity {
         String q = query.trim().toLowerCase();
         for (String g : allGames) {
             if (q.isEmpty() || g.toLowerCase().contains(q)) filteredGames.add(g);
+        }
+        if (gamesTotalLabel != null && !allGames.isEmpty()) {
+            if (q.isEmpty()) {
+                gamesTotalLabel.setText(allGames.size() + " games");
+            } else {
+                gamesTotalLabel.setText(filteredGames.size() + " of " + allGames.size() + " games");
+            }
+            gamesTotalLabel.setVisibility(View.VISIBLE);
         }
         refreshGamesList();
     }
@@ -875,6 +891,19 @@ public class BhGameConfigsActivity extends Activity {
         if (!alreadyReported) reportBtn.setOnClickListener(v -> doReport(config, reportBtn));
         content.addView(reportBtn, marginParams(0, 0, 0, dp(8)));
 
+        if (uploadToken != null && !uploadToken.isEmpty()) {
+            content.addView(
+                actionBtn("Delete My Upload", 0xFF8B0000, v -> {
+                    new android.app.AlertDialog.Builder(this)
+                        .setTitle("Delete Upload")
+                        .setMessage("Remove \"" + filename.replace("_", " ") + "\" from the community list?")
+                        .setPositiveButton("Delete", (d, w) -> doDeleteUpload(sha, game, filename, uploadToken, true))
+                        .setNegativeButton("Cancel", null)
+                        .show();
+                }),
+                marginParams(0, 0, 0, dp(8)));
+        }
+
         Button applyBtn = actionBtn("Apply to Game...", 0xFF4A148C, null);
         applyBtn.setEnabled(false);
         applyBtn.setAlpha(0.4f);
@@ -1018,6 +1047,10 @@ public class BhGameConfigsActivity extends Activity {
                     allGames.clear(); allGames.addAll(games);
                     filteredGames.clear(); filteredGames.addAll(games);
                     gameCounts.clear(); gameCounts.putAll(counts);
+                    if (gamesTotalLabel != null) {
+                        gamesTotalLabel.setText(games.size() + " games");
+                        gamesTotalLabel.setVisibility(games.isEmpty() ? View.GONE : View.VISIBLE);
+                    }
                     refreshGamesList();
                     if (refreshBtn != null) refreshBtn.setEnabled(true);
                     if (games.isEmpty())
@@ -1641,14 +1674,14 @@ public class BhGameConfigsActivity extends Activity {
             new android.app.AlertDialog.Builder(this)
                 .setTitle("Delete Upload")
                 .setMessage("Remove \"" + filename.replace("_", " ") + "\" from the community list?")
-                .setPositiveButton("Delete", (d, w) -> doDeleteUpload(sha, game, filename, token))
+                .setPositiveButton("Delete", (d, w) -> doDeleteUpload(sha, game, filename, token, false))
                 .setNegativeButton("Cancel", null)
                 .show();
             return true;
         });
     }
 
-    private void doDeleteUpload(String sha, String game, String filename, String uploadToken) {
+    private void doDeleteUpload(String sha, String game, String filename, String uploadToken, boolean fromDetail) {
         new Thread(() -> {
             try {
                 JSONObject body = new JSONObject();
@@ -1663,6 +1696,9 @@ public class BhGameConfigsActivity extends Activity {
                     getSharedPreferences(UPLOADS_SP, 0).edit().remove(sha).apply();
                     ui.post(() -> {
                         Toast.makeText(this, "Deleted from community list", Toast.LENGTH_SHORT).show();
+                        if (fromDetail) {
+                            showScreen(4);
+                        }
                         refreshUploadsList();
                     });
                 } else {
