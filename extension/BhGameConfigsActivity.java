@@ -796,6 +796,10 @@ public class BhGameConfigsActivity extends Activity {
                 myToken = rec.optString("token", null);
             }
         } catch (Exception ignored) {}
+        // Fallback: recover token from local config file (survives SP loss after reinstall)
+        if ((myToken == null || myToken.isEmpty()) && filename != null && !filename.isEmpty()) {
+            myToken = BhSettingsExporter.recoverTokenFromFile(this, filename);
+        }
         final String uploadToken = myToken;
         fetchAndShowDesc(sha, descCard, uploadToken);
 
@@ -1660,6 +1664,11 @@ public class BhGameConfigsActivity extends Activity {
             String game     = rec.optString("game", "");
             String filename = rec.optString("filename", "");
             String token    = rec.optString("token", "");
+            // Fallback: recover token from local config file if SP record lost it
+            if (token.isEmpty() && !filename.isEmpty()) {
+                String recovered = BhSettingsExporter.recoverTokenFromFile(BhGameConfigsActivity.this, filename);
+                if (recovered != null) token = recovered;
+            }
             if (sha.isEmpty() || token.isEmpty()) return true;
             new android.app.AlertDialog.Builder(this)
                 .setTitle("Delete Upload")

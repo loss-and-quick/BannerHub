@@ -48,6 +48,8 @@ public class BhSettingsExporter {
     private static final String WORKER_BASE  =
             "https://bannerhub-configs-worker.the412banner.workers.dev";
 
+    static final String BH_VERSION = "2.9.1";
+
     // ─── Export entry point ──────────────────────────────────────────────────
 
     public static void showExportDialog(Context ctx, int gameId, String gameName) {
@@ -83,6 +85,12 @@ public class BhSettingsExporter {
 
     private static void doExport(Context ctx, int gameId, String gameName, boolean share) {
         try {
+            // Generate token early so it's embedded in both local file and upload
+            // This enables token recovery from local file if SP is lost (reinstall/clear data)
+            String uploadToken = Long.toHexString(new Random().nextLong() & Long.MAX_VALUE);
+            String uploadDate  = new java.text.SimpleDateFormat("yyyy-MM-dd",
+                    java.util.Locale.US).format(new java.util.Date());
+
             // Game settings
             SharedPreferences sp = ctx.getSharedPreferences(SP_PREFIX + gameId, Context.MODE_PRIVATE);
             JSONObject settings = new JSONObject();
@@ -97,7 +105,8 @@ public class BhSettingsExporter {
             JSONObject meta = new JSONObject();
             meta.put("device",           Build.MANUFACTURER + " " + Build.MODEL);
             meta.put("soc",              detectSoc(ctx));
-            meta.put("bh_version",       "2.8.8");
+            meta.put("bh_version",       BH_VERSION);
+            meta.put("upload_token",     uploadToken);
             meta.put("settings_count",   settings.length());
             meta.put("components_count", components.length());
 
@@ -113,7 +122,7 @@ public class BhSettingsExporter {
             long   ts           = System.currentTimeMillis() / 1000;
             String fileName     = safeName + "-" + manufacturer + "-" + deviceName + "-" + socModel + "-" + ts + ".json";
 
-            // Save locally
+            // Save locally (token embedded — survives app reinstall via external storage)
             File dir = new File(Environment.getExternalStorageDirectory(), EXPORT_DIR);
             dir.mkdirs();
             File localFile = new File(dir, fileName);
@@ -123,12 +132,8 @@ public class BhSettingsExporter {
             Toast.makeText(ctx, "Saved: " + fileName, Toast.LENGTH_LONG).show();
 
             if (share) {
-                // Upload in background
+                // Upload in background — json already has upload_token in meta
                 String jsonStr = json.toString();
-                // Generate a random token so the uploader can later edit the description
-                String uploadToken = Long.toHexString(new Random().nextLong() & Long.MAX_VALUE);
-                String uploadDate  = new java.text.SimpleDateFormat("yyyy-MM-dd",
-                        java.util.Locale.US).format(new java.util.Date());
 
                 new Thread(() -> {
                     Handler ui = new Handler(Looper.getMainLooper());
@@ -548,6 +553,28 @@ public class BhSettingsExporter {
             dest.delete();
         } catch (Exception e) {
             Toast.makeText(ctx, "Inject failed: " + name + " — " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
+    }
+
+    /**
+     * Recovers the upload token from a locally saved config file on external storage.
+     * Used when the SP record is missing (app reinstall / clear data) but the
+     * JSON file still exists in /sdcard/BannerHub/configs/.
+     */
+    public static String recoverTokenFromFile(Context ctx, String filename) {
+        try {
+            File f = new File(new File(Environment.getExternalStorageDirectory(), EXPORT_DIR), filename);
+            if (!f.exists()) return null;
+            char[] buf = new char[(int) f.length()];
+            java.io.FileReader fr = new java.io.FileReader(f);
+            int n = fr.read(buf); fr.close();
+            JSONObject json = new JSONObject(new String(buf, 0, n));
+            JSONObject meta = json.optJSONObject("meta");
+            if (meta == null) return null;
+            String token = meta.optString("upload_token", "");
+            return token.isEmpty() ? null : token;
+        } catch (Exception ignored) {
+            return null;
         }
     }
 
