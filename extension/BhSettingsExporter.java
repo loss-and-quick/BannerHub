@@ -60,7 +60,7 @@ public class BhSettingsExporter {
             settingsCount = ctx.getSharedPreferences(SP_PREFIX + gameId, Context.MODE_PRIVATE)
                     .getAll().size();
         } catch (Exception ignored) {}
-        try { componentsCount = buildComponentsArray(ctx).length(); } catch (Exception ignored) {}
+        try { componentsCount = buildComponentsArray(ctx, gameId).length(); } catch (Exception ignored) {}
         String soc    = detectSoc(ctx);
         String device = Build.MANUFACTURER + " " + Build.MODEL;
 
@@ -99,7 +99,7 @@ public class BhSettingsExporter {
             }
 
             // Installed custom components (those that have a download URL tracked)
-            JSONArray components = buildComponentsArray(ctx);
+            JSONArray components = buildComponentsArray(ctx, gameId);
 
             // Meta block — parsed and shown in BhGameConfigsActivity detail view
             JSONObject meta = new JSONObject();
@@ -200,22 +200,51 @@ public class BhSettingsExporter {
         }
     }
 
-    /** Read installed components from banners_sources SP into a JSON array. */
-    private static JSONArray buildComponentsArray(Context ctx) throws Exception {
-        SharedPreferences sp = ctx.getSharedPreferences(SOURCES_SP, Context.MODE_PRIVATE);
+    /**
+     * Build components array from the game's own settings SP.
+     *
+     * Reads the known component keys from pc_g_setting{gameId} to find exactly
+     * which components are active for this game, then cross-references banners_sources
+     * to get the download URL — only included if it's a BannerHub-injected component.
+     * Stock GameHub components (no URL in banners_sources) are intentionally excluded
+     * since they need no download; their selection is already captured in the settings block.
+     */
+    private static JSONArray buildComponentsArray(Context ctx, int gameId) throws Exception {
+        SharedPreferences gameSp    = ctx.getSharedPreferences(SP_PREFIX + gameId, Context.MODE_PRIVATE);
+        SharedPreferences sourcesSp = ctx.getSharedPreferences(SOURCES_SP, Context.MODE_PRIVATE);
         JSONArray arr = new JSONArray();
-        for (Map.Entry<String, ?> e : sp.getAll().entrySet()) {
-            String key = e.getKey();
-            if (key.startsWith("dl:") || key.startsWith("url_for:") || key.endsWith(":type")) continue;
-            String name = key;
-            String url  = sp.getString("url_for:" + name, "");
-            if (url.isEmpty()) continue;
-            String type = sp.getString(name + ":type", "");
-            JSONObject comp = new JSONObject();
-            comp.put("name", name);
-            comp.put("url",  url);
-            comp.put("type", type);
-            arr.put(comp);
+
+        // Keys in pc_g_setting{gameId} that hold active component JSON objects
+        // Each value is a JSON string with at minimum a "name" field
+        String[] componentKeys = {
+            "pc_ls_DXVK",          // DXVK
+            "pc_ls_VK3k",          // VKD3D
+            "pc_set_constant_94",  // Box64
+            "pc_set_constant_95",  // FEXCore
+            "pc_ls_GPU_DRIVER_",   // GPU driver
+            "pc_ls_CONTAINER_LIST",// Wine container
+            "pc_ls_steam_client",  // Steam client
+        };
+
+        for (String key : componentKeys) {
+            String raw = gameSp.getString(key, "");
+            if (raw.isEmpty()) continue;
+            try {
+                JSONObject obj  = new JSONObject(raw);
+                String name     = obj.optString("name", "");
+                if (name.isEmpty()) continue;
+
+                // Only include if this is a BannerHub-injected component (has a URL in banners_sources)
+                String url  = sourcesSp.getString("url_for:" + name, "");
+                if (url.isEmpty()) continue;
+                String type = sourcesSp.getString(name + ":type", "");
+
+                JSONObject comp = new JSONObject();
+                comp.put("name", name);
+                comp.put("url",  url);
+                comp.put("type", type);
+                arr.put(comp);
+            } catch (Exception ignored) {}
         }
         return arr;
     }
