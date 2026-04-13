@@ -4,6 +4,19 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+### [fix] — v2.9.3-pre — Export/import still 0/0 for catalog games (2026-04-13)
+**Commit:** `e1ef76c6d`  |  **Tag:** v2.9.3-pre (retagged)
+**CI:** triggered
+#### What changed
+- Previous fix (getLocalGameId()) worked for locally-added games but not GameHub catalog/server games. For catalog games `getLocalGameId()` returns `""` — per-game settings are stored in `"pc_g_setting" + getId()` (integer server game ID as string, e.g. `"pc_g_setting271590"`).
+- Both `BhExportLambda` and `BhImportLambda`: if `getLocalGameId()` is empty, fall back to `String.valueOf(getId())` before passing to `BhSettingsExporter`.
+- Verified from exported JSONs: GTA IV CE, GTA V Enhanced, REANIMAL, Titanfall 2 still had 0/0 (catalog games); Planet of Lana 2, CS:S, God of War, L4D2 working (20/3, 20/0, 18/0, 20/0).
+#### Files touched
+- `patches/smali/.../BhExportLambda.smali`
+- `patches/smali/.../BhImportLambda.smali`
+
+---
+
 ### [fix] — v2.9.3-pre — Export/import config showed 0 settings and 0 components (2026-04-13)
 **Commit:** `cf42c7619`  |  **Tag:** v2.9.3-pre (retagged)
 **CI:** triggered

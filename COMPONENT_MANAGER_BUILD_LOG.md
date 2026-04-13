@@ -4658,6 +4658,18 @@ Also extracted `resolveGameName(int id, String gameName, String filePath)` helpe
 
 ---
 
+### Entry 056 — Export/import still 0/0 for catalog games (2026-04-13)
+**Commit:** `e1ef76c6d`  |  **Tag:** v2.9.3-pre  |  **CI:** triggered
+
+**Files changed:**
+- `patches/smali/.../BhExportLambda.smali` — added empty-check on `getLocalGameId()`; if empty, fall back to `String.valueOf(getId())`
+- `patches/smali/.../BhImportLambda.smali` — same
+
+**Root cause / design:**
+GameHub catalog/server games have `GameDetailEntity.localGameId = ""` — the `local_UUID` field is only set for games added manually from device storage. For catalog games, per-game settings live in `"pc_g_setting" + gameId` where gameId is the integer server ID (e.g. GTA V = 271590 → `"pc_g_setting271590"`). After the previous fix, locally-added games worked (Planet of Lana 2 got 20 settings + 3 components) but catalog games still returned `""` producing SP name `"pc_g_setting"` (always empty). Solution: check `isEmpty()` on `getLocalGameId()` in smali and fall back to `String.valueOf(getId())` if empty.
+
+---
+
 ### Entry #[next] — v2.8.10-pre — SOC badge detection fix (2026-04-04)
 **Files:** `extension/BhGameConfigsActivity.java`
 **Root cause:** `BhGameConfigsActivity` used `Build.SOC_MODEL` (e.g. `SM8750`) for SOC matching, while `BhSettingsExporter` used `device_info` → `gpu_renderer` (EGL-queried, e.g. `Adreno (TM) 750`). The mismatch meant "✓ My SOC" badges never fired for configs with `meta.soc = "Adreno (TM) 750"`.
