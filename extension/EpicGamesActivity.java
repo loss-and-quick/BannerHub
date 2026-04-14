@@ -39,9 +39,7 @@ import android.widget.Toast;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -89,7 +87,6 @@ public class EpicGamesActivity extends Activity {
     private View         expandedSection = null;
     private TextView     expandedArrow   = null;
     private String       viewMode;
-    private LinearLayout freeSection;
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
@@ -105,7 +102,6 @@ public class EpicGamesActivity extends Activity {
             int cn = cached.size(); setSync(cn + (cn == 1 ? " game" : " games") + " — cached  •  tap ↺ to refresh");
         }
         startSync(cached == null || cached.isEmpty());
-        loadFreeGames();
     }
 
     // ── UI construction ───────────────────────────────────────────────────────
@@ -187,6 +183,26 @@ public class EpicGamesActivity extends Activity {
         refreshBtn.setOnClickListener(v -> startSync(true));
         header.addView(refreshBtn, new LinearLayout.LayoutParams(-2, dp(40)));
 
+        Button freeBtn = new Button(this);
+        freeBtn.setText("FREE");
+        freeBtn.setTextColor(0xFF00C853);
+        GradientDrawable freeBtnBg = new GradientDrawable();
+        freeBtnBg.setColor(0xFF00330F);
+        freeBtnBg.setCornerRadius(dp(4));
+        freeBtnBg.setStroke(dp(1), 0xFF00C853);
+        freeBtn.setBackground(freeBtnBg);
+        freeBtn.setTextSize(11f);
+        freeBtn.setTypeface(null, android.graphics.Typeface.BOLD);
+        freeBtn.setPadding(dp(10), 0, dp(10), 0);
+        LinearLayout.LayoutParams freeBtnLp = new LinearLayout.LayoutParams(-2, dp(40));
+        freeBtnLp.leftMargin = dp(4);
+        freeBtn.setOnFocusChangeListener((v, hasFocus) -> {
+            freeBtnBg.setColor(hasFocus ? 0xFF005518 : 0xFF00330F);
+            freeBtnBg.setStroke(hasFocus ? dp(2) : dp(1), hasFocus ? 0xFFFFD700 : 0xFF00C853);
+        });
+        freeBtn.setOnClickListener(v -> startActivity(new Intent(this, EpicFreeGamesActivity.class)));
+        header.addView(freeBtn, freeBtnLp);
+
         root.addView(header, new LinearLayout.LayoutParams(-1, -2));
 
         // Search bar
@@ -216,12 +232,6 @@ public class EpicGamesActivity extends Activity {
         syncText.setBackgroundColor(0xFF111111);
         root.addView(syncText, new LinearLayout.LayoutParams(-1, -2));
 
-        // Free games section (populated async, hidden until data arrives)
-        freeSection = new LinearLayout(this);
-        freeSection.setOrientation(LinearLayout.VERTICAL);
-        freeSection.setVisibility(View.GONE);
-        root.addView(freeSection, new LinearLayout.LayoutParams(-1, -2));
-
         // Scrollable game list
         scrollView = new ScrollView(this);
         scrollView.setBackgroundColor(COLOR_ROOT_BG);
@@ -234,125 +244,6 @@ public class EpicGamesActivity extends Activity {
 
         root.addView(scrollView, new LinearLayout.LayoutParams(-1, 0, 1f));
         setContentView(root);
-    }
-
-    // ── Free Games (EPIC-1) ───────────────────────────────────────────────────
-
-    private void loadFreeGames() {
-        new Thread(() -> {
-            try {
-                String url = "https://store-site-backend-static-ipv4.ak.epicgames.com"
-                        + "/freeGamesPromotions?locale=en-US&country=US&allowCountries=US";
-                java.net.HttpURLConnection conn =
-                        (java.net.HttpURLConnection) new java.net.URL(url).openConnection();
-                conn.setConnectTimeout(15000);
-                conn.setReadTimeout(15000);
-                conn.setRequestProperty("User-Agent", "Mozilla/5.0");
-                if (conn.getResponseCode() != 200) { conn.disconnect(); return; }
-
-                java.io.BufferedReader br = new java.io.BufferedReader(
-                        new java.io.InputStreamReader(conn.getInputStream()));
-                StringBuilder sb = new StringBuilder();
-                String line;
-                while ((line = br.readLine()) != null) sb.append(line);
-                conn.disconnect();
-
-                JSONObject root = new JSONObject(sb.toString());
-                JSONArray elements = root.optJSONObject("data")
-                        .optJSONObject("Catalog")
-                        .optJSONObject("searchStore")
-                        .optJSONArray("elements");
-                if (elements == null) return;
-
-                // Collect currently free games
-                List<String> freeTitles = new ArrayList<>();
-                for (int i = 0; i < elements.length(); i++) {
-                    JSONObject el = elements.getJSONObject(i);
-                    JSONObject promos = el.optJSONObject("promotions");
-                    if (promos == null) continue;
-                    JSONArray offers = promos.optJSONArray("promotionalOffers");
-                    if (offers == null || offers.length() == 0) continue;
-                    JSONArray inner = offers.getJSONObject(0).optJSONArray("promotionalOffers");
-                    if (inner == null || inner.length() == 0) continue;
-                    // discountPercentage == 0 means 100% off (free)
-                    int pct = inner.getJSONObject(0)
-                            .optJSONObject("discountSetting") != null
-                            ? inner.getJSONObject(0).getJSONObject("discountSetting")
-                                   .optInt("discountPercentage", -1)
-                            : -1;
-                    if (pct == 0) {
-                        String title = el.optString("title", "");
-                        if (!title.isEmpty()) freeTitles.add(title);
-                    }
-                }
-
-                if (freeTitles.isEmpty()) return;
-
-                uiHandler.post(() -> {
-                    if (freeSection == null) return;
-                    freeSection.removeAllViews();
-                    freeSection.setPadding(dp(8), dp(4), dp(8), dp(0));
-
-                    // Section label
-                    TextView header = new TextView(this);
-                    header.setText("FREE THIS WEEK");
-                    header.setTextColor(0xFF6688AA);
-                    header.setTextSize(11f);
-                    header.setTypeface(null, android.graphics.Typeface.BOLD);
-                    header.setLetterSpacing(0.08f);
-                    header.setPadding(dp(2), dp(8), 0, dp(4));
-                    freeSection.addView(header);
-
-                    for (String t : freeTitles) {
-                        LinearLayout card = new LinearLayout(this);
-                        card.setOrientation(LinearLayout.HORIZONTAL);
-                        card.setGravity(Gravity.CENTER_VERTICAL);
-                        card.setPadding(dp(12), dp(8), dp(12), dp(8));
-                        android.graphics.drawable.GradientDrawable bg =
-                                new android.graphics.drawable.GradientDrawable();
-                        bg.setColor(0xFF0A1A2A);
-                        bg.setCornerRadius(dp(6));
-                        bg.setStroke(dp(1), 0xFF0D5CA8);
-                        card.setBackground(bg);
-                        LinearLayout.LayoutParams cardLp =
-                                new LinearLayout.LayoutParams(-1, -2);
-                        cardLp.bottomMargin = dp(4);
-
-                        // FREE badge
-                        TextView badge = new TextView(this);
-                        badge.setText("FREE");
-                        badge.setTextColor(0xFF00C853);
-                        badge.setTextSize(10f);
-                        badge.setTypeface(null, android.graphics.Typeface.BOLD);
-                        badge.setPadding(dp(6), dp(2), dp(6), dp(2));
-                        android.graphics.drawable.GradientDrawable badgeBg =
-                                new android.graphics.drawable.GradientDrawable();
-                        badgeBg.setColor(0xFF00330F);
-                        badgeBg.setCornerRadius(dp(3));
-                        badge.setBackground(badgeBg);
-                        LinearLayout.LayoutParams badgeLp =
-                                new LinearLayout.LayoutParams(-2, -2);
-                        badgeLp.rightMargin = dp(10);
-                        card.addView(badge, badgeLp);
-
-                        // Title
-                        TextView titleTV = new TextView(this);
-                        titleTV.setText(t);
-                        titleTV.setTextColor(0xFFDDDDDD);
-                        titleTV.setTextSize(13f);
-                        titleTV.setMaxLines(1);
-                        titleTV.setEllipsize(android.text.TextUtils.TruncateAt.END);
-                        card.addView(titleTV, new LinearLayout.LayoutParams(0, -2, 1f));
-
-                        freeSection.addView(card, cardLp);
-                    }
-
-                    freeSection.setVisibility(View.VISIBLE);
-                });
-            } catch (Exception e) {
-                Log.w(TAG, "loadFreeGames failed: " + e.getMessage());
-            }
-        }, "epic-free-games").start();
     }
 
     // ── Library sync ──────────────────────────────────────────────────────────

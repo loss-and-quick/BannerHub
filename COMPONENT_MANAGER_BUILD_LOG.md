@@ -4704,3 +4704,16 @@ showDetailDialog() used an AlertDialog popup which was cramped and couldn't supp
 **Root cause:** `BhGameConfigsActivity` used `Build.SOC_MODEL` (e.g. `SM8750`) for SOC matching, while `BhSettingsExporter` used `device_info` → `gpu_renderer` (EGL-queried, e.g. `Adreno (TM) 750`). The mismatch meant "✓ My SOC" badges never fired for configs with `meta.soc = "Adreno (TM) 750"`.
 **Fix:** Aligned `BhGameConfigsActivity` SOC detection to use `device_info` → `gpu_renderer` first (same as `BhSettingsExporter.detectSoc()`), with kgsl sysfs and `Build.SOC_MODEL`/`HARDWARE` as fallbacks.
 **CI:** v2.8.10-pre triggered
+
+---
+
+### Entry 059 — v3.0.2-pre — EPIC-1 Free Games: dedicated full-screen Activity (2026-04-14)
+**Commit:** pending  |  **Tag:** v3.0.2-pre
+
+**Files changed:**
+- `extension/EpicFreeGamesActivity.java` (new) — full-screen free games view: fetches freeGamesPromotions (no auth), shows "FREE THIS WEEK" + "FREE NEXT WEEK" sections; each card tappable → opens Epic Store URL in browser via ACTION_VIEW; date range display; store URL built from catalogNs.mappings[].pageSlug (pageType=productHome) with productSlug fallback
+- `extension/EpicGamesActivity.java` — removed inline freeSection LinearLayout + loadFreeGames() method + loadFreeGames() call from onCreate(); added "FREE" button to header bar (green badge style, opens EpicFreeGamesActivity on tap)
+- `patches/AndroidManifest.xml` — registered EpicFreeGamesActivity
+
+**Root cause / design:**
+Prior inline EPIC-1 implementation rendered free game titles as a flat list above the library in EpicGamesActivity. Replaced with a dedicated full-screen Activity matching the game detail style (dark background, header bar with ← back, scrollable body). GREEN "FREE" button in Epic header bar opens EpicFreeGamesActivity. Activity separates current free games from upcoming ones, shows date ranges, and makes each card tappable to open the Epic Store page in the system browser.
