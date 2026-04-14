@@ -23,8 +23,8 @@
 **Current stable:** v3.0.0 (commit `19c6092d8`)
 **Active pre:** v3.0.1-pre (commit `d9d595f37`) — CI triggered
 
-**Last completed:** D-5 release dates (GOG+Epic) + GOG-2/EPIC-3/AMAZON-1 update checkers
-**Next job:** D-4 — Screenshots / media gallery  →  then GOG-3 DLC  →  EPIC-4 DLC  →  AMAZON-2 DLC
+**Last completed:** D-5 release dates + GOG-2/EPIC-3/AMAZON-1 update checkers (all confirmed working)
+**Next job:** GOG-3 DLC Management → EPIC-4 DLC → AMAZON-2 DLC → then cloud saves
 
 ---
 
@@ -36,15 +36,14 @@
 | D-1 | Full-screen detail activities (GOG/Epic/Amazon) | ✅ v3.0.1-pre | Header, cover art, GAME INFO, ACTIONS, stubs |
 | D-2 | Strip HTML from descriptions | ✅ v3.0.1-pre | `Html.fromHtml()` in GOG + Epic detail |
 | D-3 | Install size in GAME INFO | ✅ v3.0.1-pre | GOG: sync-time; Epic/Amazon: lazy+cached |
-| D-4 | Screenshots / media gallery | ⬜ | Horizontal scroll of game screenshots |
-| D-5 | Release date in GAME INFO | 🔄 v3.0.1-pre | GOG+Epic synced to SP; Amazon skipped (no API source) |
+| D-5 | Release date in GAME INFO | ✅ v3.0.1-pre | GOG+Epic synced to SP; Amazon skipped (no API source) |
 | D-6 | Ratings / score in GAME INFO | ⬜ | GOG critic score; Epic/Amazon limited |
 
 ### GOG
 | # | Job | Status | Notes |
 |---|-----|--------|-------|
 | GOG-1 | Cloud Saves | ⬜ | After GOG-3; `api.gog.com/userData/{uid}/games/{gid}/saves` |
-| GOG-2 | Update Checker | 🔄 v3.0.1-pre | `content-system.gog.com/products/{id}/os/windows/builds`; compare `gog_build_{id}` |
+| GOG-2 | Update Checker | ✅ v3.0.1-pre | `content-system.gog.com/products/{id}/os/windows/builds`; compare `gog_build_{id}` |
 | GOG-3 | DLC Management | ⬜ | After GOG-2; DLCs in library response, same content-system pipeline |
 | GOG-4 | GOG Connect | ⬜ | Low priority — requires Steam session |
 
@@ -53,13 +52,13 @@
 |---|-----|--------|-------|
 | EPIC-1 | Free Games section (library page) | ⬜ | No auth needed for list; lives in EpicGamesActivity |
 | EPIC-2 | Cloud Saves | ⬜ | After EPIC-4; `cloudsave-public-service-prod06.ol.epicgames.com` |
-| EPIC-3 | Update Checker | 🔄 v3.0.1-pre | Re-fetch manifest, compare versionId; store `epic_manifest_version_{appName}` |
+| EPIC-3 | Update Checker | ✅ v3.0.1-pre | Re-fetch manifest, compare `buildVersion`; store `epic_manifest_version_{appName}` |
 | EPIC-4 | DLC / Add-on Management | ⬜ | After EPIC-3; catalog API, mainGameItem filter |
 
 ### Amazon Games
 | # | Job | Status | Notes |
 |---|-----|--------|-------|
-| AMAZON-1 | Update Checker | 🔄 v3.0.1-pre | getLiveVersionId() vs stored `amazon_manifest_version_{productId}` |
+| AMAZON-1 | Update Checker | ✅ v3.0.1-pre | getGameDownload().versionId vs stored `amazon_manifest_version_{productId}` |
 | AMAZON-2 | DLC Management | ⬜ | After AMAZON-1; soften GAME type filter in GetEntitlements |
 
 ### General / Cross-Store
@@ -77,14 +76,15 @@
 | D-1 Full-screen detail pages | ✅ | ⬜ |
 | D-2 HTML description strip | ✅ | ⬜ |
 | D-3 Install size | ✅ | ⬜ |
-| GOG-2 Update Checker | ⬜ | — |
+| D-5 Release date | ✅ | ⬜ |
+| GOG-2 Update Checker | ✅ | ⬜ |
 | GOG-3 DLC | ⬜ | — |
 | GOG-1 Cloud Saves | ⬜ | — |
-| EPIC-3 Update Checker | ⬜ | — |
+| EPIC-3 Update Checker | ✅ | ⬜ |
 | EPIC-4 DLC | ⬜ | — |
 | EPIC-2 Cloud Saves | ⬜ | — |
 | EPIC-1 Free Games | ⬜ | — |
-| AMAZON-1 Update Checker | ⬜ | — |
+| AMAZON-1 Update Checker | ✅ | ⬜ |
 | AMAZON-2 DLC | ⬜ | — |
 | GEN-1–5 | ⬜ | — |
 
@@ -108,7 +108,7 @@
 ---
 
 ### GOG-2: Game Update Checker
-**Status:** 🔵 In progress — **NEXT TO IMPLEMENT**  
+**Status:** ✅ v3.0.1-pre — confirmed working  
 **Description:** Compare installed build ID against latest available on content-system. Show "Update available" badge and allow download.  
 **API:** `content-system.gog.com/products/{gameId}/os/windows/builds`  
 **Notes:**
@@ -184,7 +184,7 @@ _(empty)_
 ---
 
 ### EPIC-3: Game Update Checker
-**Status:** 🔵 In progress — **NEXT after GOG-2**  
+**Status:** ✅ v3.0.1-pre — confirmed working  
 **Description:** Compare installed manifest version against latest. Show update badge and allow download.  
 **API:** Same manifest endpoint used during install — re-fetch and compare version field  
 **Notes:**
@@ -214,7 +214,7 @@ _(empty)_
 ## Amazon Games
 
 ### AMAZON-1: Game Update Checker
-**Status:** 🔵 In progress — **NEXT after EPIC-3**  
+**Status:** ✅ v3.0.1-pre — confirmed working  
 **Description:** Compare installed manifest version against latest from Amazon. Show update badge and allow download.  
 **API:** Same manifest.proto endpoint used during install  
 **Notes:**
