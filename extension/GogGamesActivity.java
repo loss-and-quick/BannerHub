@@ -357,10 +357,14 @@ public class GogGamesActivity extends Activity {
 
             prefs.edit().putInt("gog_gen_" + id, generation).apply();
 
-            // Cache release date
+            // Cache release date + rating
             String releaseDate = prod.optString("release_date", "");
             if (releaseDate != null && !releaseDate.isEmpty()) {
                 prefs.edit().putString("gog_release_" + id, releaseDate).apply();
+            }
+            int rating = prod.optInt("rating", -1);
+            if (rating >= 0) {
+                prefs.edit().putInt("gog_rating_" + id, rating).apply();
             }
 
             // Cache install size if not already stored

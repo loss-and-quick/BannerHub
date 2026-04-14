@@ -188,6 +188,13 @@ public class GogGameDetailActivity extends Activity {
         if (releaseDate != null && !releaseDate.isEmpty()) {
             card.addView(makeInfoRow("Released", formatDate(releaseDate)));
         }
+        int rating = prefs.getInt("gog_rating_" + gameId, -1);
+        if (rating >= 0) {
+            float stars = rating / 100f;
+            String ratingStr = rating == 0 ? "Not rated"
+                    : String.format("%.1f / 5 ★", stars);
+            card.addView(makeInfoRow("Rating", ratingStr));
+        }
         // Install size row (value updated async)
         sizeTV = new TextView(this);
         sizeTV.setTextColor(0xFFCCCCCC);
