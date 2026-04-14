@@ -4736,3 +4736,21 @@ Prior inline EPIC-1 implementation rendered free game titles as a flat list abov
 **Root cause / design:**
 GOG-3, EPIC-4, AMAZON-2 first implementation. DLC detection happens during library sync; associations stored in SharedPreferences under `{store}_dlcs_{baseGameId}` as JSON arrays. Game detail activities read these to populate DLC sections. Epic DLCs install separately via their own manifest (same pipeline). Amazon DLCs use AmazonDownloadManager with DLC entitlementId. GOG DLCs are informational only (gen2 manifests include owned DLC depots automatically). Amazon DLC detection is best-effort (field names uncertain — probes multiple candidates).
 **CI:** v3.0.3-pre triggered
+
+---
+
+### Entry #[next] — v3.0.4-pre — Cloud Saves GOG-1 + EPIC-2 (2026-04-14)
+**Commit:** `bf80e9c8b`  |  **Tag:** v3.0.4-pre  |  **CI:** pending
+
+#### Files
+- `extension/FolderPickerActivity.java` (NEW) — in-app folder browser; `getFilesDir()` root; subdirs only; returns path via `setResult(RESULT_OK)`
+- `extension/GogCloudSaveManager.java` (NEW) — `uploadSaves()` + `downloadSaves()`; timestamp comparison (local ms vs cloud epoch→ms); `GogTokenRefresh.refresh()` for auth
+- `extension/EpicCloudSaveManager.java` (NEW) — `uploadSaves()` + `downloadSaves()`; POST for writeLinks, PUT to presigned URL; `EpicAuthClient.refreshToken()` for auth; `parseIso8601Ms()` for `lastModified` string
+- `extension/GogGameDetailActivity.java` — CLOUD SAVES card: Browse/Upload/Download; `onActivityResult()` for folder picker; prefs key `gog_save_dir_{gameId}`
+- `extension/EpicGameDetailActivity.java` — same pattern; prefs key `epic_save_dir_{appName}`
+- `patches/AndroidManifest.xml` — added `FolderPickerActivity` entry
+
+#### Root cause / notes
+- GOG cloud saves use regular access_token (no game-scoped token in v1 implementation)
+- Epic `expires_at` prefs key confirmed from `EpicCredentialStore.java` (not `epic_expires_at`)
+- Upload/download buttons disabled until save folder is set via FolderPickerActivity

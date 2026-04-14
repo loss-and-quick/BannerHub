@@ -21,10 +21,10 @@
 ## Session Resume (update this block every session)
 
 **Current stable:** v3.0.0 (commit `19c6092d8`)
-**Active pre:** v3.0.3-pre (commit `6ddc2580a`) — CI ✅ run 24407354388
+**Active pre:** v3.0.4-pre (commit `bf80e9c8b`) — CI pending
 
-**Last completed:** GOG-3 + EPIC-4 + AMAZON-2 DLC Management (v3.0.3-pre)
-**Next job:** GOG-1 Cloud Saves + EPIC-2 Cloud Saves (v3.0.4-pre)
+**Last completed:** GOG-1 Cloud Saves + EPIC-2 Cloud Saves (v3.0.4-pre)
+**Next job:** GOG-4 GOG Connect (low priority) or BH-Lite ports
 
 ---
 
@@ -42,7 +42,7 @@
 ### GOG
 | # | Job | Status | Notes |
 |---|-----|--------|-------|
-| GOG-1 | Cloud Saves | 🔵 v3.0.4-pre | Manual save folder; in-app browser; cloudstorage.gog.com |
+| GOG-1 | Cloud Saves | ✅ v3.0.4-pre | Manual save folder; FolderPickerActivity; cloudstorage.gog.com |
 | GOG-2 | Update Checker | ✅ v3.0.1-pre | `content-system.gog.com/products/{id}/os/windows/builds`; compare `gog_build_{id}` |
 | GOG-3 | DLC Management | ✅ v3.0.3-pre | DLCs detected during sync; shown in detail with "Owned" badge; gen2 installs include depots |
 | GOG-4 | GOG Connect | ⬜ | Low priority — requires Steam session |
@@ -51,7 +51,7 @@
 | # | Job | Status | Notes |
 |---|-----|--------|-------|
 | EPIC-1 | Free Games (dedicated screen) | ✅ v3.0.2-pre | Full-screen EpicFreeGamesActivity; FREE button in header; tappable store links |
-| EPIC-2 | Cloud Saves | 🔵 v3.0.4-pre | Manual save folder; in-app browser; datastorage Epic API |
+| EPIC-2 | Cloud Saves | ✅ v3.0.4-pre | Manual save folder; FolderPickerActivity; datastorage Epic API |
 | EPIC-3 | Update Checker | ✅ v3.0.1-pre | manifest buildVersion field; confirmed working |
 | EPIC-4 | DLC / Add-on Management | ✅ v3.0.3-pre | DLCs detected via mainGameItem; shown in detail with Install button + inline progress |
 
@@ -199,11 +199,11 @@ Best-effort DLC detection in `parseEntitlement()` — probes `product.productTyp
 | D-6 Ratings | ✅ v3.0.2-pre | ⬜ | GOG only |
 | GOG-2 Update Checker | ✅ v3.0.1-pre | ⬜ | |
 | GOG-3 DLC Management | ✅ v3.0.3-pre | ⬜ | |
-| GOG-1 Cloud Saves | 🔵 v3.0.4-pre | — | After BH release |
+| GOG-1 Cloud Saves | ✅ v3.0.4-pre | — | After BH release |
 | GOG-4 GOG Connect | ⬜ | — | Complex Steam dep |
 | EPIC-1 Free Games | ✅ v3.0.2-pre | ⬜ | |
 | EPIC-3 Update Checker | ✅ v3.0.1-pre | ⬜ | |
 | EPIC-4 DLC Management | ✅ v3.0.3-pre | ⬜ | |
-| EPIC-2 Cloud Saves | 🔵 v3.0.4-pre | — | After BH release |
+| EPIC-2 Cloud Saves | ✅ v3.0.4-pre | — | After BH release |
 | AMAZON-1 Update Checker | ✅ v3.0.1-pre | ⬜ | |
 | AMAZON-2 DLC Management | ⚠️ v3.0.3-pre | ⬜ | Best-effort detection |

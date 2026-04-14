@@ -3540,3 +3540,25 @@ manifest download, install, launch, SDK cache + update checker.
 - extension/GogGameDetailActivity.java
 - extension/EpicGameDetailActivity.java
 - extension/AmazonGameDetailActivity.java
+
+---
+
+### [feat] — v3.0.4-pre — Cloud Saves GOG + Epic (2026-04-14)
+**Commit:** `bf80e9c8b`  |  **Tag:** v3.0.4-pre
+
+#### What changed
+- **GOG-1 Cloud Saves**: `GogCloudSaveManager.java` — upload (newer-wins comparison) + download to/from `cloudstorage.gog.com/v1/{userId}/{gameId}`; auto-refreshes GOG access token before calls
+- **EPIC-2 Cloud Saves**: `EpicCloudSaveManager.java` — POST writeLink + PUT for upload, GET readLink for download; auto-refreshes Epic token via `EpicAuthClient.refreshToken()`
+- **FolderPickerActivity**: In-app folder browser starting at `getFilesDir()`; shows subdirs only; "Select this folder" returns absolute path
+- **GogGameDetailActivity**: CLOUD SAVES section now live — Browse button → FolderPickerActivity; Upload/Download buttons with live status line; prefs key `gog_save_dir_{gameId}`
+- **EpicGameDetailActivity**: Same cloud saves section for Epic; prefs key `epic_save_dir_{appName}`
+- **AndroidManifest.xml**: FolderPickerActivity registered
+
+#### Files touched
+- `extension/FolderPickerActivity.java` (new)
+- `extension/GogCloudSaveManager.java` (new)
+- `extension/EpicCloudSaveManager.java` (new)
+- `extension/GogGameDetailActivity.java`
+- `extension/EpicGameDetailActivity.java`
+- `patches/AndroidManifest.xml`
+- `STORE_FEATURES_REPORT.md`
