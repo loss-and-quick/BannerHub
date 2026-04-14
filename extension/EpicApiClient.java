@@ -208,7 +208,10 @@ public class EpicApiClient {
             // Return as a wrapper with top-level "manifests" key that EpicDownloadManager expects
             JSONObject wrapper = new JSONObject();
             wrapper.put("manifests", firstElement.optJSONArray("manifests"));
-            wrapper.put("versionId", firstElement.optString("versionId", ""));
+            // buildVersion is the version identifier in the assets/v2 response
+            String ver = firstElement.optString("buildVersion", "");
+            if (ver.isEmpty()) ver = firstElement.optString("versionId", ""); // fallback
+            wrapper.put("versionId", ver);
             return wrapper.toString();
 
         } catch (Exception e) {

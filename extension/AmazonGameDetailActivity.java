@@ -518,7 +518,10 @@ public class AmazonGameDetailActivity extends Activity {
                     });
                     return;
                 }
-                String latestVer = AmazonApiClient.getLiveVersionId(token, productId);
+                // Use getGameDownload (same call as install) — getLiveVersionIds is unreliable
+                AmazonApiClient.GameDownloadSpec spec =
+                        AmazonApiClient.getGameDownload(token, entitlementId);
+                String latestVer = (spec != null) ? spec.versionId : null;
                 uiHandler.post(() -> {
                     if (checkUpdatesBtn != null) checkUpdatesBtn.setEnabled(true);
                     if (updateStatusTV == null) return;
