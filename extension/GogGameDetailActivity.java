@@ -53,6 +53,8 @@ public class GogGameDetailActivity extends Activity {
     private final Handler uiHandler = new Handler(Looper.getMainLooper());
     private SharedPreferences prefs;
 
+    private static final int REQUEST_FOLDER_PICKER = 200;
+
     private String gameId, title, imageUrl, description, developer, category;
     private int generation;
 
@@ -66,6 +68,10 @@ public class GogGameDetailActivity extends Activity {
     // Updates section views
     private TextView updateStatusTV;
     private Button checkUpdatesBtn, updateBtn;
+
+    // Cloud saves section views
+    private TextView cloudSaveDirTV, cloudSaveStatusTV;
+    private Button cloudBrowseBtn, cloudUploadBtn, cloudDownloadBtn;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -150,9 +156,9 @@ public class GogGameDetailActivity extends Activity {
         body.addView(makeSectionHeader("DLC"), sectionHeaderLp());
         body.addView(makeDlcCard(), new LinearLayout.LayoutParams(-1, -2));
 
-        // Cloud Saves stub
+        // Cloud Saves
         body.addView(makeSectionHeader("CLOUD SAVES"), sectionHeaderLp());
-        body.addView(makeStubCard("Cloud saves coming soon"), new LinearLayout.LayoutParams(-1, -2));
+        body.addView(makeCloudSavesCard(), new LinearLayout.LayoutParams(-1, -2));
 
         scroll.addView(body);
         root.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1f));
@@ -785,6 +791,118 @@ public class GogGameDetailActivity extends Activity {
             card.addView(tv);
         }
         return card;
+    }
+
+    // ── Cloud Saves card (GOG-1) ──────────────────────────────────────────────
+
+    private View makeCloudSavesCard() {
+        LinearLayout card = makeCard();
+
+        // Save folder row
+        LinearLayout folderRow = new LinearLayout(this);
+        folderRow.setOrientation(LinearLayout.HORIZONTAL);
+        folderRow.setGravity(android.view.Gravity.CENTER_VERTICAL);
+
+        cloudSaveDirTV = new TextView(this);
+        String savedDir = prefs.getString("gog_save_dir_" + gameId, null);
+        cloudSaveDirTV.setText(savedDir != null ? shortenPath(savedDir) : "No save folder set");
+        cloudSaveDirTV.setTextColor(savedDir != null ? 0xFFCCCCCC : 0xFF555577);
+        cloudSaveDirTV.setTextSize(12f);
+        cloudSaveDirTV.setMaxLines(2);
+        folderRow.addView(cloudSaveDirTV, new LinearLayout.LayoutParams(0, -2, 1f));
+
+        cloudBrowseBtn = makeBtn("Browse", 0xFF333355);
+        cloudBrowseBtn.setOnClickListener(v -> {
+            Intent intent = new Intent(this, FolderPickerActivity.class);
+            startActivityForResult(intent, REQUEST_FOLDER_PICKER);
+        });
+        LinearLayout.LayoutParams browseLp = new LinearLayout.LayoutParams(-2, dp(36));
+        browseLp.leftMargin = dp(8);
+        folderRow.addView(cloudBrowseBtn, browseLp);
+
+        LinearLayout.LayoutParams folderRowLp = new LinearLayout.LayoutParams(-1, -2);
+        folderRowLp.bottomMargin = dp(10);
+        card.addView(folderRow, folderRowLp);
+
+        // Status line
+        cloudSaveStatusTV = new TextView(this);
+        cloudSaveStatusTV.setTextColor(0xFF8888AA);
+        cloudSaveStatusTV.setTextSize(12f);
+        cloudSaveStatusTV.setVisibility(android.view.View.GONE);
+        LinearLayout.LayoutParams statusLp = new LinearLayout.LayoutParams(-1, -2);
+        statusLp.bottomMargin = dp(8);
+        card.addView(cloudSaveStatusTV, statusLp);
+
+        // Upload / Download buttons
+        cloudUploadBtn = makeBtn("Upload Saves", 0xFF0277BD);
+        cloudUploadBtn.setEnabled(savedDir != null);
+        cloudUploadBtn.setOnClickListener(v -> {
+            String dir = prefs.getString("gog_save_dir_" + gameId, null);
+            if (dir == null) { Toast.makeText(this, "Set a save folder first", Toast.LENGTH_SHORT).show(); return; }
+            cloudUploadBtn.setEnabled(false);
+            cloudDownloadBtn.setEnabled(false);
+            showCloudStatus("Preparing upload…");
+            GogCloudSaveManager.uploadSaves(this, gameId, new java.io.File(dir),
+                new GogCloudSaveManager.Callback() {
+                    @Override public void onStatus(String msg) { uiHandler.post(() -> showCloudStatus(msg)); }
+                    @Override public void onDone(String msg)   { uiHandler.post(() -> { showCloudStatus(msg); enableCloudBtns(true); }); }
+                    @Override public void onError(String msg)  { uiHandler.post(() -> { showCloudStatus("Error: " + msg); enableCloudBtns(true); }); }
+                });
+        });
+        card.addView(cloudUploadBtn, btnLp());
+
+        cloudDownloadBtn = makeBtn("Download Saves", 0xFF2E7D32);
+        cloudDownloadBtn.setEnabled(savedDir != null);
+        cloudDownloadBtn.setOnClickListener(v -> {
+            String dir = prefs.getString("gog_save_dir_" + gameId, null);
+            if (dir == null) { Toast.makeText(this, "Set a save folder first", Toast.LENGTH_SHORT).show(); return; }
+            cloudUploadBtn.setEnabled(false);
+            cloudDownloadBtn.setEnabled(false);
+            showCloudStatus("Preparing download…");
+            GogCloudSaveManager.downloadSaves(this, gameId, new java.io.File(dir),
+                new GogCloudSaveManager.Callback() {
+                    @Override public void onStatus(String msg) { uiHandler.post(() -> showCloudStatus(msg)); }
+                    @Override public void onDone(String msg)   { uiHandler.post(() -> { showCloudStatus(msg); enableCloudBtns(true); }); }
+                    @Override public void onError(String msg)  { uiHandler.post(() -> { showCloudStatus("Error: " + msg); enableCloudBtns(true); }); }
+                });
+        });
+        card.addView(cloudDownloadBtn, btnLp());
+
+        return card;
+    }
+
+    private void showCloudStatus(String msg) {
+        if (cloudSaveStatusTV == null) return;
+        cloudSaveStatusTV.setText(msg);
+        cloudSaveStatusTV.setVisibility(android.view.View.VISIBLE);
+    }
+
+    private void enableCloudBtns(boolean enabled) {
+        if (cloudUploadBtn != null) cloudUploadBtn.setEnabled(enabled);
+        if (cloudDownloadBtn != null) cloudDownloadBtn.setEnabled(enabled);
+    }
+
+    private static String shortenPath(String path) {
+        String[] parts = path.split("/");
+        if (parts.length <= 3) return path;
+        return "…/" + parts[parts.length - 2] + "/" + parts[parts.length - 1];
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_FOLDER_PICKER && resultCode == RESULT_OK && data != null) {
+            String selectedPath = data.getStringExtra("path");
+            if (selectedPath != null && !selectedPath.isEmpty()) {
+                prefs.edit().putString("gog_save_dir_" + gameId, selectedPath).apply();
+                if (cloudSaveDirTV != null) {
+                    cloudSaveDirTV.setText(shortenPath(selectedPath));
+                    cloudSaveDirTV.setTextColor(0xFFCCCCCC);
+                }
+                enableCloudBtns(true);
+                Toast.makeText(this, "Save folder set", Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 
     private View makeStubCard(String msg) {

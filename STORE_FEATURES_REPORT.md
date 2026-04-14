@@ -21,10 +21,10 @@
 ## Session Resume (update this block every session)
 
 **Current stable:** v3.0.0 (commit `19c6092d8`)
-**Active pre:** v3.0.1-pre (commit `d9d595f37`) — CI triggered
+**Active pre:** v3.0.3-pre (commit `6ddc2580a`) — CI ✅ run 24407354388
 
-**Last completed:** D-6 GOG ratings + EPIC-1 free games section
-**Next job:** GOG-3 DLC Management → EPIC-4 DLC → AMAZON-2 DLC → then cloud saves
+**Last completed:** GOG-3 + EPIC-4 + AMAZON-2 DLC Management (v3.0.3-pre)
+**Next job:** GOG-1 Cloud Saves + EPIC-2 Cloud Saves (v3.0.4-pre)
 
 ---
 
@@ -37,315 +37,173 @@
 | D-2 | Strip HTML from descriptions | ✅ v3.0.1-pre | `Html.fromHtml()` in GOG + Epic detail |
 | D-3 | Install size in GAME INFO | ✅ v3.0.1-pre | GOG: sync-time; Epic/Amazon: lazy+cached |
 | D-5 | Release date in GAME INFO | ✅ v3.0.1-pre | GOG+Epic synced to SP; Amazon skipped (no API source) |
-| D-6 | Ratings / score in GAME INFO | ✅ v3.0.1-pre | GOG only (0–5★ from rating field); Epic/Amazon no reliable source |
+| D-6 | Ratings / score in GAME INFO | ✅ v3.0.2-pre | GOG only (0–5★ from rating field); Epic/Amazon no reliable source |
 
 ### GOG
 | # | Job | Status | Notes |
 |---|-----|--------|-------|
-| GOG-1 | Cloud Saves | ⬜ | After GOG-3; `api.gog.com/userData/{uid}/games/{gid}/saves` |
+| GOG-1 | Cloud Saves | 🔵 v3.0.4-pre | Manual save folder; in-app browser; cloudstorage.gog.com |
 | GOG-2 | Update Checker | ✅ v3.0.1-pre | `content-system.gog.com/products/{id}/os/windows/builds`; compare `gog_build_{id}` |
-| GOG-3 | DLC Management | ⬜ | After GOG-2; DLCs in library response, same content-system pipeline |
+| GOG-3 | DLC Management | ✅ v3.0.3-pre | DLCs detected during sync; shown in detail with "Owned" badge; gen2 installs include depots |
 | GOG-4 | GOG Connect | ⬜ | Low priority — requires Steam session |
 
 ### Epic Games
 | # | Job | Status | Notes |
 |---|-----|--------|-------|
-| EPIC-1 | Free Games section (library page) | ✅ v3.0.1-pre | freeGamesPromotions endpoint; FREE THIS WEEK cards above library |
-| EPIC-2 | Cloud Saves | ⬜ | After EPIC-4; `cloudsave-public-service-prod06.ol.epicgames.com` |
-| EPIC-3 | Update Checker | ✅ v3.0.1-pre | Re-fetch manifest, compare `buildVersion`; store `epic_manifest_version_{appName}` |
-| EPIC-4 | DLC / Add-on Management | ⬜ | After EPIC-3; catalog API, mainGameItem filter |
+| EPIC-1 | Free Games (dedicated screen) | ✅ v3.0.2-pre | Full-screen EpicFreeGamesActivity; FREE button in header; tappable store links |
+| EPIC-2 | Cloud Saves | 🔵 v3.0.4-pre | Manual save folder; in-app browser; datastorage Epic API |
+| EPIC-3 | Update Checker | ✅ v3.0.1-pre | manifest buildVersion field; confirmed working |
+| EPIC-4 | DLC / Add-on Management | ✅ v3.0.3-pre | DLCs detected via mainGameItem; shown in detail with Install button + inline progress |
 
 ### Amazon Games
 | # | Job | Status | Notes |
 |---|-----|--------|-------|
-| AMAZON-1 | Update Checker | ✅ v3.0.1-pre | getGameDownload().versionId vs stored `amazon_manifest_version_{productId}` |
-| AMAZON-2 | DLC Management | ⬜ | After AMAZON-1; soften GAME type filter in GetEntitlements |
-
-### General / Cross-Store
-| # | Job | Status | Notes |
-|---|-----|--------|-------|
-| GEN-1 | Auto-suggest Community Config on first launch | ⬜ | Check SP on launch, query worker `/list?game=` |
-| GEN-2 | Backup all configs as ZIP | ⬜ | ZIP all `pc_g_setting*.xml` → `/sdcard/BannerHub/backup/` |
-| GEN-3 | Component Update Checker | ⬜ | Compare installed vs API component versions |
-| GEN-4 | Config profiles per game | ⬜ | Multiple named profiles per game in SP |
-| GEN-5 | Playtime tracker | ⬜ | Log launch/close timestamps, show cumulative time |
-
-### BH-Lite Port Tracker
-| Job | BH Status | BH-Lite |
-|-----|-----------|---------|
-| D-1 Full-screen detail pages | ✅ | ⬜ |
-| D-2 HTML description strip | ✅ | ⬜ |
-| D-3 Install size | ✅ | ⬜ |
-| D-5 Release date | ✅ | ⬜ |
-| GOG-2 Update Checker | ✅ | ⬜ |
-| GOG-3 DLC | ⬜ | — |
-| GOG-1 Cloud Saves | ⬜ | — |
-| EPIC-3 Update Checker | ✅ | ⬜ |
-| EPIC-4 DLC | ⬜ | — |
-| EPIC-2 Cloud Saves | ⬜ | — |
-| EPIC-1 Free Games | ⬜ | — |
-| AMAZON-1 Update Checker | ✅ | ⬜ |
-| D-6 GOG Rating | ✅ | ⬜ |
-| EPIC-1 Free Games | ✅ | ⬜ |
-| AMAZON-2 DLC | ⬜ | — |
-| GEN-1–5 | ⬜ | — |
+| AMAZON-1 | Update Checker | ✅ v3.0.1-pre | getGameDownload versionId; confirmed working |
+| AMAZON-2 | DLC Management | ⚠️ v3.0.3-pre | Best-effort productType detection; shown in detail with Install button; field names uncertain |
 
 ---
 
-## GOG
+## Cloud Saves — User Flow
 
-### GOG-1: Cloud Saves
-**Status:** ⬜ Not started — after GOG-3  
-**Description:** Upload and download save files between the Wine prefix and GOG's cloud save service per game.  
-**API:** GOG Galaxy cloud saves API (`api.gog.com/userData/{userId}/games/{gameId}/saves`)  
+### Overview
+Cloud saves let users back up and restore game save files between their device and the store's cloud storage. Because save file locations vary per game and Wine containers are in the app's private files directory (not easily accessible via Android file pickers), the save folder must be set manually by the user.
+
+---
+
+### GOG Cloud Saves — User Flow
+
+**First-time setup:**
+1. Open the GOG game detail screen for an installed game
+2. Scroll to the **CLOUD SAVES** section
+3. The section shows: *"No save folder set"* with a **Browse** button
+4. Tap **Browse** → opens the in-app folder picker, starting at the app's private files directory (where Wine containers live)
+5. Navigate into your Wine container → `drive_c` → save file location (e.g. `users/user/Documents/My Games/GameName/`)
+6. Tap **"Select this folder"** when the correct folder is shown
+7. The path is saved to the game's prefs entry (`gog_save_dir_{gameId}`)
+
+**Uploading saves to cloud:**
+1. With save folder set, tap **Upload Saves**
+2. App scans the local folder for all files
+3. Fetches the cloud save file list from GOG (`cloudstorage.gog.com/v1/{userId}/{gameId}`)
+4. Compares `last_modified` timestamps — uploads files that are newer locally than in the cloud
+5. Status line updates: *"Uploaded N files"* or *"Already up to date"*
+
+**Downloading saves from cloud:**
+1. Tap **Download Saves**
+2. App fetches the cloud save file list
+3. Downloads each file to the local save folder, overwriting local files
+4. Status line updates: *"Downloaded N files"* or *"No cloud saves found"*
+
 **Notes:**
-- Need to identify save file locations per game (from Wine prefix or user-specified path)
-- Upload: POST file → GOG cloud
-- Download/restore: fetch → write to Wine prefix path
-- Show last synced timestamp per game in library
-
-**Progress Log:**
-- 2026-04-14: `GogGameDetailActivity` scaffolding complete (v3.0.1-pre). CLOUD SAVES section exists as stub at line 145–146. Replace with upload/download UI once GOG-2 and GOG-3 are done.
+- The save folder path persists across sessions — only needs to be set once per game
+- The GOG `clientId` used is the game's product ID (correct for most GOG games)
+- Upload/download happens on a background thread; status updates live in the UI
+- No conflict resolution in this version — download always overwrites local; upload only sends newer files
 
 ---
 
-### GOG-2: Game Update Checker
-**Status:** ✅ v3.0.1-pre — confirmed working  
-**Description:** Compare installed build ID against latest available on content-system. Show "Update available" badge and allow download.  
-**API:** `content-system.gog.com/products/{gameId}/os/windows/builds`  
+### Epic Cloud Saves — User Flow
+
+**First-time setup:**
+1. Open the Epic game detail screen for an installed game
+2. Scroll to the **CLOUD SAVES** section
+3. The section shows: *"No save folder set"* with a **Browse** button
+4. Tap **Browse** → opens the in-app folder picker, starting at the app's private files directory
+5. Navigate into your Wine container → `drive_c` → save file location
+6. Tap **"Select this folder"** when the correct folder is shown
+7. The path is saved to the game's prefs entry (`epic_save_dir_{appName}`)
+
+**Uploading saves to cloud:**
+1. With save folder set, tap **Upload Saves**
+2. App scans the local folder for all files
+3. Fetches the Epic cloud save file list (`datastorage-public-service-liveegs.live.use1a.on.epicgames.com/api/v1/access/egstore/savesync/{accountId}/{appName}/`)
+4. For each local file that is newer than the cloud version (or missing from cloud): POST to get a `writeLink`, then PUT the file bytes to that URL
+5. Status line updates: *"Uploaded N files"* or *"Already up to date"*
+
+**Downloading saves from cloud:**
+1. Tap **Download Saves**
+2. App fetches the cloud save file list
+3. Downloads each file via its `readLink` URL to the local save folder
+4. Status line updates: *"Downloaded N files"* or *"No cloud saves found"*
+
 **Notes:**
-- Installed build ID is stored at download time — need to persist it to SP
-- Fetch latest build from content-system, compare
-- If newer: show badge on game card + "Update" button in detail dialog
-- Update = re-run existing download pipeline with latest manifest
-
-**Progress Log:**
-- 2026-04-14: `GogGameDetailActivity` scaffolding complete (v3.0.1-pre, commit `53a38f663`). UPDATES section exists as stub at line 137–138 (`makeStubCard("Update checker coming soon")`). Replace stub with real implementation: fetch builds endpoint, compare build ID stored in `bh_gog_prefs` as `gog_build_{gameId}`, show "Up to date" or "Update available" + Update button.
+- Same folder-per-game persistence as GOG
+- Epic cloud saves require a valid OAuth token (auto-refreshed)
+- Each file's write URL must be requested individually via POST before uploading
+- No conflict resolution in this version — download always overwrites local; upload only sends newer files
 
 ---
 
-### GOG-3: DLC Management
-**Status:** ⬜ Not started — after GOG-2  
-**Description:** List owned DLCs per game and allow separate download + install.  
-**API:** GOG library endpoint already returns DLC entries — currently filtered out  
-**Notes:**
-- DLCs are in the same library response, identified by `dlcs` array on parent product
-- Show DLC list in game detail dialog with install status
-- Download uses same content-system pipeline as base game
+### In-App Folder Picker (FolderPickerActivity)
 
-**Progress Log:**
-- 2026-04-14: `GogGameDetailActivity` scaffolding complete (v3.0.1-pre). DLC section exists as stub at line 141–142. Replace with DLC list once GOG-2 is done.
+Used by both GOG and Epic cloud saves setup.
 
----
-
-### GOG-4: GOG Connect
-**Status:** ⬜ Not started  
-**Description:** Show Steam games the user owns that are claimable for free on GOG. Claim them with one tap.  
-**API:** `api.gog.com/connect` — requires Steam session ticket + GOG auth  
-**Notes:**
-- Requires Steam login on device (complex dependency)
-- Lower priority than other GOG features
-- May not be feasible without Steam integration
-
-**Progress Log:**
-_(empty)_
+- Opens at `getFilesDir()` — the app's private files directory, which contains all Wine containers
+- Shows a list of subdirectories (files hidden)
+- Navigation: tap a directory to enter it; **"↑ Up"** button to go to parent
+- Current path shown in header (truncated to last 2 segments if long)
+- **"Select this folder"** button always visible — selects the currently displayed directory
+- Returns selected path via `setResult(RESULT_OK, intent.putExtra("path", selectedPath))`
+- Opened via `startActivityForResult()` from the detail activity; result received in `onActivityResult()`
 
 ---
 
-## Epic Games
+## Completed Features Detail
 
-### EPIC-1: Free Games Section
-**Status:** ⬜ Not started — separate from detail page work  
-**Description:** Show current free games at top of Epic tab. Claim button adds to library using existing session.  
-**API:** `store-site-backend-static-ipv4.ak.epicgames.com/freeGamesPromotions` (no auth needed for list)  
-**Notes:**
-- Fetch free games list on Epic tab open (or cache with TTL)
-- Show as a "Free This Week" card row above the library
-- Claim: POST to Epic's order endpoint using existing OAuth token
-- Next free games (upcoming) can also be shown
-- Lives in `EpicGamesActivity`, not the detail activity
+### D-1: Full-screen Detail Activities (v3.0.1-pre)
+Replaced inline expand cards with full-screen `GogGameDetailActivity`, `EpicGameDetailActivity`, `AmazonGameDetailActivity`. Each has: header bar (← back + title), cover art strip, scrollable body with GAME INFO, ACTIONS, UPDATES, DLC, CLOUD SAVES sections.
 
-**Progress Log:**
-_(empty)_
+### D-2: HTML Description Strip (v3.0.1-pre)
+GOG and Epic descriptions contain HTML tags from the API. Applied `Html.fromHtml()` before displaying in detail views.
 
----
+### D-3: Install Size in GAME INFO (v3.0.1-pre)
+GOG: fetched and cached at sync time. Epic/Amazon: fetched lazily on detail open, cached in prefs.
 
-### EPIC-2: Cloud Saves
-**Status:** ⬜ Not started — after EPIC-3 and EPIC-4  
-**Description:** Upload/download save files between Wine prefix and Epic cloud save service per game.  
-**API:** Epic cloud saves via `cloudsave-public-service-prod06.ol.epicgames.com`  
-**Notes:**
-- Each game has a `cloudSaveFolder` defined in its manifest/catalog metadata
-- Need to map Windows save path to Wine prefix equivalent
-- Upload: PUT file to cloud save endpoint
-- Download: GET + write to Wine prefix
+### D-5: Release Date in GAME INFO (v3.0.1-pre)
+GOG: from `release_date` field in product API, cached as `gog_release_{gameId}`. Epic: from `viewableDate` / `effectiveDate` in catalog API, cached as `epic_release_{appName}`. Amazon: no reliable source.
 
-**Progress Log:**
-- 2026-04-14: `EpicGameDetailActivity` scaffolding complete (v3.0.1-pre, commit `53a38f663`). CLOUD SAVES stub at line 138–139. Replace once EPIC-3 and EPIC-4 are done.
+### D-6: Ratings in GAME INFO (v3.0.2-pre)
+GOG only. `rating` field (0–500 integer) shown as 0.0–5.0★ in GAME INFO card. Only populated after a library ↺ refresh (written during `fetchGame()` in sync).
 
----
+### GOG-2: Update Checker (v3.0.1-pre)
+Fetches `content-system.gog.com/products/{id}/os/windows/builds?generation=2`, compares `items[0].build_id` against stored `gog_build_{gameId}`. Shows "Up to date" or "Update available" + Update button.
 
-### EPIC-3: Game Update Checker
-**Status:** ✅ v3.0.1-pre — confirmed working  
-**Description:** Compare installed manifest version against latest. Show update badge and allow download.  
-**API:** Same manifest endpoint used during install — re-fetch and compare version field  
-**Notes:**
-- Store installed manifest version to SP at download time
-- Re-fetch manifest on library sync and compare
-- Update = re-run existing chunked download pipeline with new manifest
+### EPIC-3: Update Checker (v3.0.1-pre)
+Re-fetches manifest API, reads `buildVersion` from `elements[0]`. Compares against stored `epic_manifest_version_{appName}`. Shows update status + button.
 
-**Progress Log:**
-- 2026-04-14: `EpicGameDetailActivity` scaffolding complete (v3.0.1-pre). UPDATES stub at line 132–133 (`makeStubCard("Update checker coming soon")`). SP key to store installed version: `epic_manifest_version_{appName}`. Re-fetch via `EpicApiClient.getManifestApiJson()`, parse version field, compare.
+### AMAZON-1: Update Checker (v3.0.1-pre)
+Calls `getGameDownload(entitlementId).versionId`, compares against stored `amazon_manifest_version_{productId}`.
+
+### EPIC-1: Free Games (v3.0.2-pre)
+Dedicated `EpicFreeGamesActivity`. Green "FREE" button in Epic library header. Fetches `freeGamesPromotions` endpoint (no auth). Shows "FREE THIS WEEK" and "FREE COMING SOON" sections. Each card tappable — opens Epic Store page in system browser via `ACTION_VIEW`.
+
+### GOG-3: DLC Management (v3.0.3-pre)
+During sync, DLCs (detected via `game_type == "dlc"`) are stored to `gog_dlcs_{baseGameId}` prefs keyed by base game. `GogGameDetailActivity` shows owned DLC list with "Owned" badge. Note: GOG gen2 installs include owned DLC depots automatically (no separate install needed).
+
+### EPIC-4: DLC Management (v3.0.3-pre)
+DLC `baseGameCatalogItemId` captured from `mainGameItem.id` in catalog enrichment. `epic_dlcs_{baseCatalogItemId}` written during sync. `EpicGameDetailActivity` shows DLC list with Install/Reinstall button. Install uses same `EpicDownloadManager` pipeline with DLC's ns/cat/appName.
+
+### AMAZON-2: DLC Management (v3.0.3-pre)
+Best-effort DLC detection in `parseEntitlement()` — probes `product.productType`, `product.parentProductId`, and related fields. DLCs separated from base games in sync; `amazon_dlcs_{parentProductId}` written to prefs. `AmazonGameDetailActivity` shows Install button using `AmazonDownloadManager`. Note: detection is best-effort — field names vary by region/product.
 
 ---
 
-### EPIC-4: DLC / Add-on Management
-**Status:** ⬜ Not started — after EPIC-3  
-**Description:** List and install owned DLC separately from base game.  
-**API:** Epic catalog API — DLCs are separate catalog items linked to base game  
-**Notes:**
-- Query catalog for items where `mainGameItem` matches the base game
-- Filter to owned items only using existing entitlements check
-- Download uses same chunked manifest pipeline
-
-**Progress Log:**
-- 2026-04-14: `EpicGameDetailActivity` scaffolding complete (v3.0.1-pre). DLC stub at line 135–136. Replace once EPIC-3 is done.
-
----
-
-## Amazon Games
-
-### AMAZON-1: Game Update Checker
-**Status:** ✅ v3.0.1-pre — confirmed working  
-**Description:** Compare installed manifest version against latest from Amazon. Show update badge and allow download.  
-**API:** Same manifest.proto endpoint used during install  
-**Notes:**
-- Store installed manifest version to SP at download time
-- Re-fetch on library sync and compare version field
-- Update = re-run existing manifest + LZMA download pipeline
-
-**Progress Log:**
-- 2026-04-14: `AmazonGameDetailActivity` scaffolding complete (v3.0.1-pre, commit `53a38f663`). UPDATES stub at line 132–133 (`makeStubCard("Update checker coming soon")`). SP key to store installed version: `amazon_manifest_version_{productId}`. Re-fetch via `AmazonApiClient`, parse version from manifest proto, compare. No CLOUD SAVES section for Amazon (not supported).
-
----
-
-### AMAZON-2: DLC Management
-**Status:** ⬜ Not started — after AMAZON-1  
-**Description:** Surface DLC entitlements per game and allow separate download + install.  
-**API:** `GetEntitlements` already returns DLC — currently filtered out by `GAME` type check  
-**Notes:**
-- Remove or soften the type filter to also capture DLC entitlements
-- Group DLCs under their parent game in the UI
-- Download uses same manifest pipeline as base game
-
-**Progress Log:**
-- 2026-04-14: `AmazonGameDetailActivity` scaffolding complete (v3.0.1-pre). DLC stub at line 135–136. Replace once AMAZON-1 is done.
-
----
-
-## General / Cross-Store
-
-### GEN-1: Auto-suggest Community Config on First Launch
-**Status:** ⬜ Not started  
-**Description:** When a game has no config and community configs exist for it, prompt user to browse/apply one before launching.  
-**Notes:**
-- Check `pc_g_setting{gameId}` SP on launch — if empty/minimal, query worker `/list?game=`
-- If results exist: show "Community configs available" dialog with count + Browse/Skip
-- Skip: remember choice in SP so it doesn't prompt again
-
-**Progress Log:**
-_(empty)_
-
----
-
-### GEN-2: Backup All Configs as ZIP
-**Status:** ⬜ Not started  
-**Description:** One-tap export of every game's config as a single ZIP to `/sdcard/BannerHub/backup/`. Restore from ZIP.  
-**Notes:**
-- Enumerate all `pc_g_setting*.xml` SP files
-- ZIP them into `/sdcard/BannerHub/backup/bh_configs_YYYYMMDD.zip`
-- Restore: unzip + write back to SP via existing `applyConfig()` logic
-
-**Progress Log:**
-_(empty)_
-
----
-
-### GEN-3: Component Update Checker
-**Status:** ⬜ Not started  
-**Description:** Scan installed components against latest versions in component list. Show "X updates available" badge or prompt.  
-**Notes:**
-- Compare installed component version strings against latest in `getComponentList` API response
-- Show indicator in Component Manager
-- One-tap "Update all" or per-component update button
-
-**Progress Log:**
-_(empty)_
-
----
-
-### GEN-4: Config Profiles Per Game
-**Status:** ⬜ Not started  
-**Description:** Multiple named profiles per game (e.g. "Performance", "Battery Saver"). Switch without re-importing.  
-**Notes:**
-- Store as `pc_g_setting{gameId}_profile_{name}` in SP
-- Profile switcher in game settings sidebar
-- Default profile = current unnamed settings (backwards compatible)
-
-**Progress Log:**
-_(empty)_
-
----
-
-### GEN-5: Playtime Tracker
-**Status:** ⬜ Not started  
-**Description:** Log how long each game has been running. Show total playtime per game in library.  
-**Notes:**
-- Record start timestamp on game launch, compute delta on Wine activity close
-- Store as `pc_playtime_{gameId}` in SP (cumulative seconds)
-- Show formatted (e.g. "14h 32m") in game card or detail dialog
-
-**Progress Log:**
-_(empty)_
-
----
-
-## BannerHub Lite Port Tracker
-
-Once a feature is confirmed working in BannerHub (✅), it becomes a candidate for BH-Lite port. Record port status here.
+## BH-Lite Port Tracker
 
 | Feature | BH Status | BH-Lite Port Status | Notes |
 |---------|-----------|---------------------|-------|
-| GOG-1: Cloud Saves | ⬜ | — | |
-| GOG-2: Update Checker | ⬜ | — | |
-| GOG-3: DLC Management | ⬜ | — | |
-| GOG-4: GOG Connect | ⬜ | — | Complex Steam dep |
-| EPIC-1: Free Games | ⬜ | — | |
-| EPIC-2: Cloud Saves | ⬜ | — | |
-| EPIC-3: Update Checker | ⬜ | — | |
-| EPIC-4: DLC Management | ⬜ | — | |
-| AMAZON-1: Update Checker | ⬜ | — | |
-| AMAZON-2: DLC Management | ⬜ | — | |
-| GEN-1: Auto-suggest Config | ⬜ | — | |
-| GEN-2: Config ZIP Backup | ⬜ | — | |
-| GEN-3: Component Updates | ⬜ | — | |
-| GEN-4: Config Profiles | ⬜ | — | |
-| GEN-5: Playtime Tracker | ⬜ | — | |
-
----
-
-## Completed Features Log
-
-| Feature | Version | Date | Notes |
-|---------|---------|------|-------|
-| D-1 Full-screen detail pages (GOG/Epic/Amazon) | v3.0.1-pre | 2026-04-14 | Header, cover art, GAME INFO, ACTIONS, stubs |
-| D-2 Strip HTML from descriptions | v3.0.1-pre | 2026-04-14 | `Html.fromHtml()` GOG+Epic |
-| D-3 Install size in GAME INFO | v3.0.1-pre | 2026-04-14 | GOG: sync-time cache; Epic/Amazon: lazy+cached |
-| D-5 Release date in GAME INFO | v3.0.1-pre | 2026-04-14 | GOG+Epic only; Amazon has no API source |
-| GOG-2 Update Checker | v3.0.1-pre | 2026-04-14 | content-system builds endpoint; confirmed working |
-| EPIC-3 Update Checker | v3.0.1-pre | 2026-04-14 | manifest buildVersion field; confirmed working |
-| AMAZON-1 Update Checker | v3.0.1-pre | 2026-04-14 | getGameDownload versionId; confirmed working |
-| D-6 Ratings in GAME INFO | v3.0.1-pre | 2026-04-14 | GOG only; 0–500 field → 0.0–5.0★ display |
-| EPIC-1 Free Games section | v3.0.1-pre | 2026-04-14 | FREE THIS WEEK cards above Epic library; no auth needed |
-
----
+| D-1 Full-screen detail pages | ✅ v3.0.1-pre | ⬜ | |
+| D-2 HTML description strip | ✅ v3.0.1-pre | ⬜ | |
+| D-3 Install size | ✅ v3.0.1-pre | ⬜ | |
+| D-5 Release date | ✅ v3.0.1-pre | ⬜ | |
+| D-6 Ratings | ✅ v3.0.2-pre | ⬜ | GOG only |
+| GOG-2 Update Checker | ✅ v3.0.1-pre | ⬜ | |
+| GOG-3 DLC Management | ✅ v3.0.3-pre | ⬜ | |
+| GOG-1 Cloud Saves | 🔵 v3.0.4-pre | — | After BH release |
+| GOG-4 GOG Connect | ⬜ | — | Complex Steam dep |
+| EPIC-1 Free Games | ✅ v3.0.2-pre | ⬜ | |
+| EPIC-3 Update Checker | ✅ v3.0.1-pre | ⬜ | |
+| EPIC-4 DLC Management | ✅ v3.0.3-pre | ⬜ | |
+| EPIC-2 Cloud Saves | 🔵 v3.0.4-pre | — | After BH release |
+| AMAZON-1 Update Checker | ✅ v3.0.1-pre | ⬜ | |
+| AMAZON-2 DLC Management | ⚠️ v3.0.3-pre | ⬜ | Best-effort detection |
