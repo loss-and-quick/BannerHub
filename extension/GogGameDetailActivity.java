@@ -24,6 +24,9 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
@@ -144,9 +147,8 @@ public class GogGameDetailActivity extends Activity {
         body.addView(makeSectionHeader("UPDATES"), sectionHeaderLp());
         body.addView(makeUpdatesCard(), new LinearLayout.LayoutParams(-1, -2));
 
-        // DLC stub
         body.addView(makeSectionHeader("DLC"), sectionHeaderLp());
-        body.addView(makeStubCard("DLC management coming soon"), new LinearLayout.LayoutParams(-1, -2));
+        body.addView(makeDlcCard(), new LinearLayout.LayoutParams(-1, -2));
 
         // Cloud Saves stub
         body.addView(makeSectionHeader("CLOUD SAVES"), sectionHeaderLp());
@@ -699,6 +701,90 @@ public class GogGameDetailActivity extends Activity {
         row.addView(valueTV, new LinearLayout.LayoutParams(0, -2, 1f));
 
         return row;
+    }
+
+    // ── DLC card (GOG-3) ──────────────────────────────────────────────────────
+
+    private LinearLayout makeDlcCard() {
+        LinearLayout card = makeCard();
+        String json = prefs.getString("gog_dlcs_" + gameId, null);
+        if (json == null || json.equals("[]") || json.isEmpty()) {
+            TextView tv = new TextView(this);
+            tv.setText("No DLCs in your library for this game");
+            tv.setTextColor(0xFF555577);
+            tv.setTextSize(13f);
+            card.addView(tv);
+            return card;
+        }
+        try {
+            JSONArray arr = new JSONArray(json);
+            if (arr.length() == 0) {
+                TextView tv = new TextView(this);
+                tv.setText("No DLCs in your library for this game");
+                tv.setTextColor(0xFF555577);
+                tv.setTextSize(13f);
+                card.addView(tv);
+                return card;
+            }
+
+            TextView countTV = new TextView(this);
+            countTV.setText(arr.length() + " DLC" + (arr.length() == 1 ? "" : "s") + " owned");
+            countTV.setTextColor(0xFF888888);
+            countTV.setTextSize(12f);
+            countTV.setTypeface(null, Typeface.BOLD);
+            card.addView(countTV, new LinearLayout.LayoutParams(-1, -2));
+
+            TextView noteTV = new TextView(this);
+            noteTV.setText("DLC content is included in gen2 game installs.");
+            noteTV.setTextColor(0xFF555577);
+            noteTV.setTextSize(11f);
+            LinearLayout.LayoutParams noteLp = new LinearLayout.LayoutParams(-1, -2);
+            noteLp.topMargin = dp(3);
+            noteLp.bottomMargin = dp(6);
+            card.addView(noteTV, noteLp);
+
+            for (int i = 0; i < arr.length(); i++) {
+                JSONObject dlc = arr.optJSONObject(i);
+                if (dlc == null) continue;
+                String dlcTitle = dlc.optString("title", "Unknown DLC");
+
+                LinearLayout row = new LinearLayout(this);
+                row.setOrientation(LinearLayout.HORIZONTAL);
+                row.setGravity(Gravity.CENTER_VERTICAL);
+                row.setPadding(0, dp(5), 0, dp(5));
+
+                GradientDrawable rowBg = new GradientDrawable();
+                rowBg.setColor(0xFF1E1E2E);
+                rowBg.setCornerRadius(dp(4));
+                row.setBackground(rowBg);
+
+                TextView dlcTV = new TextView(this);
+                dlcTV.setText(dlcTitle);
+                dlcTV.setTextColor(0xFFDDDDDD);
+                dlcTV.setTextSize(13f);
+                dlcTV.setPadding(dp(8), 0, 0, 0);
+                row.addView(dlcTV, new LinearLayout.LayoutParams(0, -2, 1f));
+
+                TextView ownedTV = new TextView(this);
+                ownedTV.setText("Owned");
+                ownedTV.setTextColor(0xFF4CAF50);
+                ownedTV.setTextSize(11f);
+                ownedTV.setTypeface(null, Typeface.BOLD);
+                ownedTV.setPadding(0, 0, dp(8), 0);
+                row.addView(ownedTV, new LinearLayout.LayoutParams(-2, -2));
+
+                LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(-1, -2);
+                rowLp.topMargin = dp(4);
+                card.addView(row, rowLp);
+            }
+        } catch (Exception e) {
+            TextView tv = new TextView(this);
+            tv.setText("Error reading DLC data");
+            tv.setTextColor(0xFF555577);
+            tv.setTextSize(13f);
+            card.addView(tv);
+        }
+        return card;
     }
 
     private View makeStubCard(String msg) {

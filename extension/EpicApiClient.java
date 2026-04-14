@@ -137,6 +137,12 @@ public class EpicApiClient {
 
             // DLC detection
             game.isDLC = item.has("mainGameItem");
+            if (game.isDLC) {
+                JSONObject mainGameItem = item.optJSONObject("mainGameItem");
+                if (mainGameItem != null) {
+                    game.baseGameCatalogItemId = mainGameItem.optString("id", "");
+                }
+            }
 
             // Key images
             JSONArray keyImages = item.optJSONArray("keyImages");

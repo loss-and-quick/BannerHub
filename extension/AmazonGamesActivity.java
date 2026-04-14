@@ -34,7 +34,9 @@ import org.json.JSONObject;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -244,13 +246,39 @@ public class AmazonGamesActivity extends Activity {
             if (token == null) { setSync("Token refresh failed"); enableRefresh(); return; }
 
             if (showProgress) setSync("Fetching game list…");
-            List<AmazonGame> games = AmazonApiClient.getEntitlements(token, creds.deviceSerial);
+            List<AmazonGame> allEntitlements = AmazonApiClient.getEntitlements(token, creds.deviceSerial);
 
-            if (games == null || games.isEmpty()) {
+            if (allEntitlements == null || allEntitlements.isEmpty()) {
                 setSync("No games found in Amazon library");
                 enableRefresh();
                 return;
             }
+
+            // Separate DLCs from base games; store DLC→base associations in prefs
+            List<AmazonGame> games = new ArrayList<>();
+            Map<String, JSONArray> amazonDlcMap = new HashMap<>();
+            for (AmazonGame g : allEntitlements) {
+                if (g.isDLC && !g.parentProductId.isEmpty()) {
+                    JSONArray arr = amazonDlcMap.get(g.parentProductId);
+                    if (arr == null) { arr = new JSONArray(); amazonDlcMap.put(g.parentProductId, arr); }
+                    try {
+                        JSONObject dlcObj = new JSONObject();
+                        dlcObj.put("eid",   g.entitlementId);
+                        dlcObj.put("pid",   g.productId);
+                        dlcObj.put("title", g.title);
+                        arr.put(dlcObj);
+                    } catch (Exception ignored) {}
+                } else {
+                    games.add(g);
+                }
+            }
+            SharedPreferences.Editor dlcEd = prefs.edit();
+            for (Map.Entry<String, JSONArray> e : amazonDlcMap.entrySet()) {
+                dlcEd.putString("amazon_dlcs_" + e.getKey(), e.getValue().toString());
+            }
+            dlcEd.apply();
+
+            if (games.isEmpty()) games = allEntitlements; // fallback: show everything if no base games detected
 
             Collections.sort(games, (a, b) -> a.title.compareToIgnoreCase(b.title));
 

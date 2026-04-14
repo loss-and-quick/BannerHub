@@ -3507,3 +3507,36 @@ manifest download, install, launch, SDK cache + update checker.
 - Companion change in BH-Lite exports `"bannerhub_lite"` — same field, different value
 #### Files touched
 - extension/BhSettingsExporter.java
+
+### [pre-release] — v3.0.2-pre — EPIC-1 Free Games: dedicated full-screen Activity (2026-04-14)
+**Commit:** `5a96b65e9`  |  **Tag:** v3.0.2-pre
+#### What changed
+- Replaced inline free games list in EpicGamesActivity with a new full-screen EpicFreeGamesActivity
+- Green "FREE" button in Epic header bar → opens EpicFreeGamesActivity
+- Shows "FREE THIS WEEK" + "FREE NEXT WEEK" sections with date ranges
+- Each card tappable → opens Epic Store page in system browser
+#### Files touched
+- extension/EpicFreeGamesActivity.java (new)
+- extension/EpicGamesActivity.java
+- patches/AndroidManifest.xml
+- COMPONENT_MANAGER_BUILD_LOG.md
+
+### v3.0.3-pre — DLC Management all 3 stores (2026-04-14)
+**Commit:** (pending)  |  **Tag:** v3.0.3-pre
+
+#### What changed
+- GOG-3: detect DLCs via `game_type == "dlc"` in `fetchGame()`, extract base game ID from `required_game.id`, store associations in prefs; show in GogGameDetailActivity with "Owned" badge + gen2 install note
+- EPIC-4: capture `baseGameCatalogItemId` from `mainGameItem.id` in catalog enrichment; store DLC→base mapping in prefs during sync; EpicGameDetailActivity shows DLC list with Install buttons + inline progress
+- AMAZON-2: probe multiple field names for DLC productType in parseEntitlement; separate DLCs from library list in syncLibrary; AmazonGameDetailActivity shows DLC list with Install buttons via AmazonDownloadManager
+
+#### Files touched
+- extension/EpicGame.java
+- extension/AmazonGame.java
+- extension/EpicApiClient.java
+- extension/AmazonApiClient.java
+- extension/GogGamesActivity.java
+- extension/EpicGamesActivity.java
+- extension/AmazonGamesActivity.java
+- extension/GogGameDetailActivity.java
+- extension/EpicGameDetailActivity.java
+- extension/AmazonGameDetailActivity.java

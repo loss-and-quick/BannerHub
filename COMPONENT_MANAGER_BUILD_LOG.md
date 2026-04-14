@@ -4717,3 +4717,22 @@ showDetailDialog() used an AlertDialog popup which was cramped and couldn't supp
 
 **Root cause / design:**
 Prior inline EPIC-1 implementation rendered free game titles as a flat list above the library in EpicGamesActivity. Replaced with a dedicated full-screen Activity matching the game detail style (dark background, header bar with ← back, scrollable body). GREEN "FREE" button in Epic header bar opens EpicFreeGamesActivity. Activity separates current free games from upcoming ones, shows date ranges, and makes each card tappable to open the Epic Store page in the system browser.
+
+---
+
+### Entry 060 — v3.0.3-pre — DLC Management: all 3 stores (2026-04-14)
+**Files:**
+- `extension/EpicGame.java` — added `baseGameCatalogItemId` field
+- `extension/AmazonGame.java` — added `isDLC` + `parentProductId` fields
+- `extension/EpicApiClient.java` — set `baseGameCatalogItemId` in `enrichFromCatalog()` from `mainGameItem.id`
+- `extension/AmazonApiClient.java` — DLC detection in `parseEntitlement()`: probes `product.productType`, `product.type`, `product.parentProductId`, `product.baseProductId`, `product.parentId`, and `details.productType`/`details.parentProductId`
+- `extension/GogGamesActivity.java` — `fetchGame()` DLC branch now calls `storeDlcInBuffer()` (synchronized); `saveDlcBuffer()` writes accumulated map to `gog_dlcs_{baseId}` prefs after futures complete; added `Map<String, List<String[]>> gogDlcBuffer`
+- `extension/EpicGamesActivity.java` — after enrichment loop, builds `epicDlcMap` (baseCatalogItemId → DLC JSON array) and writes to `epic_dlcs_{baseCatalogItemId}` prefs
+- `extension/AmazonGamesActivity.java` — `syncLibrary()` now separates DLCs from base games; writes `amazon_dlcs_{parentProductId}` prefs; falls back to showing all entitlements if no base games detected
+- `extension/GogGameDetailActivity.java` — replaced "DLC coming soon" stub with `makeDlcCard()`: reads `gog_dlcs_{gameId}`, shows each DLC as a row with title + "Owned" badge; note: DLC content included with gen2 installs
+- `extension/EpicGameDetailActivity.java` — replaced stub with `makeDlcCard()` + `startDlcInstall()`: shows each DLC with Install/Reinstall button + inline progress; installs via same `EpicDownloadManager.install()` pipeline with DLC's app/ns/catalogItemId
+- `extension/AmazonGameDetailActivity.java` — replaced stub with `makeDlcCard()` + `startDlcInstall()`: shows DLC list, Install button, installs via `AmazonDownloadManager.install()` with `AmazonGame` constructed from DLC eid/pid/title
+
+**Root cause / design:**
+GOG-3, EPIC-4, AMAZON-2 first implementation. DLC detection happens during library sync; associations stored in SharedPreferences under `{store}_dlcs_{baseGameId}` as JSON arrays. Game detail activities read these to populate DLC sections. Epic DLCs install separately via their own manifest (same pipeline). Amazon DLCs use AmazonDownloadManager with DLC entitlementId. GOG DLCs are informational only (gen2 manifests include owned DLC depots automatically). Amazon DLC detection is best-effort (field names uncertain — probes multiple candidates).
+**CI:** v3.0.3-pre triggered

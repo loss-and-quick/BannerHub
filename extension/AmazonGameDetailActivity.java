@@ -137,7 +137,7 @@ public class AmazonGameDetailActivity extends Activity {
         body.addView(makeUpdatesCard(), new LinearLayout.LayoutParams(-1, -2));
 
         body.addView(makeSectionHeader("DLC"), new LinearLayout.LayoutParams(-1, -2));
-        body.addView(makeStubCard("DLC management coming soon"), new LinearLayout.LayoutParams(-1, -2));
+        body.addView(makeDlcCard(), new LinearLayout.LayoutParams(-1, -2));
 
         scroll.addView(body);
         root.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1f));
@@ -622,6 +622,181 @@ public class AmazonGameDetailActivity extends Activity {
         row.addView(valueTV, new LinearLayout.LayoutParams(0, -2, 1f));
 
         return row;
+    }
+
+    // ── DLC card (AMAZON-2) ───────────────────────────────────────────────────
+
+    private LinearLayout makeDlcCard() {
+        LinearLayout card = makeCard();
+        String json = productId != null ? prefs.getString("amazon_dlcs_" + productId, null) : null;
+        if (json == null || json.equals("[]") || json.isEmpty()) {
+            TextView tv = new TextView(this);
+            tv.setText("No DLCs in your library for this game");
+            tv.setTextColor(0xFF554400);
+            tv.setTextSize(13f);
+            card.addView(tv);
+            return card;
+        }
+        try {
+            org.json.JSONArray arr = new org.json.JSONArray(json);
+            if (arr.length() == 0) {
+                TextView tv = new TextView(this);
+                tv.setText("No DLCs in your library for this game");
+                tv.setTextColor(0xFF554400);
+                tv.setTextSize(13f);
+                card.addView(tv);
+                return card;
+            }
+
+            TextView countTV = new TextView(this);
+            countTV.setText(arr.length() + " DLC" + (arr.length() == 1 ? "" : "s") + " owned");
+            countTV.setTextColor(0xFF888888);
+            countTV.setTextSize(12f);
+            countTV.setTypeface(null, android.graphics.Typeface.BOLD);
+            card.addView(countTV, new LinearLayout.LayoutParams(-1, -2));
+
+            for (int i = 0; i < arr.length(); i++) {
+                org.json.JSONObject dlc = arr.optJSONObject(i);
+                if (dlc == null) continue;
+                String dlcEid   = dlc.optString("eid", "");
+                String dlcPid   = dlc.optString("pid", "");
+                String dlcTitle = dlc.optString("title", "Unknown DLC");
+
+                boolean dlcInstalled = !dlcPid.isEmpty()
+                        && prefs.getString("amazon_exe_" + dlcPid, null) != null;
+
+                LinearLayout row = new LinearLayout(this);
+                row.setOrientation(LinearLayout.VERTICAL);
+                row.setPadding(dp(8), dp(6), dp(8), dp(6));
+                GradientDrawable rowBg = new GradientDrawable();
+                rowBg.setColor(0xFF1A1200);
+                rowBg.setCornerRadius(dp(4));
+                row.setBackground(rowBg);
+                LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(-1, -2);
+                rowLp.topMargin = dp(6);
+                card.addView(row, rowLp);
+
+                LinearLayout titleRow = new LinearLayout(this);
+                titleRow.setOrientation(LinearLayout.HORIZONTAL);
+                titleRow.setGravity(android.view.Gravity.CENTER_VERTICAL);
+                TextView dlcTV = new TextView(this);
+                dlcTV.setText(dlcTitle);
+                dlcTV.setTextColor(0xFFDDDDDD);
+                dlcTV.setTextSize(13f);
+                titleRow.addView(dlcTV, new LinearLayout.LayoutParams(0, -2, 1f));
+                if (dlcInstalled) {
+                    TextView ckTV = new TextView(this);
+                    ckTV.setText("✓");
+                    ckTV.setTextColor(0xFF4CAF50);
+                    ckTV.setTextSize(13f);
+                    ckTV.setTypeface(null, android.graphics.Typeface.BOLD);
+                    titleRow.addView(ckTV, new LinearLayout.LayoutParams(-2, -2));
+                }
+                row.addView(titleRow, new LinearLayout.LayoutParams(-1, -2));
+
+                TextView dlcStatusTV = new TextView(this);
+                dlcStatusTV.setTextColor(0xFF886600);
+                dlcStatusTV.setTextSize(11f);
+                dlcStatusTV.setVisibility(View.GONE);
+                LinearLayout.LayoutParams statusLp = new LinearLayout.LayoutParams(-1, -2);
+                statusLp.topMargin = dp(3);
+                row.addView(dlcStatusTV, statusLp);
+
+                if (!dlcEid.isEmpty()) {
+                    Button dlcInstBtn = makeBtn(
+                            dlcInstalled ? "Reinstall" : "Install",
+                            dlcInstalled ? 0xFF2A3A00 : 0xFFCC7700);
+                    LinearLayout.LayoutParams btnLp = new LinearLayout.LayoutParams(-1, dp(36));
+                    btnLp.topMargin = dp(4);
+                    row.addView(dlcInstBtn, btnLp);
+
+                    final String fEid = dlcEid, fPid = dlcPid, fTitle = dlcTitle;
+                    final Button finalBtn = dlcInstBtn;
+                    dlcInstBtn.setOnClickListener(v -> {
+                        if ("Downloading…".equals(finalBtn.getText())) return;
+                        startDlcInstall(fEid, fPid, fTitle, dlcStatusTV, finalBtn);
+                    });
+                }
+            }
+        } catch (Exception e) {
+            TextView tv = new TextView(this);
+            tv.setText("Error reading DLC data");
+            tv.setTextColor(0xFF554400);
+            tv.setTextSize(13f);
+            card.addView(tv);
+        }
+        return card;
+    }
+
+    private void startDlcInstall(String dlcEid, String dlcPid, String dlcTitle,
+                                  TextView statusTV, Button installBtn) {
+        uiHandler.post(() -> {
+            installBtn.setText("Downloading…");
+            installBtn.setBackgroundColor(0xFF444444);
+            statusTV.setText("Starting…");
+            statusTV.setVisibility(View.VISIBLE);
+        });
+
+        AmazonGame dlcGame = new AmazonGame();
+        dlcGame.entitlementId = dlcEid;
+        dlcGame.productId     = dlcPid.isEmpty() ? dlcEid : dlcPid;
+        dlcGame.title         = dlcTitle;
+
+        new Thread(() -> {
+            try {
+                String token = AmazonCredentialStore.getValidAccessToken(this);
+                if (token == null) {
+                    uiHandler.post(() -> {
+                        statusTV.setText("Login required");
+                        installBtn.setText("Install");
+                        installBtn.setBackgroundColor(0xFFCC7700);
+                    });
+                    return;
+                }
+                String sanitized = dlcTitle.replaceAll("[^a-zA-Z0-9 \\-_]", "").trim();
+                if (sanitized.isEmpty()) sanitized = "dlc_" + dlcEid.hashCode();
+                File installDir = new File(new File(getFilesDir(), "Amazon"), sanitized);
+                final String pidKey = dlcGame.productId;
+                prefs.edit().putString("amazon_dir_" + pidKey, installDir.getAbsolutePath()).apply();
+
+                boolean ok = AmazonDownloadManager.install(this, dlcGame, token, installDir,
+                        (dl, total, file) -> {
+                            int pct = (total > 0) ? (int) (dl * 100L / total) : 0;
+                            String nm = (file != null && !file.isEmpty()) ? file : "Downloading…";
+                            uiHandler.post(() -> statusTV.setText(nm + " (" + pct + "%)"));
+                        },
+                        () -> false);
+
+                if (!ok) {
+                    uiHandler.post(() -> {
+                        statusTV.setText("Download failed");
+                        installBtn.setText("Install");
+                        installBtn.setBackgroundColor(0xFFCC7700);
+                    });
+                    return;
+                }
+                List<File> exeFiles = new ArrayList<>();
+                AmazonLaunchHelper.collectExe(installDir, exeFiles);
+                if (!exeFiles.isEmpty()) {
+                    String lowerT = dlcTitle.toLowerCase();
+                    Collections.sort(exeFiles, (a, b) ->
+                            AmazonLaunchHelper.scoreExe(b, lowerT) - AmazonLaunchHelper.scoreExe(a, lowerT));
+                    prefs.edit().putString("amazon_exe_" + pidKey,
+                            exeFiles.get(0).getAbsolutePath()).apply();
+                }
+                uiHandler.post(() -> {
+                    statusTV.setText("Installed");
+                    installBtn.setText("Reinstall");
+                    installBtn.setBackgroundColor(0xFF2A3A00);
+                });
+            } catch (Exception e) {
+                uiHandler.post(() -> {
+                    statusTV.setText("Error: " + (e.getMessage() != null ? e.getMessage() : "unknown"));
+                    installBtn.setText("Install");
+                    installBtn.setBackgroundColor(0xFFCC7700);
+                });
+            }
+        }, "amazon-dlc-" + dlcEid).start();
     }
 
     private View makeStubCard(String msg) {

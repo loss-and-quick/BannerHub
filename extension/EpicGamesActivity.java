@@ -41,6 +41,8 @@ import org.json.JSONObject;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -297,11 +299,31 @@ public class EpicGamesActivity extends Activity {
                 }
             }
 
-            // Filter: skip DLC from top-level display
+            // Filter: skip DLC from top-level display; store DLC→base associations in prefs
             List<EpicGame> mainGames = new ArrayList<>();
+            Map<String, JSONArray> epicDlcMap = new HashMap<>();
             for (EpicGame g : games) {
-                if (!g.isDLC) mainGames.add(g);
+                if (!g.isDLC) {
+                    mainGames.add(g);
+                } else if (!g.baseGameCatalogItemId.isEmpty()) {
+                    JSONArray arr = epicDlcMap.get(g.baseGameCatalogItemId);
+                    if (arr == null) { arr = new JSONArray(); epicDlcMap.put(g.baseGameCatalogItemId, arr); }
+                    try {
+                        JSONObject dlcObj = new JSONObject();
+                        dlcObj.put("app",   g.appName);
+                        dlcObj.put("ns",    g.namespace);
+                        dlcObj.put("cat",   g.catalogItemId);
+                        dlcObj.put("title", g.title);
+                        arr.put(dlcObj);
+                    } catch (Exception ignored) {}
+                }
             }
+            // Write DLC lists to prefs (overwrite each time so lists stay fresh)
+            SharedPreferences.Editor dlcEd = prefs.edit();
+            for (Map.Entry<String, JSONArray> e : epicDlcMap.entrySet()) {
+                dlcEd.putString("epic_dlcs_" + e.getKey(), e.getValue().toString());
+            }
+            dlcEd.apply();
             if (mainGames.isEmpty()) mainGames = games;
 
             Collections.sort(mainGames, (a, b) -> a.title.compareToIgnoreCase(b.title));
