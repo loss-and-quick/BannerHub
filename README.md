@@ -47,6 +47,7 @@ Before any stable release is published, all changes are manually debugged and te
 - [How It Works](#how-it-works)
 - [FAQ](#faq)
 - [BannerHub Lite](#bannerhub-lite)
+- [Implementation Reports](#implementation-reports)
 - [Credits](#credits)
 - [Signing](#signing)
 
@@ -84,7 +85,7 @@ All 9 variants can be installed simultaneously. All APKs are signed with AOSP te
 
 Accessible via the left side menu → **GOG**.
 
-For the complete technical implementation breakdown, see [GOG_IMPLEMENTATION.md](GOG_IMPLEMENTATION.md) (API endpoints, auth flow, manifest format, download pipeline, BannerHub integration guide).
+For the complete technical implementation breakdown, see [GOG_IMPLEMENTATION.md](game-store-reports/GOG_IMPLEMENTATION.md) (API endpoints, auth flow, manifest format, download pipeline, BannerHub integration guide).
 
 #### Authentication
 
@@ -145,7 +146,7 @@ BannerHub supports both GOG's current and legacy download systems:
 
 Accessible via the left side menu → **Amazon Games**.
 
-For the complete technical implementation breakdown, see [AMAZON_IMPLEMENTATION.md](AMAZON_IMPLEMENTATION.md) (PKCE auth, GetEntitlements API, manifest.proto format, XZ/LZMA decode, FuelPump env vars, SDK DLL deployment, BannerHub integration guide).
+For the complete technical implementation breakdown, see [AMAZON_IMPLEMENTATION.md](game-store-reports/AMAZON_IMPLEMENTATION.md) (PKCE auth, GetEntitlements API, manifest.proto format, XZ/LZMA decode, FuelPump env vars, SDK DLL deployment, BannerHub integration guide).
 
 *Pipeline based on research by [The GameNative Team](https://github.com/utkarshdalal/GameNative).*
 
@@ -181,7 +182,7 @@ For the complete technical implementation breakdown, see [AMAZON_IMPLEMENTATION.
 
 Accessible via the left side menu → **Epic Games**.
 
-For the complete technical implementation breakdown, see [EPIC_IMPLEMENTATION.md](EPIC_IMPLEMENTATION.md) (OAuth2 auth, library API, manifest format, CDN selection, chunk download pipeline, BannerHub integration guide).
+For the complete technical implementation breakdown, see [EPIC_IMPLEMENTATION.md](game-store-reports/EPIC_IMPLEMENTATION.md) (OAuth2 auth, library API, manifest format, CDN selection, chunk download pipeline, BannerHub integration guide).
 
 *Pipeline based on research by [The GameNative Team](https://github.com/utkarshdalal/GameNative).*
 
@@ -651,6 +652,20 @@ Yes. BannerHub detects the authorization code directly in the redirect URL regar
 | **Launch fix (hardware whitelist bypass)** | No | Yes |
 
 Game configs exported from either app are cross-compatible — see [Per-Game Config Export / Import](#per-game-config-export--import).
+
+---
+
+## Implementation Reports
+
+Detailed technical breakdowns of each store integration and feature set — API endpoints, auth flows, data models, download pipelines, and known gotchas.
+
+| Report | Description |
+|--------|-------------|
+| [GOG_IMPLEMENTATION.md](game-store-reports/GOG_IMPLEMENTATION.md) | GOG API, OAuth2 auth, Gen1/Gen2 depot manifests, download pipeline, cloud saves, DLC, update checker |
+| [EPIC_IMPLEMENTATION.md](game-store-reports/EPIC_IMPLEMENTATION.md) | Epic Games Store API, OAuth2 auth, chunked manifest download, CDN selection, cloud saves, free games, DLC |
+| [AMAZON_IMPLEMENTATION.md](game-store-reports/AMAZON_IMPLEMENTATION.md) | Amazon Games API, PKCE auth, manifest.proto protobuf, XZ/LZMA decode, FuelPump env vars, SDK DLLs |
+| [STEAM_IMPLEMENTATION.md](game-store-reports/STEAM_IMPLEMENTATION.md) | JavaSteam integration, PICS library sync, DepotDownloader, credential + QR auth, depot key caches, critical gotchas |
+| [STORE_FEATURES_REPORT.md](game-store-reports/STORE_FEATURES_REPORT.md) | Cross-store feature comparison matrix |
 
 ---
 
