@@ -5,7 +5,8 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 ---
 
 ### [feat] — v3.1.1-pre1 — Expanded config detail screen (2026-04-24)
-**Commit:** `c48dbb1`  |  **Tag:** v3.1.1-pre1  |  **CI:** run 24895537793 ⏳
+**Commit:** `c48dbb1` + reverts `7ba24bb` `1e96f09`  |  **Tag:** v3.1.1-pre1 (retagged)  |  **CI:** run 24895871530 ⏳
+**Note:** Tag recreated after reverting v3.1.1-pre and v3.1.1-pre2 fix commits — pre1 is now purely the config detail feature on top of v3.1.0.
 #### What changed
 - `BhGameConfigsActivity.fetchMeta()`: expanded meta card from 4 rows to up to 11
 - Now shows: Wine / Proton, DXVK, VKD3D, GPU Driver, FEXCore, Box64, Resolution, Command Line, Env Vars — in addition to existing Renderer, CPU, FPS Cap, BH Version, Settings count, Components count
