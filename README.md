@@ -21,6 +21,7 @@ Before any stable release is published, all changes are manually debugged and te
 ## Table of Contents
 
 - [Installation](#installation)
+- [Keeping BannerHub Updated](#keeping-bannerhub-updated)
 - [Features](#features)
   - [GOG Games](#gog-games)
   - [Amazon Games](#amazon-games)
@@ -76,6 +77,19 @@ If you do not already have any GameHub variant installed, use the **Normal APK**
 All 9 variants can be installed simultaneously. All APKs are signed with AOSP testkey (v1/v2/v3).
 
 > **Note:** You must uninstall your existing BannerHub build before installing a new release if the signing certificate changed. Data is not preserved across uninstall.
+
+---
+
+## Keeping BannerHub Updated
+
+Use **[Obtainium](https://github.com/ImranR98/Obtainium)** to automatically track and install new BannerHub stable releases directly from GitHub — no manual checking required.
+
+Add this repo (`https://github.com/The412Banner/BannerHub`) as an app source in Obtainium. Starting with **v3.4.0**, BannerHub reports its own version number to Android (e.g. `3.4.0`) instead of the base GameHub version, so Obtainium can correctly detect when a new release is available and prompt you to update.
+
+**Required setting:** When adding BannerHub in Obtainium, enable **"Reconcile version string with version detected from OS"**. This tells Obtainium to compare the GitHub release tag against the version installed on your device. Without this, Obtainium may not detect version changes correctly.
+
+> [!WARNING]
+> Only track **stable releases** in Obtainium. Pre-release builds use a different package name (`com.tencent.ig`) and cannot be upgraded to stable without uninstalling first — installing a pre-release over a stable build will break your install.
 
 ---
 
@@ -727,3 +741,4 @@ All APKs are signed with AOSP testkey (`testkey.pk8` / `testkey.x509.pem`), v1 +
 ---
 
 <sub>☕ [Support on Ko-fi](https://ko-fi.com/the412banner)</sub>
+
