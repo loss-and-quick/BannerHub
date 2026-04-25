@@ -4,6 +4,17 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+### [pre] — v3.4.1-pre1 — Fix Frontend Export missing from stable build (2026-04-25)
+**Commit:** `d729899`  |  **Tag:** v3.4.1-pre1  |  **CI:** run 24937880585 🔄
+#### What changed
+- `build.yml` was missing the Frontend Export menu item injection into `GameDetailSettingMenu`
+- `build-quick.yml` already had it — so the option showed in pre-releases but not in v3.4.0 stable
+- Added the `BhFrontendExportLambda` Option block after Import Config, matching the quick build
+#### Files touched
+- `.github/workflows/build.yml`
+
+---
+
 ### [docs] — README: Obtainium auto-update section (2026-04-25)
 **Commit:** `6fbe20e`  |  **Tag:** none  |  **CI:** n/a (docs only)
 #### What changed
