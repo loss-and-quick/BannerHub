@@ -21,6 +21,11 @@ public class BhDashboardDownloadBtn
         onCountChanged(BhDownloadService.getActiveCount());
     }
 
+    public static void attach(Context ctx, View container) {
+        BhDashboardDownloadBtn btn = new BhDashboardDownloadBtn(ctx, container);
+        container.setOnClickListener(btn);
+    }
+
     @Override
     public void onClick(View v) {
         Intent i = new Intent(ctx, BhDownloadsActivity.class);
