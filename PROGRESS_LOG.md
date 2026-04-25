@@ -4,6 +4,19 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+### [feat] — v3.3.1-pre4 — Dynamic versionName + BH_VERSION from tag; phone-home hardcoded to 5.3.5 (2026-04-24)
+**Commit:** `d37fcf4b7`  |  **Tag:** v3.3.1-pre4  |  **CI:** ⏳ (triggered)
+#### What changed
+- CI now strips the `v` prefix from the git tag and injects the result as `versionName` in `apktool.yml` and `BH_VERSION` in `extension/BhSettingsExporter.java` — no more manual bumping of either value on any release
+- `ClientParams.smali` (smali_classes13) and `TokenInterceptor.smali` (smali_classes7): `AppUtils->e()` (getAppVersionName) calls replaced with `const-string "5.3.5"` via CI Python patch so GameHub always phones home as 5.3.5 regardless of what Android displays
+- Android now displays the BH version (e.g. `3.3.1-pre4`); game setting profiles embed the same version automatically
+- **Critical note:** phone-home must stay at 5.3.5 (≥4.1.5). Reporting below 4.0 or between 4.0–4.1.5 causes the GameHub server to hide the Steam card on the dashboard
+#### Files touched
+- `.github/workflows/build.yml`
+- `.github/workflows/build-quick.yml`
+
+---
+
 ### [feat] — v3.3.1-pre2 — Frontend Export dialog description (2026-04-24)
 **Commit:** `028a04534`  |  **Tag:** v3.3.1-pre2  |  **CI:** ⏳ (triggered)
 #### What changed
