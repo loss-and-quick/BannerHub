@@ -4,6 +4,69 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+### [stable] — v3.4.0 — ES-DE frontend export, dynamic versioning (2026-04-25)
+**Commit:** `8e5ac3d`  |  **Tag:** v3.4.0  |  **CI:** run 24935382300 ✅
+#### What changed
+- Cut stable from v3.3.1-pre4; no new code beyond the pre-release series
+- Release description: added Obtainium section (screenshot, "Reconcile version string with version detected from OS" toggle); Installation section now links to README#installation instead of inlining APK details
+#### Files touched
+- n/a (tag-only cut)
+
+---
+
+### [fix] — v3.3.1-pre3 — Restore Beacon/ES-DE items in frontend export dialog (2026-04-25)
+**Commit:** `dd90994`  |  **Tag:** v3.3.1-pre3  |  **CI:** ✅
+#### What changed
+- `setMessage()` and `setItems()` are mutually exclusive in `AlertDialog.Builder` — when both are called, `setItems()` silently drops the items
+- Switched from `setMessage()` to `setCustomTitle()` using a `LinearLayout` containing title `TextView` + description `TextView`; items now render correctly alongside the description
+#### Files touched
+- `extension/BhSettingsExporter.java`
+
+---
+
+### [stable] — v3.3.0 — Background download service, download manager, ES-DE export, expanded config detail (2026-04-25)
+**Commit:** `c284ef2`  |  **Tag:** v3.3.0  |  **CI:** run 24918245723 ✅
+#### What changed
+- Cut stable from v3.2.1-pre9; bundles all download service + manager work and the expanded config detail screen from v3.1.1-pre1
+- Full set of new features: BhDownloadService foreground service, BhDownloadsActivity cross-store download manager, live ⬇ badge on dashboard, persistent game library, ES-DE frontend export, expanded config detail (11 rows), Beacon orphan task fix
+#### Files touched
+- n/a (tag-only cut)
+
+---
+
+### [fix] — v3.2.1-pre9 — Resolve classes11 DEX method ref overflow (2026-04-24)
+**Commit:** `2c0bfda`  |  **Tag:** v3.2.1-pre9  |  **CI:** ✅
+#### What changed
+- pre8 pushed the classes11 DEX over the 64K method reference limit causing a build-time overflow
+- Moved excess methods to a less-loaded DEX bucket to bring classes11 back under the limit
+#### Files touched
+- `.github/workflows/build.yml` / `build-quick.yml` (DEX split config)
+
+---
+
+### [feat] — v3.2.1-pre8 — Live download manager shortcut on dashboard (2026-04-24)
+**Commit:** `845617d`  |  **Tag:** v3.2.1-pre8  |  **CI:** ✅
+#### What changed
+- Replaced the BCI quick-launch button on the BannerHub dashboard with a direct shortcut to `BhDownloadsActivity`
+- Button shows a live red count badge (e.g. **⬇ 2**) when downloads are active, updated in real time as jobs start and finish; returns to plain **⬇** when idle
+- Badge driven by a `BroadcastReceiver` listening for `BhDownloadService` progress events — no polling
+#### Files touched
+- `extension/BhDashboardFragment.java`
+
+---
+
+### [fix] — v3.2.1-pre7 — Uninstall button after cancel/error; refresh game list on exit (2026-04-24)
+**Commit:** `8d0e29e`  |  **Tag:** v3.2.1-pre7  |  **CI:** ✅
+#### What changed
+- Cancelling or erroring a download now correctly shows the **Uninstall** button on the detail screen so partial game folders can be cleaned up without reopening the screen
+- Uninstalling a game inside the download manager now immediately refreshes the game list on return — no more stale installed state after removal
+#### Files touched
+- `extension/BhDownloadsActivity.java`
+- `extension/BhDownloadService.java`
+
+---
+
+
 ### [feat] — v3.3.1-pre4 — Dynamic versionName + BH_VERSION from tag; phone-home hardcoded to 5.3.5 (2026-04-24)
 **Commit:** `d37fcf4b7`  |  **Tag:** v3.3.1-pre4  |  **CI:** ⏳ (triggered)
 #### What changed
@@ -3891,3 +3954,4 @@ Promotes all v3.0.x pre-releases to stable. Bundles:
 
 #### APK variants
 BannerHub-v3.1.0-Normal.apk, Normal.GHL.apk, PuBG.apk, PuBG-CrossFire.apk, Genshin.apk, Ludashi.apk, AnTuTu.apk, alt-AnTuTu.apk, Original.apk
+
