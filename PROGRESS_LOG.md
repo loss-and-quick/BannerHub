@@ -12,8 +12,6 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 #### Files touched
 - `extension/BhSettingsExporter.java`
 
-> **README note for v3.3.1 stable:** Add a link to [RobZombie9043/steam-files-es-de](https://github.com/RobZombie9043/steam-files-es-de) in the ES-DE Frontend Export section as a community resource for pre-made `.steam` files for Steam library / catalog games.
-
 ---
 
 ### [feat] — v3.3.1-pre1 — ES-DE frontend export (.steam file) (2026-04-24)

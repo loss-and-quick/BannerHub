@@ -502,6 +502,8 @@ A separate **Frontend Export** option in the PC game settings popup creates a la
 
 Both use the same game ID logic — `localGameId` for imported games, `getSteamAppId()` for catalog games.
 
+> **ES-DE note:** If the exported `.steam` file doesn't work for a particular game, [RobZombie9043/steam-files-es-de](https://github.com/RobZombie9043/steam-files-es-de) is a community resource with pre-made `.steam` files for Steam catalog games.
+
 #### Import Config
 
 A dialog lets you choose:
