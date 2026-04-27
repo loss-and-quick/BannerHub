@@ -5,7 +5,7 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 ---
 
 ### [pre-release] — v3.4.2-pre7 — feat: install path display on game detail pages (2026-04-27)
-**Commit:** `cc219bf`  |  **Tag:** v3.4.2-pre7  |  **CI:** pending
+**Commit:** `cc219bf`  |  **Tag:** v3.4.2-pre7  |  **CI:** run 25019459591 ✅
 #### What changed
 - GOG, Epic, and Amazon game detail pages now show the full install path below the `.exe` row in the ACTIONS card
 - Path is visible only when the game is installed; hidden otherwise
@@ -17,8 +17,47 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+### [pre-release] — v3.4.2-pre6 — fix(ui): hide system bars in Component Manager + Component Download (2026-04-27)
+**Commit:** `(pre6)`  |  **Tag:** v3.4.2-pre6  |  **CI:** run 25019028444 ✅
+#### What changed
+- Smali injection in `ComponentManagerActivity.onCreate`: bumped `.locals 0` → `.locals 3`, injected `WindowInsetsController.hide(statusBars|navBars)` + `setSystemBarsBehavior(BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE)`
+- Added `onWindowFocusChanged` to `ComponentManagerActivity` (re-hides bars on focus return)
+- Same injection in `ComponentDownloadActivity.onCreate` (already had `.locals 8`; added after `setContentView`)
+- Added `onWindowFocusChanged` to `ComponentDownloadActivity`
+- Key smali fix: `navigationBars()I` returns int — must use `move-result v2`, NOT `move-result-object`
+#### Files touched
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/ComponentManagerActivity.smali`
+- `patches/smali_classes16/com/xj/landscape/launcher/ui/menu/ComponentDownloadActivity.smali`
+
+---
+
+### [pre-release] — v3.4.2-pre5 — fix(ui): hide system bars in detail pages + download manager (2026-04-27)
+**Commit:** `(pre5)`  |  **Tag:** v3.4.2-pre5  |  **CI:** run 25018854491 ✅
+#### What changed
+- Added `hideSystemBars()` + `onWindowFocusChanged` to `GogGameDetailActivity`, `EpicGameDetailActivity`, `AmazonGameDetailActivity`, `BhDownloadsActivity`
+#### Files touched
+- `extension/GogGameDetailActivity.java`
+- `extension/EpicGameDetailActivity.java`
+- `extension/AmazonGameDetailActivity.java`
+- `extension/BhDownloadsActivity.java`
+
+---
+
+### [pre-release] — v3.4.2-pre4 — fix(ui): hide status and nav bars in GOG/Epic/Amazon store screens (2026-04-27)
+**Commit:** `(pre4)`  |  **Tag:** v3.4.2-pre4  |  **CI:** run 25018293987 ✅
+#### What changed
+- Status bar and navigation bar were overlapping buttons at the top of all three store list screens
+- Added `hideSystemBars()` using `WindowInsetsController` (API 30+) with legacy `setSystemUiVisibility` fallback
+- Added `onWindowFocusChanged` override to re-apply on focus return
+#### Files touched
+- `extension/GogGamesActivity.java`
+- `extension/EpicGamesActivity.java`
+- `extension/AmazonGamesActivity.java`
+
+---
+
 ### [pre-release] — v3.4.2-pre3 — fix: GOG uninstall now deletes from SD card correctly (2026-04-27)
-**Commit:** `1ff9b4c`  |  **Tag:** v3.4.2-pre3  |  **CI:** run 25015554884 (in progress)
+**Commit:** `1ff9b4c`  |  **Tag:** v3.4.2-pre3  |  **CI:** run 25015554884 ✅
 #### What changed
 - `GogDownloadManager` now saves the full absolute install path to `gog_dir_` pref (e.g. `/storage/XXXX/bannerhub/gog_games/Gun Slugs 2`) instead of just the folder name (`"Gun Slugs 2"`)
 - `GogGamesActivity` uninstall now reads that absolute path directly and deletes it — no path reconstruction via `BhStoragePath` needed
