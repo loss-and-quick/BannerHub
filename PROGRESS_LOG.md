@@ -4,6 +4,19 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+### [pre-release] — v3.4.2-pre7 — feat: install path display on game detail pages (2026-04-27)
+**Commit:** `cc219bf`  |  **Tag:** v3.4.2-pre7  |  **CI:** pending
+#### What changed
+- GOG, Epic, and Amazon game detail pages now show the full install path below the `.exe` row in the ACTIONS card
+- Path is visible only when the game is installed; hidden otherwise
+- Reads from `gog_dir_{gameId}`, `epic_dir_{appName}`, `amazon_dir_{productId}` prefs (already stores full absolute path since pre3)
+#### Files touched
+- `extension/GogGameDetailActivity.java`
+- `extension/EpicGameDetailActivity.java`
+- `extension/AmazonGameDetailActivity.java`
+
+---
+
 ### [pre-release] — v3.4.2-pre3 — fix: GOG uninstall now deletes from SD card correctly (2026-04-27)
 **Commit:** `1ff9b4c`  |  **Tag:** v3.4.2-pre3  |  **CI:** run 25015554884 (in progress)
 #### What changed
