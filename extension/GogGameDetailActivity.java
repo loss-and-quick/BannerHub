@@ -59,7 +59,7 @@ public class GogGameDetailActivity extends Activity {
 
     // Action section views (need refs for live updates)
     private Button launchBtn, installBtn, setExeBtn, uninstallBtn, copyBtn;
-    private TextView exeNameTV, sizeTV;
+    private TextView exeNameTV, installPathTV, sizeTV;
     private ProgressBar progressBar;
     private TextView progressLabel;
     private Runnable cancelDownload;
@@ -275,8 +275,15 @@ public class GogGameDetailActivity extends Activity {
         exeNameTV = new TextView(this);
         exeNameTV.setTextColor(0xFF888888);
         exeNameTV.setTextSize(12f);
-        exeNameTV.setPadding(0, 0, 0, dp(8));
+        exeNameTV.setPadding(0, 0, 0, dp(4));
         card.addView(exeNameTV);
+
+        installPathTV = new TextView(this);
+        installPathTV.setTextColor(0xFF666666);
+        installPathTV.setTextSize(11f);
+        installPathTV.setPadding(0, 0, 0, dp(8));
+        installPathTV.setVisibility(View.GONE);
+        card.addView(installPathTV);
 
         // Progress bar + label
         progressBar = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
@@ -473,8 +480,11 @@ public class GogGameDetailActivity extends Activity {
         if (installed) {
             exeNameTV.setText(".exe: " + new File(exe).getName());
             exeNameTV.setVisibility(View.VISIBLE);
+            installPathTV.setText("Path: " + dir);
+            installPathTV.setVisibility(View.VISIBLE);
         } else {
             exeNameTV.setVisibility(View.GONE);
+            installPathTV.setVisibility(View.GONE);
         }
 
         launchBtn.setVisibility(installed ? View.VISIBLE : View.GONE);

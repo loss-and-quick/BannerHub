@@ -46,7 +46,7 @@ public class AmazonGameDetailActivity extends Activity {
     private String productId, entitlementId, title, developer, publisher, artUrl, productSku;
 
     private Button launchBtn, installBtn, setExeBtn, uninstallBtn;
-    private TextView exeNameTV, sizeTV;
+    private TextView exeNameTV, installPathTV, sizeTV;
     private ProgressBar progressBar;
     private TextView progressLabel;
     private Runnable cancelDownload;
@@ -220,8 +220,15 @@ public class AmazonGameDetailActivity extends Activity {
         exeNameTV = new TextView(this);
         exeNameTV.setTextColor(0xFF888888);
         exeNameTV.setTextSize(12f);
-        exeNameTV.setPadding(0, 0, 0, dp(8));
+        exeNameTV.setPadding(0, 0, 0, dp(4));
         card.addView(exeNameTV);
+
+        installPathTV = new TextView(this);
+        installPathTV.setTextColor(0xFF666666);
+        installPathTV.setTextSize(11f);
+        installPathTV.setPadding(0, 0, 0, dp(8));
+        installPathTV.setVisibility(View.GONE);
+        card.addView(installPathTV);
 
         progressBar = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
         progressBar.setMax(100);
@@ -404,6 +411,10 @@ public class AmazonGameDetailActivity extends Activity {
 
         exeNameTV.setVisibility(installed ? View.VISIBLE : View.GONE);
         if (installed) exeNameTV.setText(".exe: " + new File(exe).getName());
+        if (installPathTV != null) {
+            installPathTV.setVisibility(dir != null ? View.VISIBLE : View.GONE);
+            if (dir != null) installPathTV.setText("Path: " + dir);
+        }
 
         launchBtn.setVisibility(installed ? View.VISIBLE : View.GONE);
         installBtn.setVisibility(installed ? View.GONE : View.VISIBLE);
