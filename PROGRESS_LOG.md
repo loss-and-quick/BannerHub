@@ -5,7 +5,7 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 ---
 
 ### [pre-release] — v3.4.2-pre2 — feat: SD card storage toggle routes GOG/Epic/Amazon downloads to SD card (2026-04-27)
-**Commit:** (pending)  |  **Tag:** v3.4.2-pre2  |  **CI:** (pending)
+**Commit:** `a91f0b0`  |  **Tag:** v3.4.2-pre2  |  **CI:** run 25003766750 (in progress)
 #### What changed
 - Rewrote the SD Card Storage toggle behaviour — when enabled, GOG, Epic, and Amazon downloads now install to the SD card instead of internal storage
 - New helper `BhStoragePath.java`: reads `use_custom_storage` + `steam_storage_path` prefs (set by the existing toggle detection logic) and returns `{sdCardRoot}/bannerhub/{storeFolder}/{gameName}` when on, `{filesDir}/{storeFolder}/{gameName}` when off
