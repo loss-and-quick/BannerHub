@@ -4,8 +4,22 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+### [pre-release] — v3.4.2-pre3 — fix: GOG uninstall now deletes from SD card correctly (2026-04-27)
+**Commit:** `1ff9b4c`  |  **Tag:** v3.4.2-pre3  |  **CI:** run 25015554884 (in progress)
+#### What changed
+- `GogDownloadManager` now saves the full absolute install path to `gog_dir_` pref (e.g. `/storage/XXXX/bannerhub/gog_games/Gun Slugs 2`) instead of just the folder name (`"Gun Slugs 2"`)
+- `GogGamesActivity` uninstall now reads that absolute path directly and deletes it — no path reconstruction via `BhStoragePath` needed
+- Fixes GOG games not being deleted on uninstall when installed to SD card
+- Same pattern Amazon and Epic already used successfully
+- `BhDownloadsActivity` GOG uninstall already used `new File(dir)` so it works automatically with the new full path
+#### Files touched
+- `extension/GogDownloadManager.java`
+- `extension/GogGamesActivity.java`
+
+---
+
 ### [pre-release] — v3.4.2-pre2 — feat: SD card storage toggle routes GOG/Epic/Amazon downloads to SD card (2026-04-27)
-**Commit:** `a91f0b0`  |  **Tag:** v3.4.2-pre2  |  **CI:** run 25003766750 (in progress)
+**Commit:** `a91f0b0`  |  **Tag:** v3.4.2-pre2  |  **CI:** run 25003766750 ✅
 #### What changed
 - Rewrote the SD Card Storage toggle behaviour — when enabled, GOG, Epic, and Amazon downloads now install to the SD card instead of internal storage
 - New helper `BhStoragePath.java`: reads `use_custom_storage` + `steam_storage_path` prefs (set by the existing toggle detection logic) and returns `{sdCardRoot}/bannerhub/{storeFolder}/{gameName}` when on, `{filesDir}/{storeFolder}/{gameName}` when off
