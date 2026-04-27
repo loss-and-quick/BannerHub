@@ -4,6 +4,18 @@ Tracks every commit, patch, and change applied to the GameHub 5.3.5 ReVanced APK
 
 ---
 
+### [pre-release] — v3.4.2-pre8 — fix(gog): align detail page doUninstall with download manager (2026-04-27)
+**Commit:** `8865804`  |  **Tag:** v3.4.2-pre8  |  **CI:** pending
+#### What changed
+- `GogGameDetailActivity.doUninstall()` was calling `GogInstallPath.getInstallDir(this, dirName)` to reconstruct the path instead of using the stored absolute path directly
+- Changed to `new File(dirName)` — same pattern as `BhDownloadsActivity` and `GogGamesActivity`
+- Was accidentally working post-pre3 because Java ignores parent when child is absolute; fixed to be correct by design
+- Epic and Amazon detail pages already used `new File(dir)` — no change needed
+#### Files touched
+- `extension/GogGameDetailActivity.java` (line 457)
+
+---
+
 ### [pre-release] — v3.4.2-pre7 — feat: install path display on game detail pages (2026-04-27)
 **Commit:** `cc219bf`  |  **Tag:** v3.4.2-pre7  |  **CI:** run 25019459591 ✅
 #### What changed
