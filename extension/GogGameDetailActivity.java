@@ -59,7 +59,8 @@ public class GogGameDetailActivity extends Activity {
 
     // Action section views (need refs for live updates)
     private Button launchBtn, installBtn, setExeBtn, uninstallBtn, copyBtn;
-    private TextView exeNameTV, installPathTV, sizeTV;
+    private TextView exeNameTV, installPathTV, storageTypeBadgeTV, sizeTV;
+    private View installPathRow;
     private ProgressBar progressBar;
     private TextView progressLabel;
     private Runnable cancelDownload;
@@ -278,12 +279,28 @@ public class GogGameDetailActivity extends Activity {
         exeNameTV.setPadding(0, 0, 0, dp(4));
         card.addView(exeNameTV);
 
+        LinearLayout pathRow = new LinearLayout(this);
+        pathRow.setOrientation(LinearLayout.HORIZONTAL);
+        pathRow.setGravity(Gravity.CENTER_VERTICAL);
+        pathRow.setPadding(0, 0, 0, dp(8));
+        pathRow.setVisibility(View.GONE);
+        installPathRow = pathRow;
+
         installPathTV = new TextView(this);
         installPathTV.setTextColor(0xFF666666);
         installPathTV.setTextSize(11f);
-        installPathTV.setPadding(0, 0, 0, dp(8));
-        installPathTV.setVisibility(View.GONE);
-        card.addView(installPathTV);
+        LinearLayout.LayoutParams pathLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+        pathLp.setMarginEnd(dp(6));
+        installPathTV.setLayoutParams(pathLp);
+        pathRow.addView(installPathTV);
+
+        storageTypeBadgeTV = new TextView(this);
+        storageTypeBadgeTV.setTextSize(10f);
+        storageTypeBadgeTV.setTypeface(null, Typeface.BOLD);
+        storageTypeBadgeTV.setPadding(dp(6), dp(2), dp(6), dp(2));
+        pathRow.addView(storageTypeBadgeTV);
+
+        card.addView(pathRow);
 
         // Progress bar + label
         progressBar = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
@@ -488,6 +505,27 @@ public class GogGameDetailActivity extends Activity {
 
     // ── State refresh ─────────────────────────────────────────────────────────
 
+    private void updateStorageBadge(String dir) {
+        if (installPathRow == null) return;
+        installPathTV.setText("Path: " + dir);
+        SharedPreferences sp = getSharedPreferences("steam_storage_pref", 0);
+        String sdPath = sp.getString("steam_storage_path", null);
+        boolean isSD = sdPath != null && !sdPath.isEmpty() && dir.startsWith(sdPath);
+        GradientDrawable badge = new GradientDrawable();
+        badge.setCornerRadius(dp(10));
+        if (isSD) {
+            badge.setColor(0xFF1B3A1B);
+            storageTypeBadgeTV.setTextColor(0xFF66BB6A);
+            storageTypeBadgeTV.setText("💾 SD Card");
+        } else {
+            badge.setColor(0xFF2A2A2A);
+            storageTypeBadgeTV.setTextColor(0xFF888888);
+            storageTypeBadgeTV.setText("📱 Internal");
+        }
+        storageTypeBadgeTV.setBackground(badge);
+        installPathRow.setVisibility(View.VISIBLE);
+    }
+
     private void refreshActionState() {
         if (exeNameTV == null) return;
         String exe = prefs.getString("gog_exe_" + gameId, null);
@@ -497,11 +535,10 @@ public class GogGameDetailActivity extends Activity {
         if (installed) {
             exeNameTV.setText(".exe: " + new File(exe).getName());
             exeNameTV.setVisibility(View.VISIBLE);
-            installPathTV.setText("Path: " + dir);
-            installPathTV.setVisibility(View.VISIBLE);
+            updateStorageBadge(dir);
         } else {
             exeNameTV.setVisibility(View.GONE);
-            installPathTV.setVisibility(View.GONE);
+            if (installPathRow != null) installPathRow.setVisibility(View.GONE);
         }
 
         launchBtn.setVisibility(installed ? View.VISIBLE : View.GONE);
