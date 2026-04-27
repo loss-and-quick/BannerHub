@@ -1118,7 +1118,7 @@ public class GogGamesActivity extends Activity {
                 String dirName = prefs.getString("gog_dir_" + game.gameId, null);
                 if (dirName != null) {
                     new Thread(() -> {
-                        java.io.File dir = GogInstallPath.getInstallDir(this, dirName);
+                        java.io.File dir = new java.io.File(dirName);
                         deleteDir(dir);
                         prefs.edit()
                                 .remove("gog_dir_" + game.gameId)
@@ -1359,7 +1359,7 @@ public class GogGamesActivity extends Activity {
         String dirName = prefs.getString("gog_dir_" + game.gameId, null);
         if (dirName != null) {
             new Thread(() -> {
-                java.io.File installPath = GogInstallPath.getInstallDir(this, dirName);
+                java.io.File installPath = new java.io.File(dirName);
                 deleteDir(installPath);
                 prefs.edit()
                         .remove("gog_dir_" + game.gameId)

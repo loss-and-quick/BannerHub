@@ -444,7 +444,7 @@ public final class GogDownloadManager {
 
             // Save install dir + build ID + client ID before exe resolution
             SharedPreferences.Editor ed0 = ctx.getSharedPreferences("bh_gog_prefs", 0).edit();
-            ed0.putString("gog_dir_" + game.gameId, installDir);
+            ed0.putString("gog_dir_" + game.gameId, installPath.getAbsolutePath());
             if (buildId != null && !buildId.isEmpty()) {
                 ed0.putString("gog_build_" + game.gameId, buildId);
             }
@@ -632,7 +632,7 @@ public final class GogDownloadManager {
             cb.onProgress("Install complete!", 100);
 
             SharedPreferences.Editor ed0 = ctx.getSharedPreferences("bh_gog_prefs", 0).edit();
-            ed0.putString("gog_dir_" + game.gameId, installDir);
+            ed0.putString("gog_dir_" + game.gameId, installPath.getAbsolutePath());
             ed0.apply();
 
             List<String> candidates = collectExeCandidates(installPath);
@@ -725,7 +725,7 @@ public final class GogDownloadManager {
 
             // Save prefs
             SharedPreferences.Editor ed = ctx.getSharedPreferences("bh_gog_prefs", 0).edit();
-            ed.putString("gog_dir_" + game.gameId, game.title);
+            ed.putString("gog_dir_" + game.gameId, installDir.getAbsolutePath());
             ed.putString("gog_exe_" + game.gameId, outFile.getAbsolutePath());
             ed.apply();
 
